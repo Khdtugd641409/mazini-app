@@ -138,7 +138,7 @@ function Button({ children, onClick, variant = 'primary', className = '', type =
 }
 
 function Card({ children, className = '' }) {
-  return <div className={`rounded-3xl border border-stone-200 bg-white p-5 shadow-sm ${className}`}>{children}</div>;
+  return <div className={`rounded-[1.4rem] border border-stone-200 bg-white p-4 shadow-sm ${className}`}>{children}</div>;
 }
 
 function Field({ label, children, hint }) {
@@ -161,9 +161,9 @@ function Select(props) {
 
 function Stat({ label, value, note }) {
   return (
-    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+    <div className="rounded-2xl border border-stone-200 bg-stone-50 p-3.5">
       <div className="text-xs text-stone-500">{label}</div>
-      <div className="mt-2 text-xl font-black text-stone-900">{value}</div>
+      <div className="mt-1.5 text-lg font-black text-stone-900 md:text-xl">{value}</div>
       {note && <div className="mt-1 text-xs text-stone-400">{note}</div>}
     </div>
   );
@@ -384,6 +384,10 @@ export default function App() {
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { margin: 0; }
+        @media (max-width: 640px) {
+          button { min-height: 44px; }
+          .mobile-tight { padding-top: 1rem; padding-bottom: 1rem; }
+        }
       `}</style>
 
       {toast && (
@@ -394,7 +398,7 @@ export default function App() {
 
       {page === 'home' && (
         <div>
-          <header className="border-b border-stone-200 bg-stone-50 px-4 py-4">
+          <header className="border-b border-stone-200 bg-stone-50 px-4 py-3">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
               <Brand />
               <Button variant="ghost" onClick={() => setPage('role-hub')}><Menu className="h-5 w-5" /> الدخول</Button>
@@ -402,41 +406,43 @@ export default function App() {
           </header>
 
           <main className="mx-auto max-w-6xl px-4 py-6 md:py-12">
-            <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 p-7 text-white shadow-2xl md:p-12">
+            <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-5 py-7 text-white shadow-xl md:p-10">
               <Badge tone="gold">حرية الاختيار دون التخلي عن التمويل</Badge>
-              <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight md:text-6xl">
+              <h1 className="mt-4 max-w-4xl text-[2.35rem] font-black leading-[1.22] md:text-6xl">
                 اشترِ عن طريق البنك… لكن بمنزلك الذي اخترته أنت.
               </h1>
-              <p className="mt-5 max-w-3xl text-lg leading-8 text-emerald-50/85">
+              <p className="mt-4 max-w-3xl text-base leading-7 text-emerald-50/85 md:text-lg md:leading-8">
                 اختر الأرض والتصميم والمقاول والمواد. تنظم المنصة الرحلة، ويوثّق مدير المشروع المراحل، ويموّل المستثمرون المشروع حتى البيع والإفراغ.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                 <Button variant="secondary" onClick={() => setPage('customer-apply')}>تقديم طلب عميل</Button>
                 <Button className="bg-amber-500 text-emerald-950 hover:bg-amber-400" onClick={() => setPage('role-hub')}>استعراض المنصة <ChevronLeft className="h-4 w-4" /></Button>
               </div>
             </section>
 
-            <section className="mt-8 grid gap-4 md:grid-cols-4">
+            <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat label="الدفعة المقدمة" value="12%" note="تظهر للعميل قبل الإرسال" />
               <Stat label="حد التكلفة" value="80%" note="من عرض البنك" />
               <Stat label="هامش السيولة" value="20%" note="فوق تكلفة المشروع" />
               <Stat label="العائد المتوقع" value="9%" note="للمستثمرين في المتوسط" />
             </section>
 
-            <section className="mt-10">
+            <section className="mt-8">
               <h2 className="text-2xl font-black">كيف تعمل الخدمة؟</h2>
               <p className="mt-2 text-stone-500">المنصة تنظم، وكل طرف يختار ما يناسبه ضمن القواعد.</p>
-              <div className="mt-5 grid gap-4 md:grid-cols-4">
+              <div className="mt-4 grid gap-3 lg:grid-cols-4">
                 {[
                   [MapPin, 'اختر الأرض', 'يختارها العميل وتُشترى باسم جهة التملك.'],
                   [Building2, 'صمّم ونفّذ', 'العميل يختار المكتب والمقاول والمواد.'],
                   [WalletCards, 'يموّل المستثمرون', 'لا يفتح المشروع دون اكتمال التكلفة وهامش الأمان.'],
                   [Landmark, 'يشتري البنك', 'يمكن البيع في أي مرحلة ثم يُغلق المشروع.'],
                 ].map(([Icon, title, description]) => (
-                  <Card key={title}>
-                    <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-800"><Icon className="h-6 w-6" /></div>
-                    <h3 className="mt-4 font-black">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-stone-500">{description}</p>
+                  <Card key={title} className="flex items-start gap-4 lg:block">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-800 lg:h-12 lg:w-12"><Icon className="h-5 w-5 lg:h-6 lg:w-6" /></div>
+                    <div className="min-w-0">
+                      <h3 className="font-black lg:mt-4">{title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-stone-500 lg:mt-2">{description}</p>
+                    </div>
                   </Card>
                 ))}
               </div>
