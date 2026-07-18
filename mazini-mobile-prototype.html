@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>منصة المزيني</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--ink:#16231f;--muted:#6b756f;--brand:#173e35;--accent:#b58b4d;--line:#ded8cc;--ok:#1f7a55;--warn:#a56a16}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:linear-gradient(#f8f5ef,#eee8dd);color:var(--ink)}
+header{position:sticky;top:0;z-index:5;background:rgba(248,245,239,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;gap:10px;align-items:center;font-weight:800}.logo{width:40px;height:40px;border-radius:14px;background:var(--brand);color:#fff;display:grid;place-items:center}
+small,.muted{color:var(--muted)}main{padding:18px 14px 50px;max-width:1100px;margin:auto}
+.hero{background:linear-gradient(145deg,#173e35,#2d6657);color:#fff;border-radius:28px;padding:30px 22px;box-shadow:0 16px 50px rgba(20,40,33,.18)}
+.hero h1{font-size:38px;line-height:1.2;margin:12px 0}.hero p{line-height:1.9;color:#e6ece8}.tag{color:#e1c89c;font-weight:700;font-size:13px}
+.btn{border:0;border-radius:13px;padding:12px 16px;font:inherit;cursor:pointer}.primary{background:var(--brand);color:#fff}.light{background:#fff;color:var(--brand);border:1px solid var(--line)}.ghost{background:transparent;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 8px 28px rgba(20,40,33,.06)}.role{cursor:pointer;min-height:150px}.role:hover{transform:translateY(-2px)}
+section{margin-top:26px}h2{margin:0 0 8px}.task{background:#fff;border:1px solid var(--line);border-radius:24px;padding:22px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#faf8f3;border:1px solid var(--line);padding:14px;border-radius:16px}.stat b{font-size:23px;display:block;margin-top:5px}
+.list{display:grid;gap:9px}.row{display:flex;justify-content:space-between;gap:12px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#faf8f3}.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#e7f5ef;color:var(--ok)}
+.progress{height:10px;background:#eae4d9;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#dfc28c)}
+.field{display:grid;gap:6px}.field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hidden{display:none!important}.pagehead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}
+@media(max-width:760px){.g4,.g2,.stats,.form{grid-template-columns:1fr}.hero h1{font-size:31px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">م</div><div>منصة المزيني<br><small>لإدارة مشاريع البناء الممول حسب اختيار العميل</small></div></div>
+  <button class="btn ghost" onclick="show('home')">الرئيسية</button>
+</header>
+<main>
+<div id="home">
+  <div class="hero">
+    <div class="tag">حرية الاختيار دون التخلي عن التمويل</div>
+    <h1>اشترِ عن طريق البنك… لكن بمنزلك الذي اخترته أنت.</h1>
+    <p>اختر الأرض والتصميم والمقاول والمواد. تنظم المنصة رحلة المشروع، ويوثّق مدير المشروع المراحل، ويموّل المستثمرون المشروع حتى البيع والإفراغ.</p>
+    <div class="actions"><button class="btn light" onclick="show('apply')">تقديم طلب عميل</button></div>
+  </div>
+  <section>
+    <h2>جرّب المنصة حسب الدور</h2>
+    <p class="muted">كل طرف يرى ما يحتاجه الآن فقط.</p>
+    <div class="grid g4">
+      <div class="card role" onclick="show('customer')"><h3>🏠 العميل</h3><p class="muted">متابعة المشروع والاختيار والبيع أو التقبيل.</p></div>
+      <div class="card role" onclick="show('investor')"><h3>💼 المستثمر</h3><p class="muted">اختيار الفرص وتمويلها ومتابعة العائد.</p></div>
+      <div class="card role" onclick="show('manager')"><h3>📋 مدير المشروع</h3><p class="muted">اختيار المشاريع وتوثيق المراحل.</p></div>
+      <div class="card role" onclick="show('admin')"><h3>⚙️ الإدارة</h3><p class="muted">القبول والحوكمة والاستثناءات.</p></div>
+    </div>
+  </section>
+</div>
+
+<div id="apply" class="hidden">
+  <div class="pagehead"><div><h2>تقديم طلب مشروع</h2><p class="muted">لا يحتاج إلى تسجيل مسبق.</p></div><button class="btn ghost" onclick="show('home')">رجوع</button></div>
+  <div class="card">
+    <div class="form">
+      <div class="field"><label>نوع المشروع</label><select><option>فيلا</option><option>دور</option></select></div>
+      <div class="field"><label>المساحة</label><input value="450"></div>
+      <div class="field"><label>قيمة عرض البنك</label><input id="bank" type="number" value="1400000" oninput="calc()"></div>
+      <div class="field"><label>التكلفة التقديرية</label><input id="cost" type="number" value="1000000" oninput="calc()"></div>
+    </div>
+    <section class="stats">
+      <div class="stat"><span class="muted">الدفعة 12%</span><b id="dep">120,000 ر.س</b></div>
+      <div class="stat"><span class="muted">حد 80%</span><b id="lim">1,120,000 ر.س</b></div>
+      <div class="stat"><span class="muted">الأهلية</span><b id="elig" style="color:var(--ok)">مؤهل</b></div>
+      <div class="stat"><span class="muted">هامش الأمان</span><b>20%</b></div>
+    </section>
+    <div class="actions"><button class="btn primary" onclick="alert('تم إرسال الطلب التجريبي')">إرسال الطلب</button></div>
+  </div>
+</div>
+
+<div id="customer" class="hidden">
+  <div class="pagehead"><div><h2>مشروع MZ-2026-0048</h2><p class="muted">فيلا — الرياض — 450م²</p></div><span class="badge">مقبول</span></div>
+  <div class="task"><small>المطلوب الآن</small><h2>اختيار المقاول</h2><p class="muted">اختر من داخل المنصة أو أضف مقاولًا خارجيًا لاعتماده.</p><div class="actions"><button class="btn primary" onclick="alert('قائمة المقاولين')">اختيار مقاول</button><button class="btn light" onclick="alert('إضافة متعهد خارجي')">إضافة خارجي</button></div></div>
+  <section class="stats">
+    <div class="stat"><span class="muted">التكلفة التقديرية</span><b>1,000,000</b></div>
+    <div class="stat"><span class="muted">التكلفة الفعلية</span><b>364,000</b></div>
+    <div class="stat"><span class="muted">المنقضي</span><b>67 يومًا</b></div>
+    <div class="stat"><span class="muted">المتبقي</span><b>233 يومًا</b></div>
+  </section>
+  <section class="grid g2">
+    <div class="card"><h3>حالة المشروع</h3><p class="muted">مرحلة القواعد — 32%</p><div class="progress"><i style="width:32%"></i></div></div>
+    <div class="card"><h3>خيارات المشروع</h3><div class="list"><div class="row"><span>تمويل بنكي</span><button class="btn light">بدء</button></div><div class="row"><span>بيع مباشر وإغلاق</span><button class="btn light">عرض</button></div><div class="row"><span>تقبيل العقد</span><button class="btn light">عرض</button></div></div></div>
+  </section>
+</div>
+
+<div id="investor" class="hidden">
+  <div class="pagehead"><div><h2>فرص الاستثمار</h2><p class="muted">مشاريع جديدة وحصص معروضة.</p></div><span class="badge">مستثمر معتمد</span></div>
+  <div class="grid g2">
+    <div class="card"><h3>تمويل مشروع جديد</h3><div class="list"><div class="row"><span>التكلفة</span><b>1,000,000</b></div><div class="row"><span>المطلوب مع هامش 20%</span><b>1,200,000</b></div><div class="row"><span>العائد المتوقع</span><b>9%</b></div></div><p class="muted">760,000 / 1,200,000</p><div class="progress"><i style="width:63%"></i></div><div class="actions"><button class="btn primary" onclick="alert('حجز تمويل')">حجز تمويل</button></div></div>
+    <div class="card"><h3>حصة معروضة للبيع</h3><div class="list"><div class="row"><span>قيمة الحصة</span><b>230,000</b></div><div class="row"><span>المدة المتبقية</span><b>5 أشهر</b></div><div class="row"><span>العائد المتبقي</span><b>26,000</b></div></div><div class="actions"><button class="btn primary">طلب شراء الحصة</button></div></div>
+  </div>
+</div>
+
+<div id="manager" class="hidden">
+  <div class="pagehead"><div><h2>لوحة مدير المشروع</h2><p class="muted">اختر المشروع المناسب لك، ولا يفرض عليك شيء.</p></div><span class="badge">معتمد</span></div>
+  <div class="task"><small>مهمة حالية</small><h2>توثيق مرحلة القواعد</h2><p class="muted">بقي 19 ساعة من مهلة 48 ساعة.</p><button class="btn primary">توثيق المرحلة</button></div>
+  <section class="grid g2"><div class="card"><h3>مشروع جديد</h3><p>فيلا — شمال الرياض — 420م²</p><div class="row"><span>أتعاب المدير</span><b>1.5%</b></div><div class="actions"><button class="btn primary">التقدم</button><button class="btn light">تجاهل</button></div></div><div class="card"><h3>مشروع مسحوب من مدير</h3><p>دور — الخرج — مرحلة العظم</p><div class="actions"><button class="btn primary">التقدم</button><button class="btn light">تجاهل</button></div></div></section>
+</div>
+
+<div id="admin" class="hidden">
+  <div class="pagehead"><div><h2>إدارة المنصة</h2><p class="muted">تظهر الحالات التي تحتاج قرارًا فقط.</p></div><span class="badge">جهة التملك: نايف المزيني</span></div>
+  <div class="stats"><div class="stat"><span class="muted">طلبات العملاء</span><b>8</b></div><div class="stat"><span class="muted">طلبات المستثمرين</span><b>4</b></div><div class="stat"><span class="muted">طلبات المديرين</span><b>11</b></div><div class="stat"><span class="muted">المشاريع النشطة</span><b>42</b></div></div>
+  <section class="grid g2"><div class="card"><h3>الاستثناءات</h3><div class="list"><div class="row"><span>مدير تجاوز 48 ساعة</span><button class="btn light">مراجعة</button></div><div class="row"><span>طلب بيع في مرحلة العظم</span><button class="btn light">مراجعة</button></div></div></div><div class="card"><h3>السياسات</h3><div class="list"><div class="row"><span>العربون</span><b>12%</b></div><div class="row"><span>رسوم المنصة</span><b>1.5%</b></div><div class="row"><span>أتعاب المدير</span><b>1.5%</b></div><div class="row"><span>هامش الأمان</span><b>20%</b></div></div></div></section>
+</div>
+</main>
+<script>
+function show(id){document.querySelectorAll('main>div').forEach(x=>x.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');scrollTo(0,0)}
+function fmt(n){return new Intl.NumberFormat('ar-SA').format(n)+' ر.س'}
+function calc(){let b=+document.getElementById('bank').value||0,c=+document.getElementById('cost').value||0;dep.textContent=fmt(c*.12);lim.textContent=fmt(b*.8);let ok=c<=b*.8;elig.textContent=ok?'مؤهل':'يحتاج تعهد فرق التكلفة';elig.style.color=ok?'var(--ok)':'#9d3b3b'}
+</script>
+</body>
+</html>
