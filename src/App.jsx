@@ -420,12 +420,7 @@ export default function App() {
               </div>
             </section>
 
-            <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Stat label="الدفعة المقدمة" value="12%" note="تظهر للعميل قبل الإرسال" />
-              <Stat label="حد التكلفة" value="80%" note="من عرض البنك" />
-              <Stat label="هامش السيولة" value="20%" note="فوق تكلفة المشروع" />
-              <Stat label="العائد المتوقع" value="9%" note="للمستثمرين في المتوسط" />
-            </section>
+
 
             <section className="mt-8">
               <h2 className="text-2xl font-black">كيف تعمل الخدمة؟</h2>
