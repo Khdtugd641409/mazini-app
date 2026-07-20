@@ -100,7 +100,7 @@ function Brand({ compact = false }) {
         م
       </div>
       <div>
-        <div className="font-black text-stone-900">منصة المزيني</div>
+        <div className="font-black text-stone-900">منصة نايف المزيني</div>
         {!compact && <div className="text-xs text-stone-500">لإدارة مشاريع البناء الممول حسب اختيار العميل</div>}
       </div>
     </div>
@@ -373,7 +373,7 @@ export default function App() {
   if (loading) {
     return (
       <div dir="rtl" className="grid min-h-screen place-items-center bg-stone-50 text-stone-600">
-        جاري تحميل بيانات المنصة...
+        جاري إحضار العالم بين يديك...
       </div>
     );
   }
@@ -409,7 +409,7 @@ export default function App() {
             <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-5 py-7 text-white shadow-xl md:p-10">
               <Badge tone="gold">حرية الاختيار دون التخلي عن التمويل</Badge>
               <h1 className="mt-4 max-w-4xl text-[2.35rem] font-black leading-[1.22] md:text-6xl">
-                اشترِ عن طريق البنك… لكن بمنزلك الذي اخترته أنت.
+                اشترِ عن طريق البنك… لكن بمنزلك الذي صممته أنت.
               </h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-emerald-50/85 md:text-lg md:leading-8">
                 اختر الأرض والتصميم والمقاول والمواد. تنظم المنصة الرحلة، ويوثّق مدير المشروع المراحل، ويموّل المستثمرون المشروع حتى البيع والإفراغ.
