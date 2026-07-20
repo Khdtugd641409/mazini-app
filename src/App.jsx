@@ -407,12 +407,12 @@ export default function App() {
 
           <main className="mx-auto max-w-6xl px-4 py-6 md:py-12">
             <section className="overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800 px-5 py-7 text-white shadow-xl md:p-10">
-              <Badge tone="gold">حرية الاختيار دون التخلي عن التمويل</Badge>
+              <Badge tone="gold">حرية البناء دون التخلي عن التمويل</Badge>
               <h1 className="mt-4 max-w-4xl text-[2.35rem] font-black leading-[1.22] md:text-6xl">
-                اشترِ عن طريق البنك… لكن بمنزلك الذي صممته أنت.
+                اشترِ عن طريق البنك… لكن منزلك الذي صممته أنت.
               </h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-emerald-50/85 md:text-lg md:leading-8">
-                اختر الأرض والتصميم والمقاول والمواد. تنظم المنصة الرحلة، ويوثّق مدير المشروع المراحل، ويموّل المستثمرون المشروع حتى البيع والإفراغ.
+                اختر الأرض والتصميم والمقاول والمواد. وتنظم لك المنصة الرحلة، ثم تقدم للبنك ليشتريه لك.
               </p>
               <div className="mt-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
                 <Button variant="secondary" onClick={() => setPage('customer-apply')}>تقديم طلب عميل</Button>
@@ -424,13 +424,13 @@ export default function App() {
 
             <section className="mt-8">
               <h2 className="text-2xl font-black">كيف تعمل الخدمة؟</h2>
-              <p className="mt-2 text-stone-500">المنصة تنظم، وكل طرف يختار ما يناسبه ضمن القواعد.</p>
+              <p className="mt-2 text-stone-500">المنصة تنظم، وتمول المشروع حتى الإكتمال.</p>
               <div className="mt-4 grid gap-3 lg:grid-cols-4">
                 {[
-                  [MapPin, 'اختر الأرض', 'يختارها العميل وتُشترى باسم جهة التملك.'],
-                  [Building2, 'صمّم ونفّذ', 'العميل يختار المكتب والمقاول والمواد.'],
-                  [WalletCards, 'يموّل المستثمرون', 'لا يفتح المشروع دون اكتمال التكلفة وهامش الأمان.'],
-                  [Landmark, 'يشتري البنك', 'يمكن البيع في أي مرحلة ثم يُغلق المشروع.'],
+                  [MapPin, 'اختر الأرض', 'في أي مكان ترغب.'],
+                  [Building2, 'صمّم وإشرف', 'اختر التصميم والمقاول والمواد.'],
+                  [WalletCards, 'علينا التمويل', 'تتكفل المنصة بتمويل مرحلة البناء.'],
+                  [Landmark, 'تقدم للبنك', 'أو بعه في أي مرحلة تشاء.'],
                 ].map(([Icon, title, description]) => (
                   <Card key={title} className="flex items-start gap-4 lg:block">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-800 lg:h-12 lg:w-12"><Icon className="h-5 w-5 lg:h-6 lg:w-6" /></div>
