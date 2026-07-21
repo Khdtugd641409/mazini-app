@@ -311,20 +311,24 @@ export default function App() {
       return;
     }
 
-    const requestId = `REQ-${Date.now().toString().slice(-6)}`;
     const payload = {
-      request_id: requestId,
-      name: application.name,
-      contact: `${application.email} | ${application.phone}`,
-      type: application.projectType,
-      city: application.city,
-      area: application.area,
-      price: 0,
-      location: '',
-      amount: Number(application.estimatedCost),
-    };
+  full_name: application.name.trim(),
+  phone: application.phone.trim(),
+  email: application.email?.trim() || null,
+  national_id: null,
+  city: application.city,
+  project_type: application.projectType,
+  land_area: String(application.area),
+  estimated_cost: String(application.estimatedCost),
+  bank_offer: String(application.bankOffer),
+  notes: application.acceptDifference
+    ? 'تعهد العميل بدفع الفرق'
+    : null,
+};
 
-    const { error } = await supabase.from('requests').insert([payload]);
+const { error } = await supabase
+  .from('requests')
+  .insert([payload]);
     if (error) {
       console.error(error);
       showToast('تعذر حفظ الطلب في قاعدة البيانات', 'error');
