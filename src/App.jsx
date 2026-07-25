@@ -519,7 +519,7 @@ const { error } = await supabase
                 <Stat label="الدفعة المقدمة 12%" value={formatMoney(deposit)} />
                 <Stat label="حد التكلفة 80%" value={formatMoney(bankCostLimit)} />
                 <Stat label="الأهلية المبدئية" value={financiallyEligible ? 'مؤهل' : 'غير مؤهل'} />
-                <Stat label="هامش السيولة المطلوب" value="20%" />
+
               </div>
 
               {!financiallyEligible && Number(application.estimatedCost || 0) > 0 && (
