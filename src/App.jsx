@@ -263,6 +263,7 @@ export default function App() {
 
   const [investorEmailInput, setInvestorEmailInput] = useState('');
   const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [newInvestorEmail, setNewInvestorEmail] = useState('');
   const [removeInvestorEmail, setRemoveInvestorEmail] = useState('');
 
@@ -804,6 +805,13 @@ const { error } = await supabase
             <Brand />
             <h2 className="mt-7 text-2xl font-black">دخول إدارة المنصة</h2>
             <Field label="البريد الإداري"><Input type="email" value={adminEmailInput} onChange={(e) => setAdminEmailInput(e.target.value)} /></Field>
+            <Field label="كلمة المرور">
+  <Input
+    type="password"
+    value={adminPasswordInput}
+    onChange={(e) => setAdminPasswordInput(e.target.value)}
+  />
+</Field>
             <Button className="mt-5 w-full" onClick={() => {
               if (adminEmailInput.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return showToast('البريد الإداري غير صحيح', 'error');
               setPage('admin-dashboard');
