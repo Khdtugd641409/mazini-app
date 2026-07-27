@@ -823,7 +823,7 @@ password: adminPasswordInput,
 });
 if (error) {
 console.error(error);
-showToast(‘البريد أو كلمة المرور غير صحيحة’, ‘error’);
+showToast('أدخل البريد وكلمة المرور', "error");
 return;
 }
 setPage(‘admin-dashboard’);
