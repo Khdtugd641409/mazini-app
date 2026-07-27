@@ -814,7 +814,7 @@ const { error } = await supabase
 </Field>
             <Button className="mt-5 w-full" onClick={async () => {
               if (!adminEmailInput.trim() || !adminPasswordInput) {
-showToast(‘أدخل البريد وكلمة المرور’, 'error’);
+showToast('أدخل البريد وكلمة المرور', 'error');
 return;
 }
 const { error } = await supabase.auth.signInWithPassword({
