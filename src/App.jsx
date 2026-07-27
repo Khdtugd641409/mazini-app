@@ -812,7 +812,7 @@ const { error } = await supabase
     onChange={(e) => setAdminPasswordInput(e.target.value)}
   />
 </Field>
-            <Button className="mt-5 w-full" onClick={() => {
+            <Button className="mt-5 w-full" onClick={async () => {
               if (adminEmailInput.trim().toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return showToast('البريد الإداري غير صحيح', 'error');
               setPage('admin-dashboard');
             }}>دخول</Button>
