@@ -826,7 +826,7 @@ console.error(error);
 showToast("أدخل البريد وكلمة المرور", "error");
 return;
 }
-setPage(‘admin-dashboard’);
+setPage('admin-dashboard');
             }}>دخول</Button>
             <Button variant="ghost" className="mt-2 w-full" onClick={() => setPage('role-hub')}>رجوع</Button>
           </Card>
