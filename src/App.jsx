@@ -568,7 +568,7 @@ setPage('application-success');
         </div>
       )}
 
-      {page === 'customer-dashboard' && (
+{page === 'customer-dashboard' && false && (
         <div>
           <AppHeader
             title={`مشروع ${DEMO_PROJECT.id}`}
