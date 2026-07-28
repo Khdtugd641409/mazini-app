@@ -921,7 +921,23 @@ setPage('admin-dashboard');
   </Button>
 
   <Button
-    onClick={() => alert(`تم قبول طلب ${request.name}`)}
+onClick={async () => {
+  const { error } = await supabase.rpc(
+    'accept_customer_request',
+    {
+      p_request_id: request.id,
+    }
+  );
+
+  if (error) {
+    console.error(error);
+    showToast('تعذر قبول الطلب', 'error');
+    return;
+  }
+
+  await loadRequests();
+  showToast('تم قبول الطلب وفتح ملف العميل');
+}}
   >
     قبول الطلب
   </Button>
