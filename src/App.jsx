@@ -889,6 +889,13 @@ setPage('admin-dashboard');
                     <div key={request.id} className="rounded-2xl border border-stone-200 p-4">
                       <div className="flex items-center justify-between gap-3"><strong>{request.name}</strong><Badge tone="stone">{request.request_id}</Badge></div>
                       <div className="mt-2 text-sm text-stone-500">{request.type} — {request.city} — {formatMoney(request.amount)}</div>
+                      <div className="mt-4 flex gap-2">
+  <Button
+    onClick={() => alert(`تم قبول طلب ${request.name}`)}
+  >
+    قبول الطلب
+  </Button>
+</div>
                     </div>
                   ))}
                   {requests.length === 0 && <div className="rounded-2xl bg-stone-50 p-5 text-center text-sm text-stone-500">لا توجد طلبات بعد.</div>}
