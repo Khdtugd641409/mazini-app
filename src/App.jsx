@@ -889,7 +889,23 @@ setPage('admin-dashboard');
                     <div key={request.id} className="rounded-2xl border border-stone-200 p-4">
                       <div className="flex items-center justify-between gap-3"><strong>{request.name}</strong><Badge tone="stone">{request.request_id}</Badge></div>
                       <div className="mt-2 text-sm text-stone-500">{request.type} — {request.city} — {formatMoney(request.amount)}</div>
-                      <div className="mt-4 flex gap-2">
+<div className="mt-4 flex gap-2">
+  <Button
+    variant="secondary"
+    onClick={() => alert(
+      `الاسم: ${request.name || '-'}\n` +
+      `الجوال: ${request.phone || '-'}\n` +
+      `البريد: ${request.email || '-'}\n` +
+      `نوع المشروع: ${request.type || request.project_type || '-'}\n` +
+      `المدينة: ${request.city || '-'}\n` +
+      `المساحة: ${request.area || request.land_area || '-'}\n` +
+      `التكلفة التقديرية: ${request.estimated_cost || '-'}\n` +
+      `عرض البنك: ${request.bank_offer || '-'}`
+    )}
+  >
+    عرض التفاصيل
+  </Button>
+
   <Button
     onClick={() => alert(`تم قبول طلب ${request.name}`)}
   >
