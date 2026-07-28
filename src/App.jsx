@@ -327,18 +327,32 @@ export default function App() {
     : null,
 };
 
-const { error } = await supabase
-  .from('requests')
-  .insert([payload]);
-    if (error) {
-      console.error(error);
-      showToast('تعذر حفظ الطلب في قاعدة البيانات', 'error');
-      return;
-    }
+const { data: requestId, error } = await supabase.rpc(
+  'submit_customer_request',
+  {
+    p_full_name: application.name.trim(),
+    p_phone: application.phone.trim(),
+    p_email: application.email?.trim() || '',
+    p_city: application.city,
+    p_project_type: application.projectType,
+    p_land_area: String(application.area),
+    p_estimated_cost: String(application.estimatedCost),
+    p_bank_offer: String(application.bankOffer),
+    p_notes: application.acceptDifference
+      ? 'تعهد العميل بدفع الفرق'
+      : null,
+  }
+);
 
-    await loadRequests();
-    showToast(`تم إرسال الطلب رقم ${requestId}`);
-    setPage('application-success');
+if (error) {
+  console.error(error);
+  showToast('تعذر حفظ الطلب وفتح ملف العميل', 'error');
+  return;
+}
+
+await loadRequests();
+showToast(`تم إرسال الطلب رقم ${requestId}`);
+setPage('application-success');
   };
 
   const addInvestor = async () => {
