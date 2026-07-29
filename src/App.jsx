@@ -621,12 +621,29 @@ setPage('application-success');
 </Field>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-4">
-                <Stat label="الدفعة المقدمة 12%" value={formatMoney(deposit)} />
-                <Stat label="حد التكلفة 80%" value={formatMoney(bankCostLimit)} />
-                <Stat label="الأهلية المبدئية" value={financiallyEligible ? 'مؤهل' : 'غير مؤهل'} />
+<div className="mt-6 grid gap-3 md:grid-cols-4">
+  <Stat
+    label="إجمالي المسطح"
+    value={`${builtArea.toLocaleString('ar-SA', {
+      maximumFractionDigits: 2,
+    })} م²`}
+  />
 
-              </div>
+  <Stat
+    label="سعر متر البناء"
+    value={formatMoney(constructionRate)}
+  />
+
+  <Stat
+    label="تكلفة البناء"
+    value={formatMoney(constructionCost)}
+  />
+
+  <Stat
+    label="التكلفة التقديرية للعقار"
+    value={formatMoney(estimatedTotalCost)}
+  />
+</div>
 
               {!financiallyEligible && Number(application.estimatedCost || 0) > 0 && (
                 <label className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
