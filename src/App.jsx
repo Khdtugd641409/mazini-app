@@ -601,9 +601,24 @@ setPage('application-success');
 </Field>
                 <Field label="قيمة عرض البنك"><Input type="number" value={application.bankOffer} onChange={(e) => setApplication({ ...application, bankOffer: e.target.value })} /></Field>
                 <Field label="التكلفة التقديرية"><Input type="number" value={application.estimatedCost} onChange={(e) => setApplication({ ...application, estimatedCost: e.target.value })} /></Field>
-                <Field label="إرفاق عرض البنك" hint="في هذه النسخة يُحفظ اسم الملف فقط لحين إعداد التخزين">
-                  <Input type="file" onChange={(e) => setApplication({ ...application, bankAttachmentName: e.target.files?.[0]?.name || '' })} />
-                </Field>
+<Field
+  label="شهادة الحد الأعلى للقرض العقاري"
+  hint="أرفق شهادة البنك بصيغة PDF أو صورة"
+>
+  <Input
+    type="file"
+    accept=".pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+    onChange={(e) => {
+      const file = e.target.files?.[0] || null;
+
+      setApplication({
+        ...application,
+        bankAttachmentFile: file,
+        bankAttachmentName: file?.name || '',
+      });
+    }}
+  />
+</Field>
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-4">
