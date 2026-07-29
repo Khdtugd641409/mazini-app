@@ -360,24 +360,64 @@ const canSubmitCustomerRequest =
     : null,
 };
 
+const certificateFile = application.bankAttachmentFile;
+
+const fileExtension =
+  certificateFile.name.split('.').pop()?.toLowerCase() || 'file';
+
+const certificatePath =
+  `requests/${Date.now()}-${crypto.randomUUID()}.${fileExtension}`;
+
+const { error: uploadError } = await supabase.storage
+  .from('bank-offer-certificates')
+  .upload(
+    certificatePath,
+    certificateFile,
+    {
+      cacheControl: '3600',
+      upsert: false,
+    }
+  );
+
+if (uploadError) {
+  console.error(uploadError);
+  showToast('تعذر رفع شهادة البنك، حاول مرة أخرى', 'error');
+  return;
+}
+
 const { data: requestId, error } = await supabase.rpc(
   'submit_customer_request',
   {
     p_full_name: application.name.trim(),
     p_phone: application.phone.trim(),
-    p_email: application.email?.trim() || '',
-    p_city: application.city,
+    p_email: application.email.trim(),
+    p_city: application.city.trim(),
     p_project_type: application.projectType,
-    p_land_area: String(application.area),
-    p_estimated_cost: String(application.estimatedCost),
-    p_bank_offer: String(application.bankOffer),
-    p_notes: application.acceptDifference
-      ? 'تعهد العميل بدفع الفرق'
-      : null,
+
+    p_land_area: Number(application.area),
+    p_land_price: Number(application.landPrice),
+    p_floors_count: Number(application.floorsCount),
+
+    p_bank_limit_amount: Number(application.bankOffer),
+    p_google_maps_url: application.googleMapsUrl.trim(),
+    p_bank_offer_certificate_path: certificatePath,
+
+    p_accepts_price_difference:
+      application.acceptDifference,
+
+    p_notes:
+      eligibilityStatus === 'risk'
+        ? 'طلب مصنف مخاطرة لتجاوز التكلفة 80% من عرض البنك'
+        : eligibilityStatus === 'conditional_contribution'
+          ? `تعهد العميل بدفع فرق قدره ${requiredClientContribution.toFixed(2)} ريال`
+          : null,
   }
 );
 
 if (error) {
+  await supabase.storage
+  .from('bank-offer-certificates')
+  .remove([certificatePath]);
   console.error(error);
   showToast('تعذر حفظ الطلب وفتح ملف العميل', 'error');
   return;
