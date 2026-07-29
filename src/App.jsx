@@ -556,6 +556,49 @@ setPage('application-success');
                 </Field>
                 <Field label="المدينة"><Input value={application.city} onChange={(e) => setApplication({ ...application, city: e.target.value })} /></Field>
                 <Field label="مساحة المشروع"><Input type="number" value={application.area} onChange={(e) => setApplication({ ...application, area: e.target.value })} /></Field>
+                <Field label="قيمة الأرض">
+  <Input
+    type="number"
+    min="0"
+    value={application.landPrice}
+    onChange={(e) =>
+      setApplication({
+        ...application,
+        landPrice: e.target.value,
+      })
+    }
+  />
+</Field>
+
+<Field label="عدد الأدوار">
+  <Select
+    value={application.floorsCount}
+    onChange={(e) =>
+      setApplication({
+        ...application,
+        floorsCount: e.target.value,
+      })
+    }
+  >
+    <option value="1">دور واحد</option>
+    <option value="2">دوران</option>
+    <option value="3">ثلاثة أدوار</option>
+  </Select>
+</Field>
+
+<Field label="موقع الأرض في Google Maps">
+  <Input
+    type="url"
+    placeholder="ألصق رابط موقع الأرض"
+    value={application.googleMapsUrl}
+    onChange={(e) =>
+      setApplication({
+        ...application,
+        googleMapsUrl: e.target.value,
+      })
+    }
+  />
+</Field>
                 <Field label="قيمة عرض البنك"><Input type="number" value={application.bankOffer} onChange={(e) => setApplication({ ...application, bankOffer: e.target.value })} /></Field>
                 <Field label="التكلفة التقديرية"><Input type="number" value={application.estimatedCost} onChange={(e) => setApplication({ ...application, estimatedCost: e.target.value })} /></Field>
                 <Field label="إرفاق عرض البنك" hint="في هذه النسخة يُحفظ اسم الملف فقط لحين إعداد التخزين">
