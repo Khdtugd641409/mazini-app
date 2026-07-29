@@ -425,6 +425,22 @@ if (error) {
 
 await loadRequests();
 showToast(`تم إرسال الطلب رقم ${requestId}`);
+    setApplication({
+  name: '',
+  email: '',
+  phone: '',
+  projectType: 'فيلا',
+  city: '',
+  area: '',
+  landPrice: '',
+  floorsCount: '1',
+  googleMapsUrl: '',
+  bankOffer: '',
+  estimatedCost: '',
+  bankAttachmentName: '',
+  bankAttachmentFile: null,
+  acceptDifference: false,
+});
 setPage('application-success');
   };
 
