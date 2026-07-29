@@ -696,15 +696,44 @@ setPage('application-success');
     </div>
   </div>
 </div>
-              {!financiallyEligible && Number(application.estimatedCost || 0) > 0 && (
-                <label className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <input type="checkbox" checked={application.acceptDifference} onChange={(e) => setApplication({ ...application, acceptDifference: e.target.checked })} className="mt-1 h-5 w-5 accent-emerald-900" />
-                  <span>
-                    <span className="block font-black text-amber-900">أتعهد بدفع فرق التكلفة</span>
-                    <span className="mt-1 block text-sm leading-6 text-amber-800">يمكن تقديم الطلب للمراجعة رغم تجاوزه حد 80%، ولا يُعد قبولًا نهائيًا.</span>
-                  </span>
-                </label>
-              )}
+{financingRatio > 0.8 && financingRatio <= 0.9 && (
+  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+    تكلفة العقار أعلى من 80% من عرض البنك، ولذلك سيظهر الطلب
+    لإدارة المنصة بتصنيف مخاطرة. وقد أضيف فرق التجاوز إلى الدفعة
+    الإجمالية.
+  </div>
+)}
+
+{financingRatio > 0.9 && (
+  <label className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
+    <input
+      type="checkbox"
+      checked={application.acceptDifference}
+      onChange={(e) =>
+        setApplication({
+          ...application,
+          acceptDifference: e.target.checked,
+        })
+      }
+      className="mt-1 h-5 w-5 accent-red-700"
+    />
+
+    <span>
+      <span className="block font-black text-red-900">
+        أوافق على دفع فرق التكلفة
+      </span>
+
+      <span className="mt-1 block text-sm leading-6 text-red-800">
+        تجاوزت تكلفة العقار 90% من عرض البنك. لا يمكن إرسال الطلب
+        إلا بعد الموافقة على إضافة فرق قدره{' '}
+        <strong>
+          {formatMoney(requiredClientContribution)}
+        </strong>{' '}
+        إلى دفعة المشروع الأساسية.
+      </span>
+    </span>
+  </label>
+)}
 
               <div className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-7 text-stone-600">
                 بتقديم الطلب، يقر العميل بأنه اطّلع على نسبة وقيمة الدفعة المقدمة، وعلى أن استحقاقها وآلية التصرف فيها يحكمهما العقد المعتمد.
