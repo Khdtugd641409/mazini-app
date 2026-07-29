@@ -600,7 +600,7 @@ setPage('application-success');
   />
 </Field>
                 <Field label="قيمة عرض البنك"><Input type="number" value={application.bankOffer} onChange={(e) => setApplication({ ...application, bankOffer: e.target.value })} /></Field>
-                <Field label="التكلفة التقديرية"><Input type="number" value={application.estimatedCost} onChange={(e) => setApplication({ ...application, estimatedCost: e.target.value })} /></Field>
+
 <Field
   label="شهادة الحد الأعلى للقرض العقاري"
   hint="أرفق شهادة البنك بصيغة PDF أو صورة"
