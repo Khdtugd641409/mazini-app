@@ -56,38 +56,9 @@ const DEMO_PROJECT = {
   manager: 'خالد العتيبي',
 };
 
-const DEMO_CONTRACTORS = [
-  { id: 1, name: 'مؤسسة البناء المتقن', category: 'مقاول عظم', rating: 4.9, price: 720, unit: 'م²', projects: 86, onTime: 96 },
-  { id: 2, name: 'شركة أساس العمران', category: 'مقاول عظم', rating: 4.7, price: 680, unit: 'م²', projects: 54, onTime: 92 },
-  { id: 3, name: 'مؤسسة الركائز', category: 'مقاول عظم', rating: 4.5, price: 640, unit: 'م²', projects: 31, onTime: 88 },
-  { id: 4, name: 'خرسانة المدينة', category: 'خرسانة جاهزة', rating: 4.8, price: 245, unit: 'م³', projects: 133, onTime: 97 },
-];
+const DEMO_CONTRACTORS = [];
 
-const DEMO_INVESTMENT_OPPORTUNITIES = [
-  {
-    id: 'MZ-2026-0057',
-    kind: 'new',
-    label: 'تمويل جديد',
-    city: 'الرياض',
-    type: 'فيلا',
-    cost: 1_000_000,
-    required: 1_200_000,
-    funded: 760_000,
-    expectedMonths: 11,
-    expectedReturn: 9,
-  },
-  {
-    id: 'MZ-2026-0031',
-    kind: 'resale',
-    label: 'حصة معروضة',
-    city: 'جدة',
-    type: 'فيلا',
-    sharePrice: 230_000,
-    estimatedValue: 224_000,
-    remainingProfit: 26_000,
-    remainingMonths: 5,
-  },
-];
+const DEMO_INVESTMENT_OPPORTUNITIES = [];
 
 function formatMoney(value) {
   return `${new Intl.NumberFormat('ar-SA').format(Math.round(Number(value || 0)))} ر.س`;
