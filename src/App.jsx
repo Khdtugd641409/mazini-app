@@ -235,7 +235,61 @@ const [application, setApplication] = useState({
   bankAttachmentFile: null,
   acceptDifference: false,
 });
+const landArea = Number(application.area) || 0;
+const landPrice = Number(application.landPrice) || 0;
 
+const selectedFloorsCount = Number(application.floorsCount);
+const floorsCount = [1, 2, 3].includes(selectedFloorsCount)
+  ? selectedFloorsCount
+  : 1;
+
+const bankLimitAmount = Number(application.bankOffer) || 0;
+
+const constructionRate =
+  floorsCount === 1
+    ? 2300
+    : floorsCount === 2
+      ? 1700
+      : 1400;
+
+const builtArea =
+  landArea * 0.6 * floorsCount;
+
+const constructionCost =
+  builtArea * constructionRate;
+
+const estimatedTotalCost =
+  landPrice + constructionCost;
+
+const financingRatio =
+  bankLimitAmount > 0
+    ? estimatedTotalCost / bankLimitAmount
+    : 0;
+
+const baseDepositAmount =
+  estimatedTotalCost * 0.12;
+
+const requiredClientContribution =
+  bankLimitAmount > 0
+    ? Math.max(
+        0,
+        estimatedTotalCost - bankLimitAmount * 0.8
+      )
+    : 0;
+
+const totalUpfrontPayment =
+  baseDepositAmount + requiredClientContribution;
+
+const eligibilityStatus =
+  bankLimitAmount <= 0
+    ? 'pending'
+    : financingRatio <= 0.8
+      ? 'eligible'
+      : financingRatio <= 0.9
+        ? 'risk'
+        : application.acceptDifference
+          ? 'conditional_contribution'
+          : 'blocked';
   const [investorEmailInput, setInvestorEmailInput] = useState('');
   const [adminEmailInput, setAdminEmailInput] = useState('');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
