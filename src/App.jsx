@@ -557,7 +557,7 @@ setPage('application-success');
 
         <Button
           className="mt-5"
-setPage('customer-apply')
+onClick={() => setPage('customer-apply')}
         >
           تقديم طلب جديد
         </Button>
