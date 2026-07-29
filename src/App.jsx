@@ -644,7 +644,58 @@ setPage('application-success');
     value={formatMoney(estimatedTotalCost)}
   />
 </div>
+<div className="mt-5 grid gap-3 md:grid-cols-2">
+  <Stat
+    label="نسبة تكلفة العقار إلى عرض البنك"
+    value={
+      bankLimitAmount > 0
+        ? `${(financingRatio * 100).toFixed(1)}%`
+        : '—'
+    }
+  />
 
+  <Stat
+    label="تصنيف الطلب"
+    value={
+      eligibilityStatus === 'eligible'
+        ? 'مؤهل للتقديم'
+        : eligibilityStatus === 'risk'
+          ? 'مخاطرة'
+          : eligibilityStatus === 'conditional_contribution'
+            ? 'مشروط بسداد الفرق'
+            : eligibilityStatus === 'blocked'
+              ? 'يتطلب الموافقة على دفع الفرق'
+              : 'بانتظار إدخال عرض البنك'
+    }
+  />
+</div>
+
+<div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+  <p className="text-sm font-bold text-emerald-900">
+    الدفعة الإجمالية المطلوبة
+  </p>
+
+  <p className="mt-2 text-3xl font-black text-emerald-950">
+    {formatMoney(totalUpfrontPayment)}
+  </p>
+
+  <div className="mt-4 space-y-2 border-t border-emerald-200 pt-4 text-sm">
+    <div className="flex items-center justify-between gap-4">
+      <span>دفعة المشروع الأساسية 12%</span>
+      <strong>{formatMoney(baseDepositAmount)}</strong>
+    </div>
+
+    <div className="flex items-center justify-between gap-4">
+      <span>فرق تجاوز حد 80% من عرض البنك</span>
+      <strong>{formatMoney(requiredClientContribution)}</strong>
+    </div>
+
+    <div className="flex items-center justify-between gap-4 border-t border-emerald-200 pt-2">
+      <span className="font-black">إجمالي الدفعة</span>
+      <strong>{formatMoney(totalUpfrontPayment)}</strong>
+    </div>
+  </div>
+</div>
               {!financiallyEligible && Number(application.estimatedCost || 0) > 0 && (
                 <label className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                   <input type="checkbox" checked={application.acceptDifference} onChange={(e) => setApplication({ ...application, acceptDifference: e.target.checked })} className="mt-1 h-5 w-5 accent-emerald-900" />
