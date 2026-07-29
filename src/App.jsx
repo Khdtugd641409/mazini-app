@@ -219,18 +219,22 @@ export default function App() {
   const [requests, setRequests] = useState([]);
   const [investors, setInvestors] = useState([]);
 
-  const [application, setApplication] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    projectType: 'فيلا',
-    city: '',
-    area: '',
-    bankOffer: '',
-    estimatedCost: '',
-    bankAttachmentName: '',
-    acceptDifference: false,
-  });
+const [application, setApplication] = useState({
+  name: '',
+  email: '',
+  phone: '',
+  projectType: 'فيلا',
+  city: '',
+  area: '',
+  landPrice: '',
+  floorsCount: '1',
+  googleMapsUrl: '',
+  bankOffer: '',
+  estimatedCost: '',
+  bankAttachmentName: '',
+  bankAttachmentFile: null,
+  acceptDifference: false,
+});
 
   const [investorEmailInput, setInvestorEmailInput] = useState('');
   const [adminEmailInput, setAdminEmailInput] = useState('');
