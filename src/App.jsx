@@ -538,7 +538,33 @@ setPage('application-success');
           </Card>
         </div>
       )}
+{page === 'customer-dashboard' && (
+  <div>
+    <AppHeader
+      title="ملف العميل"
+      subtitle="تظهر هنا بيانات الطلب بعد تقديمه وقبوله"
+      onBack={() => setPage('role-hub')}
+      onHome={goHome}
+    />
 
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <Card>
+        <h2 className="text-xl font-black">لا يوجد ملف عميل حاليًا</h2>
+
+        <p className="mt-3 text-stone-500">
+          بعد تقديم الطلب وقبوله ستظهر هنا بيانات العميل والمشروع والعقد.
+        </p>
+
+        <Button
+          className="mt-5"
+          onClick={() => setPage('customer-application')}
+        >
+          تقديم طلب جديد
+        </Button>
+      </Card>
+    </main>
+  </div>
+)}
 {page === 'customer-dashboard' && false && (
         <div>
           <AppHeader
