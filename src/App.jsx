@@ -325,15 +325,19 @@ const eligibilityStatus =
   const deposit = Number(application.estimatedCost || 0) * POLICY.customerDepositRate;
   const bankCostLimit = Number(application.bankOffer || 0) * POLICY.bankEligibilityRate;
   const financiallyEligible = Number(application.estimatedCost || 0) > 0 && Number(application.estimatedCost || 0) <= bankCostLimit;
-  const canSubmitCustomerRequest =
-    application.name &&
-    application.email &&
-    application.phone &&
-    application.city &&
-    Number(application.area || 0) > 0 &&
-    Number(application.bankOffer || 0) > 0 &&
-    Number(application.estimatedCost || 0) > 0 &&
-    (financiallyEligible || application.acceptDifference);
+const canSubmitCustomerRequest =
+  application.name.trim() &&
+  application.email.trim() &&
+  application.phone.trim() &&
+  application.city.trim() &&
+  Number(application.area) > 0 &&
+  Number(application.landPrice) > 0 &&
+  [1, 2, 3].includes(Number(application.floorsCount)) &&
+  application.googleMapsUrl.trim() &&
+  Number(application.bankOffer) > 0 &&
+  application.bankAttachmentFile &&
+  estimatedTotalCost > 0 &&
+  eligibilityStatus !== 'blocked';
 
   const submitCustomerRequest = async () => {
     if (!canSubmitCustomerRequest) {
