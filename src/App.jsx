@@ -217,6 +217,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   const [requests, setRequests] = useState([]);
+  const [acceptedClients, setAcceptedClients] = useState([]);
   const [investors, setInvestors] = useState([]);
 
 const [application, setApplication] = useState({
