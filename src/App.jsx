@@ -218,9 +218,11 @@ export default function App() {
 
   const [requests, setRequests] = useState([]);
   const [acceptedClients, setAcceptedClients] = useState([]);
+  const [currentClient, setCurrentClient] = useState(null);
   const [investors, setInvestors] = useState([]);
 
 const [application, setApplication] = useState({
+
   name: '',
   email: '',
   phone: '',
