@@ -845,26 +845,83 @@ setPage('application-success');
   <div>
     <AppHeader
       title="ملف العميل"
-      subtitle="تظهر هنا بيانات الطلب بعد تقديمه وقبوله"
+      subtitle="بيانات العميل المقبول وطلبه"
       onBack={() => setPage('role-hub')}
       onHome={goHome}
     />
 
     <main className="mx-auto max-w-6xl px-4 py-6">
-      <Card>
-        <h2 className="text-xl font-black">لا يوجد ملف عميل حاليًا</h2>
+      {!currentClient ? (
+        <Card>
+          <h2 className="text-xl font-black">
+            لم يتم اختيار عميل
+          </h2>
 
-        <p className="mt-3 text-stone-500">
-          بعد تقديم الطلب وقبوله ستظهر هنا بيانات العميل والمشروع والعقد.
-        </p>
+          <p className="mt-3 text-stone-500">
+            افتح ملف العميل من قائمة العملاء المقبولين في لوحة الإدارة.
+          </p>
 
-        <Button
-          className="mt-5"
-onClick={() => setPage('customer-apply')}
-        >
-          تقديم طلب جديد
-        </Button>
-      </Card>
+          <Button
+            className="mt-5"
+            onClick={() => setPage('admin-dashboard')}
+          >
+            العودة إلى لوحة الإدارة
+          </Button>
+        </Card>
+      ) : (
+        <div className="space-y-5">
+          <Card>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-emerald-700">
+                  عميل مقبول
+                </p>
+
+                <h2 className="mt-1 text-2xl font-black">
+                  {currentClient.full_name}
+                </h2>
+              </div>
+
+              <div className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-black text-emerald-800">
+                ملف رقم {currentClient.id}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <Stat
+                label="رقم الجوال"
+                value={currentClient.phone || '—'}
+              />
+
+              <Stat
+                label="البريد الإلكتروني"
+                value={currentClient.email || '—'}
+              />
+
+              <Stat
+                label="المدينة"
+                value={currentClient.city || '—'}
+              />
+
+              <Stat
+                label="حالة العميل"
+                value="مقبول"
+              />
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-xl font-black">
+              المشروع
+            </h3>
+
+            <div className="mt-4 rounded-2xl bg-stone-50 p-5 text-stone-500">
+              سيتم هنا عرض بيانات الطلب المقبول، والجدول الزمني،
+              والعقد، ومدير المشروع بعد ربطها بالطلب.
+            </div>
+          </Card>
+        </div>
+      )}
     </main>
   </div>
 )}
