@@ -328,7 +328,11 @@ const eligibilityStatus =
 
   setAcceptedClients(data || []);
 };
-    const { data, error } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
+const { data, error } = await supabase
+  .from('requests')
+  .select('*')
+  .eq('status', 'pending')
+  .order('created_at', { ascending: false });
 if (error) {
   console.error(error);
   showToast(`تعذر تحميل الطلبات: ${error.message}`, 'error');
