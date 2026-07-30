@@ -302,6 +302,30 @@ const eligibilityStatus =
   const [fundedAmount, setFundedAmount] = useState(760_000);
 
   const loadRequests = async () => {
+    const loadAcceptedClients = async () => {
+  const { data, error } = await supabase
+    .from('clients')
+    .select(`
+      id,
+      full_name,
+      phone,
+      email,
+      city,
+      customer_stage,
+      created_at,
+      updated_at
+    `)
+    .eq('customer_stage', 'customer')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    showToast('تعذر تحميل العملاء المقبولين', 'error');
+    return;
+  }
+
+  setAcceptedClients(data || []);
+};
     const { data, error } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
     if (!error && data) setRequests(data);
   };
@@ -1210,6 +1234,7 @@ onClick={async () => {
   }
 
   await loadRequests();
+  await loadAcceptedClients();
   showToast('تم قبول الطلب وفتح ملف العميل');
 }}
   >
