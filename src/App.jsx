@@ -1246,6 +1246,30 @@ onClick={async () => {
                   {requests.length === 0 && <div className="rounded-2xl bg-stone-50 p-5 text-center text-sm text-stone-500">لا توجد طلبات بعد.</div>}
                 </div>
               </Card>
+              <Card className="mt-6">
+  <h3 className="text-xl font-black mb-4">
+    العملاء المقبولون ({acceptedClients.length})
+  </h3>
+
+  {acceptedClients.length === 0 ? (
+    <div className="rounded-2xl bg-stone-50 p-5 text-center text-stone-500">
+      لا يوجد عملاء مقبولون حالياً.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {acceptedClients.map((client) => (
+        <div
+          key={client.id}
+          className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
+        >
+          <div className="font-black">{client.full_name}</div>
+          <div className="text-sm text-stone-600">{client.phone}</div>
+          <div className="text-sm text-stone-600">{client.city}</div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
             </div>
           </main>
         </div>
