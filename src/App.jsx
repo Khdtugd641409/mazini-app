@@ -419,7 +419,10 @@ if (error) {
   .from('bank-offer-certificates')
   .remove([certificatePath]);
   console.error(error);
-  showToast('تعذر حفظ الطلب وفتح ملف العميل', 'error');
+showToast(
+  `تعذر حفظ الطلب: ${error.message || 'خطأ غير معروف'}`,
+  'error'
+);
   return;
 }
 
