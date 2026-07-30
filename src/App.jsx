@@ -329,7 +329,13 @@ const eligibilityStatus =
   setAcceptedClients(data || []);
 };
     const { data, error } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
-    if (!error && data) setRequests(data);
+if (error) {
+  console.error(error);
+  showToast(`تعذر تحميل الطلبات: ${error.message}`, 'error');
+  return;
+}
+
+setRequests(data || []);
   };
 
   const loadInvestors = async () => {
