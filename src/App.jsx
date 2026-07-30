@@ -1267,6 +1267,15 @@ onClick={async () => {
           <div className="font-black">{client.full_name}</div>
           <div className="text-sm text-stone-600">{client.phone}</div>
           <div className="text-sm text-stone-600">{client.city}</div>
+          <Button
+  className="mt-3"
+  onClick={() => {
+    setCurrentClient(client);
+    setPage('customer-dashboard');
+  }}
+>
+  فتح ملف العميل
+</Button>
         </div>
       ))}
     </div>
