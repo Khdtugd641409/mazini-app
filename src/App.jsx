@@ -340,6 +340,7 @@ if (error) {
 }
 
 setRequests(data || []);
+    await loadAcceptedClients();
   };
 
   const loadInvestors = async () => {
@@ -1304,7 +1305,7 @@ onClick={async () => {
   }
 
   await loadRequests();
-  await loadAcceptedClients();
+
   showToast('تم قبول الطلب وفتح ملف العميل');
 }}
   >
