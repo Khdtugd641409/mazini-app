@@ -215,7 +215,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-
+const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [requests, setRequests] = useState([]);
   const [acceptedClients, setAcceptedClients] = useState([]);
   const [currentClient, setCurrentClient] = useState(null);
@@ -371,7 +371,8 @@ const canSubmitCustomerRequest =
       showToast('أكمل البيانات المطلوبة أولًا', 'error');
       return;
     }
-
+if (isSubmittingRequest) return;
+setIsSubmittingRequest(true);
     const payload = {
   full_name: application.name.trim(),
   phone: application.phone.trim(),
@@ -825,7 +826,7 @@ setPage('application-success');
                 بتقديم الطلب، يقر العميل بأنه اطّلع على نسبة وقيمة الدفعة المقدمة، وعلى أن استحقاقها وآلية التصرف فيها يحكمهما العقد المعتمد.
               </div>
 
-              <Button className="mt-5 w-full" disabled={!canSubmitCustomerRequest} onClick={submitCustomerRequest}>إرسال الطلب</Button>
+              <Button className="mt-5 w-full" disabled={!canSubmitCustomerRequest || isSubmittingRequest} onClick={submitCustomerRequest}>إرسال الطلب</Button>
             </Card>
           </main>
         </div>
