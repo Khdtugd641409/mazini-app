@@ -1,12 +1,20 @@
+import CustomerApplicationForm from "../components/customer/CustomerApplicationForm.jsx";
+
 function CustomerApplicationPage({ onBack }) {
   return (
     <main>
-      <h1>تقديم طلب البناء الذاتي</h1>
-      <p>سيُنشأ نموذج العميل هنا.</p>
-
       <button type="button" onClick={onBack}>
         العودة إلى الصفحة الرئيسية
       </button>
+
+      <h1>تقديم طلب البناء الذاتي</h1>
+
+      <p>
+        أدخل بيانات الأرض والتمويل لمعرفة التكلفة التقديرية
+        وأهلية التقديم.
+      </p>
+
+      <CustomerApplicationForm />
     </main>
   );
 }
