@@ -1,10 +1,7 @@
+import HomePage from "./pages/HomePage.jsx";
+
 function App() {
-  return (
-    <main>
-      <h1>نايف المزيني للبناء الذاتي</h1>
-      <p>جاري بناء المنصة الجديدة.</p>
-    </main>
-  );
+  return <HomePage />;
 }
 
 export default App;
