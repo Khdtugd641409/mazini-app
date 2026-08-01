@@ -41,9 +41,6 @@ export function calculateProjectCosts({
   const bankLimitAt80Percent =
     safeBankOffer * 0.8;
 
-  const bankLimitAt90Percent =
-    safeBankOffer * 0.9;
-
   const baseCustomerPayment =
     estimatedProjectCost * 0.12;
 
@@ -55,9 +52,16 @@ export function calculateProjectCosts({
   const totalCustomerPayment =
     baseCustomerPayment + excessAmount;
 
+  const financingRatio =
+    safeBankOffer > 0
+      ? estimatedProjectCost / safeBankOffer
+      : 0;
+
   let eligibilityStatus = "incomplete";
-  let eligibilityLabel = "أكمل بيانات المشروع والتمويل";
+  let eligibilityLabel =
+    "أكمل بيانات المشروع والتمويل";
   let riskLevel = "unknown";
+  let requiresPaymentApproval = false;
   let canSubmit = false;
 
   if (
@@ -70,27 +74,17 @@ export function calculateProjectCosts({
       eligibilityStatus = "eligible";
       eligibilityLabel = "مؤهل للتقديم";
       riskLevel = "normal";
-      canSubmit = true;
-    } else if (
-      estimatedProjectCost <= bankLimitAt90Percent
-    ) {
-      eligibilityStatus = "eligible_with_risk";
-      eligibilityLabel = "مؤهل مع وسم مخاطرة";
-      riskLevel = "risk";
+      requiresPaymentApproval = false;
       canSubmit = true;
     } else {
-      eligibilityStatus = "ineligible";
+      eligibilityStatus = "eligible_with_extra_payment";
       eligibilityLabel =
-        "غير مؤهل لأن التكلفة تجاوزت 90% من عرض البنك";
-      riskLevel = "blocked";
-      canSubmit = false;
+        "مؤهل بعد الموافقة على الدفعة المقدمة";
+      riskLevel = "extra_payment";
+      requiresPaymentApproval = true;
+      canSubmit = true;
     }
   }
-
-  const financingRatio =
-    safeBankOffer > 0
-      ? estimatedProjectCost / safeBankOffer
-      : 0;
 
   return {
     landArea: safeLandArea,
@@ -105,7 +99,6 @@ export function calculateProjectCosts({
     estimatedProjectCost,
 
     bankLimitAt80Percent,
-    bankLimitAt90Percent,
     financingRatio,
 
     baseCustomerPayment,
@@ -115,6 +108,7 @@ export function calculateProjectCosts({
     eligibilityStatus,
     eligibilityLabel,
     riskLevel,
+    requiresPaymentApproval,
     canSubmit,
   };
 }
