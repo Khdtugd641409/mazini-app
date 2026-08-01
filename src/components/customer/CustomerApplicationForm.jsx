@@ -7,6 +7,10 @@ import {
 } from "../../utils/projectCalculations.js";
 
 const INITIAL_FORM = {
+  customerName: "",
+  nationalId: "",
+  mobileNumber: "",
+  email: "",
   landArea: "",
   landPrice: "",
   floors: "1",
@@ -27,7 +31,13 @@ function CustomerApplicationForm({ onReview }) {
   const requiresApproval =
     calculation.excessAmount > 0;
 
+  const isCustomerDataComplete =
+    formData.customerName.trim().length >= 3 &&
+    /^\d{10}$/.test(formData.nationalId) &&
+    /^05\d{8}$/.test(formData.mobileNumber);
+
   const submitDisabled =
+    !isCustomerDataComplete ||
     !calculation.canSubmit ||
     (requiresApproval && !acceptedExtraPayment);
 
@@ -39,7 +49,14 @@ function CustomerApplicationForm({ onReview }) {
       [name]: value,
     }));
 
-    setAcceptedExtraPayment(false);
+    if (
+      name === "landArea" ||
+      name === "landPrice" ||
+      name === "floors" ||
+      name === "bankOffer"
+    ) {
+      setAcceptedExtraPayment(false);
+    }
   };
 
   const handleSubmit = (event) => {
@@ -51,17 +68,96 @@ function CustomerApplicationForm({ onReview }) {
 
     onReview({
       formData: {
-        ...formData,
+        customerName: formData.customerName.trim(),
+        nationalId: formData.nationalId,
+        mobileNumber: formData.mobileNumber,
+        email: formData.email.trim(),
+        landArea: formData.landArea,
+        landPrice: formData.landPrice,
+        floors: formData.floors,
+        bankOffer: formData.bankOffer,
       },
+
       calculation: {
         ...calculation,
       },
+
       acceptedExtraPayment,
     });
   };
 
   return (
     <form onSubmit={handleSubmit}>
+      <fieldset>
+        <legend>بيانات العميل</legend>
+
+        <label htmlFor="customerName">
+          الاسم الكامل
+        </label>
+
+        <input
+          id="customerName"
+          name="customerName"
+          type="text"
+          value={formData.customerName}
+          onChange={handleChange}
+          placeholder="الاسم الرباعي"
+          autoComplete="name"
+          minLength="3"
+          required
+        />
+
+        <label htmlFor="nationalId">
+          رقم الهوية الوطنية
+        </label>
+
+        <input
+          id="nationalId"
+          name="nationalId"
+          type="text"
+          inputMode="numeric"
+          value={formData.nationalId}
+          onChange={handleChange}
+          placeholder="10 أرقام"
+          pattern="\d{10}"
+          maxLength="10"
+          autoComplete="off"
+          required
+        />
+
+        <label htmlFor="mobileNumber">
+          رقم الجوال
+        </label>
+
+        <input
+          id="mobileNumber"
+          name="mobileNumber"
+          type="tel"
+          inputMode="tel"
+          value={formData.mobileNumber}
+          onChange={handleChange}
+          placeholder="05xxxxxxxx"
+          pattern="05\d{8}"
+          maxLength="10"
+          autoComplete="tel"
+          required
+        />
+
+        <label htmlFor="email">
+          البريد الإلكتروني — اختياري
+        </label>
+
+        <input
+          id="email"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="name@example.com"
+          autoComplete="email"
+        />
+      </fieldset>
+
       <fieldset>
         <legend>بيانات الأرض والتمويل</legend>
 
