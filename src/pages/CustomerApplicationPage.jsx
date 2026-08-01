@@ -1,27 +1,102 @@
 import { useState } from "react";
 import CustomerApplicationForm from "../components/customer/CustomerApplicationForm.jsx";
 import CustomerApplicationReview from "../components/customer/CustomerApplicationReview.jsx";
+import CustomerFilePage from "./CustomerFilePage.jsx";
+import { createCustomerFile } from "../services/customerFileService.js";
 
 function CustomerApplicationPage({ onBack }) {
   const [currentStep, setCurrentStep] = useState("form");
+
   const [applicationData, setApplicationData] =
     useState(null);
 
+  const [createdCustomerFile, setCreatedCustomerFile] =
+    useState(null);
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+
+  const [submitError, setSubmitError] =
+    useState("");
+
   const handleOpenReview = (data) => {
     setApplicationData(data);
+    setSubmitError("");
     setCurrentStep("review");
   };
 
   const handleBackToForm = () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setSubmitError("");
     setCurrentStep("form");
   };
 
-  const handleConfirmApplication = () => {
-    // في الخطوة التالية سنحفظ ملف العميل في Supabase.
-    setCurrentStep("submitted");
+  const handleConfirmApplication = async () => {
+    if (!applicationData || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const customerFile = await createCustomerFile({
+        formData: applicationData.formData,
+        calculation: applicationData.calculation,
+        acceptedExtraPayment:
+          applicationData.acceptedExtraPayment,
+      });
+
+      if (
+        !customerFile ||
+        !customerFile.id ||
+        !customerFile.file_number
+      ) {
+        throw new Error(
+          "تم الحفظ، لكن لم تصل بيانات ملف العميل بصورة صحيحة."
+        );
+      }
+
+      setCreatedCustomerFile(customerFile);
+      setCurrentStep("customer-file");
+    } catch (error) {
+      console.error(
+        "تعذر إنشاء ملف العميل:",
+        error
+      );
+
+      setSubmitError(
+        error?.message ||
+          "تعذر إنشاء ملف العميل. حاول مرة أخرى."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (currentStep === "review" && applicationData) {
+  const handleBackToHome = () => {
+    onBack();
+  };
+
+  if (
+    currentStep === "customer-file" &&
+    createdCustomerFile
+  ) {
+    return (
+      <CustomerFilePage
+        customerFile={createdCustomerFile}
+        onBackToHome={handleBackToHome}
+      />
+    );
+  }
+
+  if (
+    currentStep === "review" &&
+    applicationData
+  ) {
     return (
       <main>
         <CustomerApplicationReview
@@ -32,48 +107,27 @@ function CustomerApplicationPage({ onBack }) {
           }
           onBack={handleBackToForm}
           onConfirm={handleConfirmApplication}
+          isSubmitting={isSubmitting}
+          submitError={submitError}
         />
-      </main>
-    );
-  }
-
-  if (currentStep === "submitted") {
-    return (
-      <main>
-        <h1>تم استلام طلبك</h1>
-
-        <p>
-          تم إنشاء ملف العميل مبدئيًا، وحالته الحالية:
-        </p>
-
-        <p>
-          <strong>تحت المراجعة</strong>
-        </p>
-
-        <p>
-          في الخطوة التالية سنربط هذه العملية
-          بقاعدة البيانات، ليظهر الملف للعميل
-          وإدارة المنصة.
-        </p>
-
-        <button type="button" onClick={onBack}>
-          العودة إلى الصفحة الرئيسية
-        </button>
       </main>
     );
   }
 
   return (
     <main>
-      <button type="button" onClick={onBack}>
+      <button
+        type="button"
+        onClick={onBack}
+      >
         العودة إلى الصفحة الرئيسية
       </button>
 
       <h1>تقديم طلب البناء الذاتي</h1>
 
       <p>
-        أدخل بيانات الأرض والتمويل لمعرفة التكلفة
-        التقديرية وأهلية التقديم.
+        أدخل بيانات العميل والأرض والتمويل لمعرفة
+        التكلفة التقديرية وأهلية التقديم.
       </p>
 
       <CustomerApplicationForm
