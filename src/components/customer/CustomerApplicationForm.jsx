@@ -16,10 +16,20 @@ const INITIAL_FORM = {
 function CustomerApplicationForm() {
   const [formData, setFormData] = useState(INITIAL_FORM);
 
+  const [acceptedExtraPayment, setAcceptedExtraPayment] =
+    useState(false);
+
   const calculation = useMemo(
     () => calculateProjectCosts(formData),
     [formData]
   );
+
+  const requiresApproval =
+    calculation.requiresPaymentApproval;
+
+  const submitDisabled =
+    !calculation.canSubmit ||
+    (requiresApproval && !acceptedExtraPayment);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -28,10 +38,24 @@ function CustomerApplicationForm() {
       ...currentData,
       [name]: value,
     }));
+
+    setAcceptedExtraPayment(false);
+  };
+
+  const handleApproveExtraPayment = () => {
+    setAcceptedExtraPayment(true);
+  };
+
+  const handleCancelExtraPaymentApproval = () => {
+    setAcceptedExtraPayment(false);
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (submitDisabled) {
+      return;
+    }
   };
 
   return (
@@ -39,7 +63,10 @@ function CustomerApplicationForm() {
       <fieldset>
         <legend>بيانات الأرض والتمويل</legend>
 
-        <label htmlFor="landArea">مساحة الأرض بالمتر المربع</label>
+        <label htmlFor="landArea">
+          مساحة الأرض بالمتر المربع
+        </label>
+
         <input
           id="landArea"
           name="landArea"
@@ -53,7 +80,10 @@ function CustomerApplicationForm() {
           required
         />
 
-        <label htmlFor="landPrice">قيمة الأرض بالريال</label>
+        <label htmlFor="landPrice">
+          قيمة الأرض بالريال
+        </label>
+
         <input
           id="landPrice"
           name="landPrice"
@@ -67,7 +97,10 @@ function CustomerApplicationForm() {
           required
         />
 
-        <label htmlFor="floors">عدد الأدوار</label>
+        <label htmlFor="floors">
+          عدد الأدوار
+        </label>
+
         <select
           id="floors"
           name="floors"
@@ -83,6 +116,7 @@ function CustomerApplicationForm() {
         <label htmlFor="bankOffer">
           الحد الأعلى للتمويل في عرض البنك
         </label>
+
         <input
           id="bankOffer"
           name="bankOffer"
@@ -103,6 +137,7 @@ function CustomerApplicationForm() {
         <dl>
           <div>
             <dt>المساحة المحتسبة لكل دور</dt>
+
             <dd>
               {formatSquareMeters(
                 calculation.buildingAreaPerFloor
@@ -112,6 +147,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي مسطح البناء</dt>
+
             <dd>
               {formatSquareMeters(
                 calculation.totalBuildingArea
@@ -121,13 +157,17 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>سعر متر البناء</dt>
+
             <dd>
-              {formatSaudiRiyal(calculation.meterRate)}
+              {formatSaudiRiyal(
+                calculation.meterRate
+              )}
             </dd>
           </div>
 
           <div>
             <dt>تكلفة البناء التقديرية</dt>
+
             <dd>
               {formatSaudiRiyal(
                 calculation.constructionCost
@@ -137,6 +177,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي تكلفة المشروع</dt>
+
             <dd>
               {formatSaudiRiyal(
                 calculation.estimatedProjectCost
@@ -146,6 +187,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>نسبة التكلفة إلى عرض البنك</dt>
+
             <dd>
               {formatPercentage(
                 calculation.financingRatio
@@ -155,6 +197,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>دفعة العميل الأساسية 12٪</dt>
+
             <dd>
               {formatSaudiRiyal(
                 calculation.baseCustomerPayment
@@ -164,6 +207,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>فرق التجاوز عن حد 80٪</dt>
+
             <dd>
               {formatSaudiRiyal(
                 calculation.excessAmount
@@ -173,6 +217,7 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي الدفعة المطلوبة</dt>
+
             <dd>
               {formatSaudiRiyal(
                 calculation.totalCustomerPayment
@@ -181,12 +226,92 @@ function CustomerApplicationForm() {
           </div>
         </dl>
 
-        <strong>{calculation.eligibilityLabel}</strong>
+        <strong>
+          {calculation.eligibilityLabel}
+        </strong>
       </section>
+
+      {requiresApproval && (
+        <section aria-live="polite">
+          <h2>إقرار الدفعة المقدمة</h2>
+
+          <p>
+            تجاوزت تكلفة المشروع 80٪ من عرض البنك.
+          </p>
+
+          <p>
+            يمكن متابعة التقديم بشرط موافقتك على
+            إضافة فرق التجاوز إلى دفعة 12٪.
+          </p>
+
+          <dl>
+            <div>
+              <dt>دفعة 12٪</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  calculation.baseCustomerPayment
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>فرق التجاوز</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  calculation.excessAmount
+                )}
+              </dd>
+            </div>
+
+            <div>
+              <dt>إجمالي الدفعة المقدمة</dt>
+
+              <dd>
+                <strong>
+                  {formatSaudiRiyal(
+                    calculation.totalCustomerPayment
+                  )}
+                </strong>
+              </dd>
+            </div>
+          </dl>
+
+          {!acceptedExtraPayment && (
+            <button
+              type="button"
+              onClick={handleApproveExtraPayment}
+            >
+              أوافق على الدفعة المقدمة
+            </button>
+          )}
+
+          {acceptedExtraPayment && (
+            <div>
+              <p>
+                <strong>
+                  تم إقرار الموافقة على الدفعة
+                  المقدمة.
+                </strong>
+              </p>
+
+              <button
+                type="button"
+                onClick={
+                  handleCancelExtraPaymentApproval
+                }
+              >
+                إلغاء الموافقة
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       <button
         type="submit"
-        disabled={!calculation.canSubmit}
+        disabled={submitDisabled}
       >
         تقديم الطلب
       </button>
