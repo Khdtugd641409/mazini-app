@@ -57,31 +57,33 @@ export function calculateProjectCosts({
       ? estimatedProjectCost / safeBankOffer
       : 0;
 
-  let eligibilityStatus = "incomplete";
-  let eligibilityLabel =
-    "أكمل بيانات المشروع والتمويل";
-  let riskLevel = "unknown";
-  let requiresPaymentApproval = false;
-  let canSubmit = false;
-
-  if (
+  const isComplete =
     safeLandArea > 0 &&
     safeLandPrice >= 0 &&
     meterRate > 0 &&
-    safeBankOffer > 0
-  ) {
-    if (estimatedProjectCost <= bankLimitAt80Percent) {
-      eligibilityStatus = "eligible";
-      eligibilityLabel = "مؤهل للتقديم";
-      riskLevel = "normal";
-      requiresPaymentApproval = false;
-      canSubmit = true;
-    } else {
-      eligibilityStatus = "eligible_with_extra_payment";
+    safeBankOffer > 0;
+
+  const requiresPaymentApproval =
+    isComplete &&
+    estimatedProjectCost > bankLimitAt80Percent;
+
+  let eligibilityStatus = "incomplete";
+  let eligibilityLabel =
+    "أكمل بيانات المشروع والتمويل";
+  let canSubmit = false;
+
+  if (isComplete) {
+    if (requiresPaymentApproval) {
+      eligibilityStatus =
+        "eligible_with_extra_payment";
+
       eligibilityLabel =
         "مؤهل بعد الموافقة على الدفعة المقدمة";
-      riskLevel = "extra_payment";
-      requiresPaymentApproval = true;
+
+      canSubmit = true;
+    } else {
+      eligibilityStatus = "eligible";
+      eligibilityLabel = "مؤهل للتقديم";
       canSubmit = true;
     }
   }
@@ -105,10 +107,10 @@ export function calculateProjectCosts({
     excessAmount,
     totalCustomerPayment,
 
+    isComplete,
+    requiresPaymentApproval,
     eligibilityStatus,
     eligibilityLabel,
-    riskLevel,
-    requiresPaymentApproval,
     canSubmit,
   };
 }
