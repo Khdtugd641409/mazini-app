@@ -13,8 +13,9 @@ const INITIAL_FORM = {
   bankOffer: "",
 };
 
-function CustomerApplicationForm() {
+function CustomerApplicationForm({ onReview }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
+
   const [acceptedExtraPayment, setAcceptedExtraPayment] =
     useState(false);
 
@@ -48,7 +49,15 @@ function CustomerApplicationForm() {
       return;
     }
 
-    // سيُربط حفظ الطلب بقاعدة البيانات لاحقًا.
+    onReview({
+      formData: {
+        ...formData,
+      },
+      calculation: {
+        ...calculation,
+      },
+      acceptedExtraPayment,
+    });
   };
 
   return (
@@ -203,9 +212,11 @@ function CustomerApplicationForm() {
           <div>
             <dt>إجمالي الدفعة المطلوبة</dt>
             <dd>
-              {formatSaudiRiyal(
-                calculation.totalCustomerPayment
-              )}
+              <strong>
+                {formatSaudiRiyal(
+                  calculation.totalCustomerPayment
+                )}
+              </strong>
             </dd>
           </div>
         </dl>
@@ -287,7 +298,7 @@ function CustomerApplicationForm() {
         type="submit"
         disabled={submitDisabled}
       >
-        تقديم الطلب
+        مراجعة الطلب
       </button>
     </form>
   );
