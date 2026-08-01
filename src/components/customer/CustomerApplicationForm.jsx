@@ -15,7 +15,6 @@ const INITIAL_FORM = {
 
 function CustomerApplicationForm() {
   const [formData, setFormData] = useState(INITIAL_FORM);
-
   const [acceptedExtraPayment, setAcceptedExtraPayment] =
     useState(false);
 
@@ -39,14 +38,7 @@ function CustomerApplicationForm() {
       [name]: value,
     }));
 
-    setAcceptedExtraPayment(false);
-  };
-
-  const handleApproveExtraPayment = () => {
-    setAcceptedExtraPayment(true);
-  };
-
-  const handleCancelExtraPaymentApproval = () => {
+    // تُلغى الموافقة إذا غيّر العميل أي قيمة مالية.
     setAcceptedExtraPayment(false);
   };
 
@@ -56,6 +48,8 @@ function CustomerApplicationForm() {
     if (submitDisabled) {
       return;
     }
+
+    // سيُربط الحفظ في Supabase لاحقًا.
   };
 
   return (
@@ -137,7 +131,6 @@ function CustomerApplicationForm() {
         <dl>
           <div>
             <dt>المساحة المحتسبة لكل دور</dt>
-
             <dd>
               {formatSquareMeters(
                 calculation.buildingAreaPerFloor
@@ -147,7 +140,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي مسطح البناء</dt>
-
             <dd>
               {formatSquareMeters(
                 calculation.totalBuildingArea
@@ -157,7 +149,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>سعر متر البناء</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.meterRate
@@ -167,7 +158,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>تكلفة البناء التقديرية</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.constructionCost
@@ -177,7 +167,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي تكلفة المشروع</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.estimatedProjectCost
@@ -187,7 +176,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>نسبة التكلفة إلى عرض البنك</dt>
-
             <dd>
               {formatPercentage(
                 calculation.financingRatio
@@ -197,7 +185,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>دفعة العميل الأساسية 12٪</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.baseCustomerPayment
@@ -207,7 +194,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>فرق التجاوز عن حد 80٪</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.excessAmount
@@ -217,7 +203,6 @@ function CustomerApplicationForm() {
 
           <div>
             <dt>إجمالي الدفعة المطلوبة</dt>
-
             <dd>
               {formatSaudiRiyal(
                 calculation.totalCustomerPayment
@@ -236,18 +221,14 @@ function CustomerApplicationForm() {
           <h2>إقرار الدفعة المقدمة</h2>
 
           <p>
-            تجاوزت تكلفة المشروع 80٪ من عرض البنك.
-          </p>
-
-          <p>
-            يمكن متابعة التقديم بشرط موافقتك على
-            إضافة فرق التجاوز إلى دفعة 12٪.
+            تجاوزت تكلفة المشروع 80٪ من عرض البنك،
+            ولذلك أُضيف فرق التجاوز إلى دفعة العميل
+            الأساسية البالغة 12٪.
           </p>
 
           <dl>
             <div>
               <dt>دفعة 12٪</dt>
-
               <dd>
                 {formatSaudiRiyal(
                   calculation.baseCustomerPayment
@@ -257,7 +238,6 @@ function CustomerApplicationForm() {
 
             <div>
               <dt>فرق التجاوز</dt>
-
               <dd>
                 {formatSaudiRiyal(
                   calculation.excessAmount
@@ -267,7 +247,6 @@ function CustomerApplicationForm() {
 
             <div>
               <dt>إجمالي الدفعة المقدمة</dt>
-
               <dd>
                 <strong>
                   {formatSaudiRiyal(
@@ -278,33 +257,29 @@ function CustomerApplicationForm() {
             </div>
           </dl>
 
-          {!acceptedExtraPayment && (
-            <button
-              type="button"
-              onClick={handleApproveExtraPayment}
-            >
-              أوافق على الدفعة المقدمة
-            </button>
-          )}
+          <label htmlFor="acceptedExtraPayment">
+            <input
+              id="acceptedExtraPayment"
+              name="acceptedExtraPayment"
+              type="checkbox"
+              checked={acceptedExtraPayment}
+              onChange={(event) =>
+                setAcceptedExtraPayment(
+                  event.target.checked
+                )
+              }
+            />
+
+            أقر بموافقتي على دفع إجمالي الدفعة
+            المقدمة الموضحة أعلاه عند قبول طلبي.
+          </label>
 
           {acceptedExtraPayment && (
-            <div>
-              <p>
-                <strong>
-                  تم إقرار الموافقة على الدفعة
-                  المقدمة.
-                </strong>
-              </p>
-
-              <button
-                type="button"
-                onClick={
-                  handleCancelExtraPaymentApproval
-                }
-              >
-                إلغاء الموافقة
-              </button>
-            </div>
+            <p>
+              <strong>
+                تم تسجيل موافقتك على الدفعة المقدمة.
+              </strong>
+            </p>
           )}
         </section>
       )}
