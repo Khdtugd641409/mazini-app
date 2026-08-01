@@ -10,15 +10,50 @@ function CustomerApplicationReview({
   acceptedExtraPayment,
   onBack,
   onConfirm,
+  isSubmitting = false,
+  submitError = "",
 }) {
+  const floorsLabel =
+    Number(formData.floors) === 1
+      ? "دور واحد"
+      : Number(formData.floors) === 2
+        ? "دوران"
+        : "ثلاثة أدوار";
+
   return (
     <section>
       <h2>مراجعة الطلب قبل التقديم</h2>
 
       <p>
-        راجع البيانات والحسابات التالية بعناية. بعد
-        التأكيد سيُنشأ ملف طلب بحالة تحت المراجعة.
+        راجع جميع البيانات بعناية. بعد التأكيد سيُنشأ
+        ملف عميل بحالة تحت المراجعة.
       </p>
+
+      <h3>بيانات العميل</h3>
+
+      <dl>
+        <div>
+          <dt>الاسم الكامل</dt>
+          <dd>{formData.customerName}</dd>
+        </div>
+
+        <div>
+          <dt>رقم الهوية الوطنية</dt>
+          <dd>{formData.nationalId}</dd>
+        </div>
+
+        <div>
+          <dt>رقم الجوال</dt>
+          <dd>{formData.mobileNumber}</dd>
+        </div>
+
+        <div>
+          <dt>البريد الإلكتروني</dt>
+          <dd>
+            {formData.email || "غير مضاف"}
+          </dd>
+        </div>
+      </dl>
 
       <h3>بيانات الأرض والتمويل</h3>
 
@@ -39,7 +74,7 @@ function CustomerApplicationReview({
 
         <div>
           <dt>عدد الأدوار</dt>
-          <dd>{formData.floors}</dd>
+          <dd>{floorsLabel}</dd>
         </div>
 
         <div>
@@ -143,8 +178,7 @@ function CustomerApplicationReview({
 
       {calculation.excessAmount > 0 && (
         <p>
-          إقرار الدفعة الإضافية:
-          {" "}
+          إقرار الدفعة المقدمة:{" "}
           <strong>
             {acceptedExtraPayment
               ? "تمت الموافقة"
@@ -154,15 +188,21 @@ function CustomerApplicationReview({
       )}
 
       <p>
-        حالة الطلب بعد التأكيد:
-        {" "}
+        حالة الملف بعد التأكيد:{" "}
         <strong>تحت المراجعة</strong>
       </p>
+
+      {submitError && (
+        <p role="alert">
+          <strong>{submitError}</strong>
+        </p>
+      )}
 
       <div>
         <button
           type="button"
           onClick={onBack}
+          disabled={isSubmitting}
         >
           العودة لتعديل البيانات
         </button>
@@ -170,8 +210,11 @@ function CustomerApplicationReview({
         <button
           type="button"
           onClick={onConfirm}
+          disabled={isSubmitting}
         >
-          أؤكد تقديم الطلب
+          {isSubmitting
+            ? "جاري إنشاء الملف..."
+            : "أؤكد تقديم الطلب"}
         </button>
       </div>
     </section>
