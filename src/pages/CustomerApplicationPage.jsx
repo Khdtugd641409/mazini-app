@@ -1,22 +1,277 @@
-import CustomerApplicationForm from "../components/customer/CustomerApplicationForm.jsx";
+import { useMemo, useState } from "react";
+import {
+  calculateProjectCosts,
+  formatPercentage,
+  formatSaudiRiyal,
+  formatSquareMeters,
+} from "../../utils/projectCalculations.js";
 
-function CustomerApplicationPage({ onBack }) {
+const INITIAL_FORM = {
+  landArea: "",
+  landPrice: "",
+  floors: "1",
+  bankOffer: "",
+};
+
+function CustomerApplicationForm() {
+  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [acceptedExtraPayment, setAcceptedExtraPayment] =
+    useState(false);
+
+  const calculation = useMemo(
+    () => calculateProjectCosts(formData),
+    [formData]
+  );
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+
+    setAcceptedExtraPayment(false);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+  };
+
+  const requiresApproval =
+    calculation.requiresPaymentApproval;
+
+  const submitDisabled =
+    !calculation.canSubmit ||
+    (requiresApproval && !acceptedExtraPayment);
+
   return (
-    <main>
-      <button type="button" onClick={onBack}>
-        العودة إلى الصفحة الرئيسية
+    <form onSubmit={handleSubmit}>
+      <fieldset>
+        <legend>بيانات الأرض والتمويل</legend>
+
+        <label htmlFor="landArea">
+          مساحة الأرض بالمتر المربع
+        </label>
+
+        <input
+          id="landArea"
+          name="landArea"
+          type="number"
+          min="1"
+          step="1"
+          inputMode="decimal"
+          value={formData.landArea}
+          onChange={handleChange}
+          placeholder="مثال: 500"
+          required
+        />
+
+        <label htmlFor="landPrice">
+          قيمة الأرض بالريال
+        </label>
+
+        <input
+          id="landPrice"
+          name="landPrice"
+          type="number"
+          min="0"
+          step="1"
+          inputMode="decimal"
+          value={formData.landPrice}
+          onChange={handleChange}
+          placeholder="مثال: 400000"
+          required
+        />
+
+        <label htmlFor="floors">
+          عدد الأدوار
+        </label>
+
+        <select
+          id="floors"
+          name="floors"
+          value={formData.floors}
+          onChange={handleChange}
+          required
+        >
+          <option value="1">دور واحد</option>
+          <option value="2">دوران</option>
+          <option value="3">ثلاثة أدوار</option>
+        </select>
+
+        <label htmlFor="bankOffer">
+          الحد الأعلى للتمويل في عرض البنك
+        </label>
+
+        <input
+          id="bankOffer"
+          name="bankOffer"
+          type="number"
+          min="1"
+          step="1"
+          inputMode="decimal"
+          value={formData.bankOffer}
+          onChange={handleChange}
+          placeholder="مثال: 1200000"
+          required
+        />
+      </fieldset>
+
+      <section aria-live="polite">
+        <h2>الحساب التقديري</h2>
+
+        <dl>
+          <div>
+            <dt>المساحة المحتسبة لكل دور</dt>
+            <dd>
+              {formatSquareMeters(
+                calculation.buildingAreaPerFloor
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>إجمالي مسطح البناء</dt>
+            <dd>
+              {formatSquareMeters(
+                calculation.totalBuildingArea
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>سعر متر البناء</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.meterRate
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>تكلفة البناء التقديرية</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.constructionCost
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>إجمالي تكلفة المشروع</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.estimatedProjectCost
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>نسبة التكلفة إلى عرض البنك</dt>
+            <dd>
+              {formatPercentage(
+                calculation.financingRatio
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>دفعة العميل الأساسية 12٪</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.baseCustomerPayment
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>فرق التجاوز عن حد 80٪</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.excessAmount
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>إجمالي الدفعة المطلوبة</dt>
+            <dd>
+              {formatSaudiRiyal(
+                calculation.totalCustomerPayment
+              )}
+            </dd>
+          </div>
+        </dl>
+
+        <strong>
+          {calculation.eligibilityLabel}
+        </strong>
+      </section>
+
+      {requiresApproval && (
+        <section>
+          <h2>إقرار الدفعة المقدمة</h2>
+
+          <p>
+            تجاوزت تكلفة المشروع 80٪ من عرض البنك.
+          </p>
+
+          <p>
+            دفعة 12٪:
+            {" "}
+            <strong>
+              {formatSaudiRiyal(
+                calculation.baseCustomerPayment
+              )}
+            </strong>
+          </p>
+
+          <p>
+            فرق التجاوز:
+            {" "}
+            <strong>
+              {formatSaudiRiyal(
+                calculation.excessAmount
+              )}
+            </strong>
+          </p>
+
+          <p>
+            إجمالي الدفعة المطلوبة:
+            {" "}
+            <strong>
+              {formatSaudiRiyal(
+                calculation.totalCustomerPayment
+              )}
+            </strong>
+          </p>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={acceptedExtraPayment}
+              onChange={(event) =>
+                setAcceptedExtraPayment(
+                  event.target.checked
+                )
+              }
+            />
+
+            أقر بموافقتي على دفع إجمالي الدفعة
+            المقدمة الموضحة أعلاه عند قبول طلبي.
+          </label>
+        </section>
+      )}
+
+      <button
+        type="submit"
+        disabled={submitDisabled}
+      >
+        تقديم الطلب
       </button>
-
-      <h1>تقديم طلب البناء الذاتي</h1>
-
-      <p>
-        أدخل بيانات الأرض والتمويل لمعرفة التكلفة التقديرية
-        وأهلية التقديم.
-      </p>
-
-      <CustomerApplicationForm />
-    </main>
+    </form>
   );
 }
 
-export default CustomerApplicationPage;
+export default CustomerApplicationForm;
