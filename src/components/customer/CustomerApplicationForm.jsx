@@ -24,7 +24,7 @@ function CustomerApplicationForm() {
   );
 
   const requiresApproval =
-    calculation.requiresPaymentApproval;
+    calculation.excessAmount > 0;
 
   const submitDisabled =
     !calculation.canSubmit ||
@@ -38,7 +38,6 @@ function CustomerApplicationForm() {
       [name]: value,
     }));
 
-    // تُلغى الموافقة إذا غيّر العميل أي قيمة مالية.
     setAcceptedExtraPayment(false);
   };
 
@@ -49,7 +48,7 @@ function CustomerApplicationForm() {
       return;
     }
 
-    // سيُربط الحفظ في Supabase لاحقًا.
+    // سيُربط حفظ الطلب بقاعدة البيانات لاحقًا.
   };
 
   return (
@@ -222,13 +221,13 @@ function CustomerApplicationForm() {
 
           <p>
             تجاوزت تكلفة المشروع 80٪ من عرض البنك،
-            ولذلك أُضيف فرق التجاوز إلى دفعة العميل
+            ولذلك أضيف فرق التجاوز إلى دفعة العميل
             الأساسية البالغة 12٪.
           </p>
 
           <dl>
             <div>
-              <dt>دفعة 12٪</dt>
+              <dt>دفعة العميل الأساسية 12٪</dt>
               <dd>
                 {formatSaudiRiyal(
                   calculation.baseCustomerPayment
@@ -237,7 +236,7 @@ function CustomerApplicationForm() {
             </div>
 
             <div>
-              <dt>فرق التجاوز</dt>
+              <dt>فرق التجاوز عن حد 80٪</dt>
               <dd>
                 {formatSaudiRiyal(
                   calculation.excessAmount
