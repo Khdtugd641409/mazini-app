@@ -1,5 +1,6 @@
 function HomePage({
   onOpenCustomerApplication,
+  onOpenCustomerAccess,
   onOpenAdmin,
   isCheckingAdmin = false,
 }) {
@@ -14,6 +15,13 @@ function HomePage({
         onClick={onOpenCustomerApplication}
       >
         تقديم طلب عميل
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenCustomerAccess}
+      >
+        متابعة ملفي
       </button>
 
       <button
