@@ -1,10 +1,16 @@
 import { supabase } from "../lib/supabase.js";
 
+function generateRequestId() {
+  return crypto.randomUUID();
+}
+
 export async function createCustomerFile({
   formData,
   calculation,
   acceptedExtraPayment,
 }) {
+  const requestId = generateRequestId();
+
   const { data, error } = await supabase.rpc(
     "create_customer_file",
     {
@@ -13,7 +19,9 @@ export async function createCustomerFile({
       p_email: formData.email || null,
 
       p_land_area: Number(formData.landArea),
-      p_estimated_land_price: Number(formData.landPrice),
+      p_estimated_land_price: Number(
+        formData.landPrice
+      ),
       p_floors: Number(formData.floors),
       p_bank_offer: Number(formData.bankOffer),
 
@@ -23,8 +31,7 @@ export async function createCustomerFile({
       p_total_building_area:
         calculation.totalBuildingArea,
 
-      p_meter_rate:
-        calculation.meterRate,
+      p_meter_rate: calculation.meterRate,
 
       p_estimated_construction_cost:
         calculation.constructionCost,
@@ -52,6 +59,8 @@ export async function createCustomerFile({
 
       p_extra_payment_approved:
         acceptedExtraPayment,
+
+      p_request_id: requestId,
     }
   );
 
