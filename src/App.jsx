@@ -26,7 +26,7 @@ import {
 } from "./services/adminCustomerFileService.js";
 
 import {
-  getCustomerFileByAccess,
+  getCustomerWorkspaceByAccess,
 } from "./services/customerAccessService.js";
 
 const INITIAL_CUSTOMER_FILTERS = {
@@ -147,6 +147,11 @@ function App() {
     accessedCustomerFile,
     setAccessedCustomerFile,
   ] = useState(null);
+
+  const [
+    accessedCustomerTimeline,
+    setAccessedCustomerTimeline,
+  ] = useState([]);
 
   const [
     isCustomerAccessLoading,
@@ -317,9 +322,12 @@ function App() {
 
   const openHomePage = () => {
     setCurrentPage("home");
+
     setAdminLoginError("");
     setCustomerAccessError("");
+
     setAccessedCustomerFile(null);
+    setAccessedCustomerTimeline([]);
   };
 
   const openCustomerApplication = () => {
@@ -328,7 +336,10 @@ function App() {
 
   const openCustomerAccess = () => {
     setCustomerAccessError("");
+
     setAccessedCustomerFile(null);
+    setAccessedCustomerTimeline([]);
+
     setCurrentPage("customer-access");
   };
 
@@ -344,19 +355,26 @@ function App() {
     setCustomerAccessError("");
 
     try {
-      const customerFile =
-        await getCustomerFileByAccess({
-          fileNumber,
-          mobileNumber,
-        });
+      const {
+        customerFile,
+        timeline,
+      } = await getCustomerWorkspaceByAccess({
+        fileNumber,
+        mobileNumber,
+      });
 
       setAccessedCustomerFile(customerFile);
+      setAccessedCustomerTimeline(timeline);
+
       setCurrentPage("customer-file");
     } catch (error) {
       console.error(
         "تعذر فتح ملف العميل:",
         error
       );
+
+      setAccessedCustomerFile(null);
+      setAccessedCustomerTimeline([]);
 
       setCustomerAccessError(
         error?.message ||
@@ -376,6 +394,7 @@ function App() {
 
     if (currentAdmin) {
       setCurrentPage("admin-dashboard");
+
       await loadAdminDashboard();
 
       return;
@@ -720,6 +739,7 @@ function App() {
     return (
       <CustomerFilePage
         customerFile={accessedCustomerFile}
+        timeline={accessedCustomerTimeline}
         onBackToHome={openHomePage}
       />
     );
