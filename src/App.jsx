@@ -21,6 +21,7 @@ import {
   getAdminCustomerFile,
   getAdminDashboard,
   listAdminCustomerFileNotes,
+  listAdminCustomerFileTimeline,
   searchAdminCustomerFiles,
 } from "./services/adminCustomerFileService.js";
 
@@ -118,6 +119,11 @@ function App() {
   ] = useState([]);
 
   const [
+    selectedCustomerFileTimeline,
+    setSelectedCustomerFileTimeline,
+  ] = useState([]);
+
+  const [
     isCustomerWorkspaceLoading,
     setIsCustomerWorkspaceLoading,
   ] = useState(false);
@@ -191,6 +197,7 @@ function App() {
 
     try {
       const data = await getAdminDashboard();
+
       setDashboardData(data);
     } catch (error) {
       console.error(
@@ -268,16 +275,27 @@ function App() {
     setCustomerDecisionError("");
 
     try {
-      const [customerFile, notes] =
-        await Promise.all([
-          getAdminCustomerFile(customerFileId),
-          listAdminCustomerFileNotes(
-            customerFileId
-          ),
-        ]);
+      const [
+        customerFile,
+        notes,
+        timeline,
+      ] = await Promise.all([
+        getAdminCustomerFile(customerFileId),
+
+        listAdminCustomerFileNotes(
+          customerFileId
+        ),
+
+        listAdminCustomerFileTimeline(
+          customerFileId
+        ),
+      ]);
 
       setSelectedCustomerFile(customerFile);
       setSelectedCustomerFileNotes(notes);
+      setSelectedCustomerFileTimeline(
+        timeline
+      );
     } catch (error) {
       console.error(
         "تعذر تحميل مساحة عمل العميل:",
@@ -286,6 +304,7 @@ function App() {
 
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
+      setSelectedCustomerFileTimeline([]);
 
       setCustomerWorkspaceError(
         error?.message ||
@@ -358,6 +377,7 @@ function App() {
     if (currentAdmin) {
       setCurrentPage("admin-dashboard");
       await loadAdminDashboard();
+
       return;
     }
 
@@ -417,9 +437,11 @@ function App() {
       });
 
       setCustomerFiles([]);
+
       setCustomerFilters(
         INITIAL_CUSTOMER_FILTERS
       );
+
       setCustomerPagination(
         INITIAL_PAGINATION
       );
@@ -427,6 +449,7 @@ function App() {
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
+      setSelectedCustomerFileTimeline([]);
 
       setCurrentPage("home");
     }
@@ -439,6 +462,7 @@ function App() {
     }
 
     setCurrentPage("admin-dashboard");
+
     await loadAdminDashboard();
   };
 
@@ -448,13 +472,10 @@ function App() {
       return;
     }
 
-    const initialFilters =
-      INITIAL_CUSTOMER_FILTERS;
-
     setCurrentPage("admin-customer-files");
 
     await loadCustomerFiles({
-      ...initialFilters,
+      ...INITIAL_CUSTOMER_FILTERS,
       page: 1,
       pageSize: 25,
     });
@@ -582,9 +603,13 @@ function App() {
       return;
     }
 
-    setSelectedCustomerFileId(customerFileId);
+    setSelectedCustomerFileId(
+      customerFileId
+    );
+
     setSelectedCustomerFile(null);
     setSelectedCustomerFileNotes([]);
+    setSelectedCustomerFileTimeline([]);
     setCustomerWorkspaceError("");
     setCustomerDecisionError("");
 
@@ -615,6 +640,7 @@ function App() {
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
+      setSelectedCustomerFileTimeline([]);
       setCustomerWorkspaceError("");
       setCustomerDecisionError("");
 
@@ -641,7 +667,9 @@ function App() {
       });
 
       await Promise.all([
-        loadCustomerWorkspace(customerFileId),
+        loadCustomerWorkspace(
+          customerFileId
+        ),
         loadCustomerFiles(),
         loadAdminDashboard(),
       ]);
@@ -713,7 +741,9 @@ function App() {
       return (
         <AdminLoginPage
           onSubmit={handleAdminSignIn}
-          isSubmitting={isAdminSigningIn}
+          isSubmitting={
+            isAdminSigningIn
+          }
           errorMessage={adminLoginError}
           onBackToHome={openHomePage}
         />
@@ -733,8 +763,12 @@ function App() {
         }
         isLoading={isDashboardLoading}
         errorMessage={dashboardError}
-        onOpenAction={handleOpenAdminAction}
-        onOpenSection={handleOpenAdminSection}
+        onOpenAction={
+          handleOpenAdminAction
+        }
+        onOpenSection={
+          handleOpenAdminSection
+        }
         onSignOut={handleAdminSignOut}
       />
     );
@@ -747,7 +781,9 @@ function App() {
       return (
         <AdminLoginPage
           onSubmit={handleAdminSignIn}
-          isSubmitting={isAdminSigningIn}
+          isSubmitting={
+            isAdminSigningIn
+          }
           errorMessage={adminLoginError}
           onBackToHome={openHomePage}
         />
@@ -779,7 +815,9 @@ function App() {
         onOpenCustomerFile={
           handleOpenCustomerFile
         }
-        onBackToHome={openAdminDashboard}
+        onBackToHome={
+          openAdminDashboard
+        }
       />
     );
   }
@@ -792,7 +830,9 @@ function App() {
       return (
         <AdminLoginPage
           onSubmit={handleAdminSignIn}
-          isSubmitting={isAdminSigningIn}
+          isSubmitting={
+            isAdminSigningIn
+          }
           errorMessage={adminLoginError}
           onBackToHome={openHomePage}
         />
@@ -801,8 +841,15 @@ function App() {
 
     return (
       <AdminCustomerWorkspace
-        customerFile={selectedCustomerFile}
-        notes={selectedCustomerFileNotes}
+        customerFile={
+          selectedCustomerFile
+        }
+        notes={
+          selectedCustomerFileNotes
+        }
+        timeline={
+          selectedCustomerFileTimeline
+        }
         isLoading={
           isCustomerWorkspaceLoading
         }
@@ -815,7 +862,9 @@ function App() {
         decisionError={
           customerDecisionError
         }
-        onBack={handleBackToCustomerFiles}
+        onBack={
+          handleBackToCustomerFiles
+        }
         onRefresh={
           handleRefreshCustomerWorkspace
         }
