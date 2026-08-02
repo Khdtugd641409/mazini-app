@@ -9,7 +9,6 @@ export async function createCustomerFile({
     "create_customer_file",
     {
       p_customer_name: formData.customerName,
-      p_national_id: formData.nationalId,
       p_mobile_number: formData.mobileNumber,
       p_email: formData.email || null,
 
@@ -57,7 +56,16 @@ export async function createCustomerFile({
   );
 
   if (error) {
-    throw error;
+    throw new Error(
+      error.message ||
+        "تعذر إنشاء ملف العميل في قاعدة البيانات."
+    );
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(
+      "تم تنفيذ الطلب، لكن لم تصل بيانات ملف العميل."
+    );
   }
 
   return data[0];
