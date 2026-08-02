@@ -38,20 +38,13 @@ function CustomerApplicationReview({
         </div>
 
         <div>
-          <dt>رقم الهوية الوطنية</dt>
-          <dd>{formData.nationalId}</dd>
-        </div>
-
-        <div>
           <dt>رقم الجوال</dt>
           <dd>{formData.mobileNumber}</dd>
         </div>
 
         <div>
           <dt>البريد الإلكتروني</dt>
-          <dd>
-            {formData.email || "غير مضاف"}
-          </dd>
+          <dd>{formData.email || "غير مضاف"}</dd>
         </div>
       </dl>
 
@@ -109,9 +102,7 @@ function CustomerApplicationReview({
         <div>
           <dt>سعر متر البناء</dt>
           <dd>
-            {formatSaudiRiyal(
-              calculation.meterRate
-            )}
+            {formatSaudiRiyal(calculation.meterRate)}
           </dd>
         </div>
 
