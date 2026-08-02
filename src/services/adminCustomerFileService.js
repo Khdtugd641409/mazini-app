@@ -67,21 +67,89 @@ export async function listAdminPendingTasks() {
   return Array.isArray(data) ? data : [];
 }
 
-export async function listAdminCustomerFiles() {
+export async function searchAdminCustomerFiles({
+  search = "",
+  status = "all",
+  sort = "newest",
+  page = 1,
+  pageSize = 25,
+} = {}) {
+  const safePage = Math.max(Number(page) || 1, 1);
+
+  const safePageSize = Math.min(
+    Math.max(Number(pageSize) || 25, 1),
+    100
+  );
+
   const { data, error } = await supabase.rpc(
-    "admin_list_customer_files"
+    "admin_search_customer_files",
+    {
+      p_search: String(search || "").trim(),
+      p_status: status || "all",
+      p_sort: sort || "newest",
+      p_page: safePage,
+      p_page_size: safePageSize,
+    }
   );
 
   if (error) {
     throw new Error(
       getErrorMessage(
         error,
-        "تعذر تحميل ملفات العملاء."
+        "تعذر البحث في ملفات العملاء."
       )
     );
   }
 
-  return Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data : [];
+
+  const totalCount =
+    rows.length > 0
+      ? Number(rows[0].total_count || 0)
+      : 0;
+
+  const totalPages =
+    totalCount > 0
+      ? Math.ceil(totalCount / safePageSize)
+      : 1;
+
+  return {
+    files: rows.map((row) => ({
+      id: row.id,
+      file_number: row.file_number,
+      customer_name: row.customer_name,
+      mobile_number: row.mobile_number,
+      email: row.email,
+      status: row.status,
+      current_stage: row.current_stage,
+      submitted_at: row.submitted_at,
+      updated_at: row.updated_at,
+      estimated_project_cost:
+        row.estimated_project_cost,
+      total_customer_payment:
+        row.total_customer_payment,
+    })),
+
+    pagination: {
+      page: safePage,
+      pageSize: safePageSize,
+      totalCount,
+      totalPages,
+      hasPreviousPage: safePage > 1,
+      hasNextPage: safePage < totalPages,
+    },
+  };
+}
+
+// تُترك مؤقتًا للتوافق مع أي جزء قديم في التطبيق.
+// سنزيلها بعد اكتمال ربط البحث الجديد.
+export async function listAdminCustomerFiles() {
+  const result = await searchAdminCustomerFiles({
+    page: 1,
+    pageSize: 25,
+  });
+
+  return result.files;
 }
 
 export async function getAdminCustomerFile(
