@@ -1,7 +1,16 @@
 import { supabase } from "../lib/supabase.js";
 
 function generateRequestId() {
-  return crypto.randomUUID();
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
 }
 
 export async function createCustomerFile({
@@ -19,11 +28,16 @@ export async function createCustomerFile({
       p_email: formData.email || null,
 
       p_land_area: Number(formData.landArea),
+
       p_estimated_land_price: Number(
         formData.landPrice
       ),
+
       p_floors: Number(formData.floors),
-      p_bank_offer: Number(formData.bankOffer),
+
+      p_bank_offer: Number(
+        formData.bankOffer
+      ),
 
       p_building_area_per_floor:
         calculation.buildingAreaPerFloor,
@@ -31,7 +45,8 @@ export async function createCustomerFile({
       p_total_building_area:
         calculation.totalBuildingArea,
 
-      p_meter_rate: calculation.meterRate,
+      p_meter_rate:
+        calculation.meterRate,
 
       p_estimated_construction_cost:
         calculation.constructionCost,
@@ -71,11 +86,50 @@ export async function createCustomerFile({
     );
   }
 
-  if (!Array.isArray(data) || data.length === 0) {
+  if (
+    !Array.isArray(data) ||
+    data.length === 0
+  ) {
     throw new Error(
       "تم تنفيذ الطلب، لكن لم تصل بيانات ملف العميل."
     );
   }
 
-  return data[0];
+  const createdFile = data[0];
+
+  /*
+   * دالة الإنشاء تعيد بيانات مختصرة فقط.
+   * لذلك نجلب الملف الكامل قبل فتح صفحة العميل.
+   */
+  const {
+    data: fullFileData,
+    error: fullFileError,
+  } = await supabase.rpc(
+    "get_customer_file_by_access",
+    {
+      p_file_number:
+        createdFile.file_number,
+
+      p_mobile_number:
+        String(formData.mobileNumber).trim(),
+    }
+  );
+
+  if (fullFileError) {
+    throw new Error(
+      fullFileError.message ||
+        "تم إنشاء الملف، لكن تعذر تحميل تفاصيله."
+    );
+  }
+
+  if (
+    !Array.isArray(fullFileData) ||
+    fullFileData.length === 0
+  ) {
+    throw new Error(
+      "تم إنشاء الملف، لكن لم تصل بياناته التفصيلية."
+    );
+  }
+
+  return fullFileData[0];
 }
