@@ -213,16 +213,27 @@
   margin: 0;
 }
 
+/*
+  الحاوية الخارجية LTR لتصحيح التمرير الأفقي
+  في Safari على الجوال والآيباد.
+*/
 .customer-table-scroll {
   width: 100%;
   overflow-x: auto;
+  direction: ltr;
   border: 1px solid #dde3de;
   border-radius: 18px;
+  overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+  محتوى الجدول يبقى RTL حتى تبدأ الأعمدة
+  برقم الملف واسم العميل من جهة اليمين.
+*/
 .customer-table {
   min-width: 1160px;
+  direction: rtl;
 }
 
 .customer-table-header,
@@ -238,6 +249,7 @@
     190px;
   gap: 0;
   align-items: center;
+  direction: rtl;
 }
 
 .customer-table-header {
