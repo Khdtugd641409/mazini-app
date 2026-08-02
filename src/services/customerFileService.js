@@ -1,29 +1,100 @@
 import { supabase } from "../lib/supabase.js";
 
+function validateRequestId(requestId) {
+  const normalizedRequestId = String(
+    requestId || ""
+  ).trim();
+
+  if (!normalizedRequestId) {
+    throw new Error(
+      "معرّف عملية تقديم الطلب غير موجود."
+    );
+  }
+
+  return normalizedRequestId;
+}
+
+async function getFullCustomerFile({
+  fileNumber,
+  mobileNumber,
+}) {
+  if (!fileNumber) {
+    throw new Error(
+      "رقم ملف العميل غير موجود."
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "get_customer_file_by_access",
+    {
+      p_file_number: String(
+        fileNumber
+      )
+        .trim()
+        .toUpperCase(),
+
+      p_mobile_number: String(
+        mobileNumber || ""
+      ).trim(),
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message ||
+        "تعذر تحميل تفاصيل ملف العميل."
+    );
+  }
+
+  if (
+    !Array.isArray(data) ||
+    data.length === 0
+  ) {
+    throw new Error(
+      "لم تصل بيانات ملف العميل التفصيلية."
+    );
+  }
+
+  return data[0];
+}
+
 export async function createCustomerFile({
   formData,
   calculation,
   acceptedExtraPayment,
   requestId,
+  allowSimilarApplication = false,
 }) {
+  const normalizedRequestId =
+    validateRequestId(requestId);
+
+  const mobileNumber = String(
+    formData.mobileNumber || ""
+  ).trim();
+
   const { data, error } = await supabase.rpc(
     "create_customer_file",
     {
-      p_customer_name: formData.customerName,
-      p_mobile_number: formData.mobileNumber,
-      p_email: formData.email || null,
+      p_customer_name:
+        formData.customerName,
 
-      p_land_area: Number(formData.landArea),
+      p_mobile_number:
+        mobileNumber,
 
-      p_estimated_land_price: Number(
-        formData.landPrice
-      ),
+      p_email:
+        formData.email || null,
 
-      p_floors: Number(formData.floors),
+      p_land_area:
+        Number(formData.landArea),
 
-      p_bank_offer: Number(
-        formData.bankOffer
-      ),
+      p_estimated_land_price:
+        Number(formData.landPrice),
+
+      p_floors:
+        Number(formData.floors),
+
+      p_bank_offer:
+        Number(formData.bankOffer),
 
       p_building_area_per_floor:
         calculation.buildingAreaPerFloor,
@@ -61,7 +132,11 @@ export async function createCustomerFile({
       p_extra_payment_approved:
         acceptedExtraPayment,
 
-      p_request_id: requestId,
+      p_request_id:
+        normalizedRequestId,
+
+      p_allow_similar_application:
+        Boolean(allowSimilarApplication),
     }
   );
 
@@ -72,43 +147,41 @@ export async function createCustomerFile({
     );
   }
 
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error(
-      "تم تنفيذ الطلب، لكن لم تصل بيانات ملف العميل."
-    );
-  }
-
-  const createdFile = data[0];
-
-  const {
-    data: fullFileData,
-    error: fullFileError,
-  } = await supabase.rpc(
-    "get_customer_file_by_access",
-    {
-      p_file_number:
-        createdFile.file_number,
-
-      p_mobile_number:
-        String(formData.mobileNumber).trim(),
-    }
-  );
-
-  if (fullFileError) {
-    throw new Error(
-      fullFileError.message ||
-        "تم إنشاء الملف، لكن تعذر تحميل تفاصيله."
-    );
-  }
-
   if (
-    !Array.isArray(fullFileData) ||
-    fullFileData.length === 0
+    !Array.isArray(data) ||
+    data.length === 0
   ) {
     throw new Error(
-      "تم إنشاء الملف، لكن لم تصل بياناته التفصيلية."
+      "تم تنفيذ الطلب، لكن لم تصل نتيجة العملية."
     );
   }
 
-  return fullFileData[0];
+  const result = data[0];
+
+  const allowedResultTypes = [
+    "created",
+    "same_request",
+    "similar_found",
+  ];
+
+  if (
+    !allowedResultTypes.includes(
+      result.result_type
+    )
+  ) {
+    throw new Error(
+      "وصلت نتيجة غير معروفة من عملية تقديم الطلب."
+    );
+  }
+
+  const customerFile =
+    await getFullCustomerFile({
+      fileNumber: result.file_number,
+      mobileNumber,
+    });
+
+  return {
+    resultType: result.result_type,
+    customerFile,
+  };
 }
