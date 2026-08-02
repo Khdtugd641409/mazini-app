@@ -36,9 +36,12 @@ export async function getAdminDashboard() {
   }
 
   return {
-    pendingActions: Array.isArray(data?.pending_actions)
+    pendingActions: Array.isArray(
+      data?.pending_actions
+    )
       ? data.pending_actions.filter(
-          (action) => Number(action.count || 0) > 0
+          (action) =>
+            Number(action.count || 0) > 0
         )
       : [],
 
@@ -74,7 +77,10 @@ export async function searchAdminCustomerFiles({
   page = 1,
   pageSize = 25,
 } = {}) {
-  const safePage = Math.max(Number(page) || 1, 1);
+  const safePage = Math.max(
+    Number(page) || 1,
+    1
+  );
 
   const safePageSize = Math.min(
     Math.max(Number(pageSize) || 25, 1),
@@ -101,7 +107,9 @@ export async function searchAdminCustomerFiles({
     );
   }
 
-  const rows = Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data)
+    ? data
+    : [];
 
   const totalCount =
     rows.length > 0
@@ -110,7 +118,9 @@ export async function searchAdminCustomerFiles({
 
   const totalPages =
     totalCount > 0
-      ? Math.ceil(totalCount / safePageSize)
+      ? Math.ceil(
+          totalCount / safePageSize
+        )
       : 1;
 
   return {
@@ -135,19 +145,20 @@ export async function searchAdminCustomerFiles({
       pageSize: safePageSize,
       totalCount,
       totalPages,
-      hasPreviousPage: safePage > 1,
-      hasNextPage: safePage < totalPages,
+      hasPreviousPage:
+        safePage > 1,
+      hasNextPage:
+        safePage < totalPages,
     },
   };
 }
 
-// تُترك مؤقتًا للتوافق مع أي جزء قديم في التطبيق.
-// سنزيلها بعد اكتمال ربط البحث الجديد.
 export async function listAdminCustomerFiles() {
-  const result = await searchAdminCustomerFiles({
-    page: 1,
-    pageSize: 25,
-  });
+  const result =
+    await searchAdminCustomerFiles({
+      page: 1,
+      pageSize: 25,
+    });
 
   return result.files;
 }
@@ -156,13 +167,16 @@ export async function getAdminCustomerFile(
   customerFileId
 ) {
   if (!customerFileId) {
-    throw new Error("معرّف ملف العميل غير موجود.");
+    throw new Error(
+      "معرّف ملف العميل غير موجود."
+    );
   }
 
   const { data, error } = await supabase.rpc(
     "admin_get_customer_file",
     {
-      p_customer_file_id: customerFileId,
+      p_customer_file_id:
+        customerFileId,
     }
   );
 
@@ -175,8 +189,13 @@ export async function getAdminCustomerFile(
     );
   }
 
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error("ملف العميل غير موجود.");
+  if (
+    !Array.isArray(data) ||
+    data.length === 0
+  ) {
+    throw new Error(
+      "ملف العميل غير موجود."
+    );
   }
 
   return data[0];
@@ -186,13 +205,16 @@ export async function listAdminCustomerFileNotes(
   customerFileId
 ) {
   if (!customerFileId) {
-    throw new Error("معرّف ملف العميل غير موجود.");
+    throw new Error(
+      "معرّف ملف العميل غير موجود."
+    );
   }
 
   const { data, error } = await supabase.rpc(
     "admin_list_customer_file_notes",
     {
-      p_customer_file_id: customerFileId,
+      p_customer_file_id:
+        customerFileId,
     }
   );
 
@@ -205,7 +227,40 @@ export async function listAdminCustomerFileNotes(
     );
   }
 
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(data)
+    ? data
+    : [];
+}
+
+export async function listAdminCustomerFileTimeline(
+  customerFileId
+) {
+  if (!customerFileId) {
+    throw new Error(
+      "معرّف ملف العميل غير موجود."
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "admin_list_customer_file_timeline",
+    {
+      p_customer_file_id:
+        customerFileId,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(
+        error,
+        "تعذر تحميل السجل الزمني لملف العميل."
+      )
+    );
+  }
+
+  return Array.isArray(data)
+    ? data
+    : [];
 }
 
 export async function decideCustomerApplication({
@@ -214,7 +269,9 @@ export async function decideCustomerApplication({
   note = "",
 }) {
   if (!customerFileId) {
-    throw new Error("معرّف ملف العميل غير موجود.");
+    throw new Error(
+      "معرّف ملف العميل غير موجود."
+    );
   }
 
   const allowedDecisions = [
@@ -223,15 +280,25 @@ export async function decideCustomerApplication({
     "reject",
   ];
 
-  if (!allowedDecisions.includes(decision)) {
-    throw new Error("قرار الإدارة غير صحيح.");
+  if (
+    !allowedDecisions.includes(
+      decision
+    )
+  ) {
+    throw new Error(
+      "قرار الإدارة غير صحيح."
+    );
   }
 
-  const normalizedNote = note.trim();
+  const normalizedNote =
+    note.trim();
 
   if (
-    (decision === "needs_completion" ||
-      decision === "reject") &&
+    (
+      decision ===
+        "needs_completion" ||
+      decision === "reject"
+    ) &&
     !normalizedNote
   ) {
     throw new Error(
@@ -244,9 +311,11 @@ export async function decideCustomerApplication({
   const { data, error } = await supabase.rpc(
     "admin_decide_customer_application",
     {
-      p_customer_file_id: customerFileId,
+      p_customer_file_id:
+        customerFileId,
       p_decision: decision,
-      p_note: normalizedNote || null,
+      p_note:
+        normalizedNote || null,
     }
   );
 
@@ -259,7 +328,10 @@ export async function decideCustomerApplication({
     );
   }
 
-  if (!Array.isArray(data) || data.length === 0) {
+  if (
+    !Array.isArray(data) ||
+    data.length === 0
+  ) {
     throw new Error(
       "تم تنفيذ العملية، لكن لم تصل حالة الملف الجديدة."
     );
