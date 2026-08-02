@@ -1,25 +1,11 @@
 import { supabase } from "../lib/supabase.js";
 
-function generateRequestId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random()
-    .toString(16)
-    .slice(2)}`;
-}
-
 export async function createCustomerFile({
   formData,
   calculation,
   acceptedExtraPayment,
+  requestId,
 }) {
-  const requestId = generateRequestId();
-
   const { data, error } = await supabase.rpc(
     "create_customer_file",
     {
@@ -86,10 +72,7 @@ export async function createCustomerFile({
     );
   }
 
-  if (
-    !Array.isArray(data) ||
-    data.length === 0
-  ) {
+  if (!Array.isArray(data) || data.length === 0) {
     throw new Error(
       "تم تنفيذ الطلب، لكن لم تصل بيانات ملف العميل."
     );
@@ -97,10 +80,6 @@ export async function createCustomerFile({
 
   const createdFile = data[0];
 
-  /*
-   * دالة الإنشاء تعيد بيانات مختصرة فقط.
-   * لذلك نجلب الملف الكامل قبل فتح صفحة العميل.
-   */
   const {
     data: fullFileData,
     error: fullFileError,
