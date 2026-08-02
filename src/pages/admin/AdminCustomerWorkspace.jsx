@@ -35,6 +35,21 @@ const DECISION_LABELS = {
   reject: "رفض الطلب",
 };
 
+const NOTE_TYPE_LABELS = {
+  admin_note: "ملاحظة إدارية",
+  approval_note: "ملاحظة القبول",
+  completion_request: "طلب استكمال",
+  rejection_note: "سبب الرفض",
+  system_note: "ملاحظة النظام",
+};
+
+const EVENT_TYPE_LABELS = {
+  customer_file_created: "إنشاء الملف",
+  status_changed: "تغيير الحالة",
+  stage_changed: "تغيير المرحلة",
+  current_state_snapshot: "الحالة الحالية",
+};
+
 function formatDate(value) {
   if (!value) {
     return "غير متوفر";
@@ -46,9 +61,43 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function getCurrentRequiredAction(customerFile) {
+  if (!customerFile) {
+    return "غير محدد";
+  }
+
+  if (customerFile.status === "under_review") {
+    return "مراجعة الطلب واتخاذ قرار";
+  }
+
+  if (customerFile.status === "needs_completion") {
+    return "انتظار استكمال العميل للبيانات المطلوبة";
+  }
+
+  if (
+    customerFile.status === "approved" ||
+    customerFile.current_stage === "waiting_land"
+  ) {
+    return "انتظار تقديم العميل للأرض";
+  }
+
+  if (customerFile.status === "rejected") {
+    return "لا يوجد إجراء — الطلب مرفوض";
+  }
+
+  if (customerFile.status === "closed") {
+    return "لا يوجد إجراء — الملف مغلق";
+  }
+
+  return STAGE_LABELS[customerFile.current_stage] ||
+    customerFile.current_stage ||
+    "غير محدد";
+}
+
 function AdminCustomerWorkspace({
   customerFile,
   notes = [],
+  timeline = [],
   isLoading = false,
   errorMessage = "",
   isSubmittingDecision = false,
@@ -73,6 +122,9 @@ function AdminCustomerWorkspace({
     customerFile?.current_stage ||
     "غير محددة";
 
+  const currentRequiredAction =
+    getCurrentRequiredAction(customerFile);
+
   const canDecide = [
     "under_review",
     "needs_completion",
@@ -92,6 +144,19 @@ function AdminCustomerWorkspace({
     return Number(customerFile?.financing_ratio || 0);
   }, [customerFile]);
 
+  const estimatedProjectCost = Number(
+    customerFile?.estimated_project_cost || 0
+  );
+
+  const platformShare =
+    estimatedProjectCost * 0.015;
+
+  const supervisorShare =
+    estimatedProjectCost * 0.015;
+
+  const investorsShare =
+    estimatedProjectCost * 0.09;
+
   const handleSubmitDecision = async (event) => {
     event.preventDefault();
 
@@ -99,14 +164,18 @@ function AdminCustomerWorkspace({
       return;
     }
 
-    await onDecision({
-      customerFileId: customerFile.id,
-      decision: selectedDecision,
-      note: decisionNote,
-    });
+    try {
+      await onDecision({
+        customerFileId: customerFile.id,
+        decision: selectedDecision,
+        note: decisionNote,
+      });
 
-    setSelectedDecision("");
-    setDecisionNote("");
+      setSelectedDecision("");
+      setDecisionNote("");
+    } catch {
+      // يعرض App.jsx الخطأ داخل decisionError.
+    }
   };
 
   if (isLoading) {
@@ -175,6 +244,7 @@ function AdminCustomerWorkspace({
           <button
             type="button"
             onClick={onRefresh}
+            disabled={isSubmittingDecision}
           >
             تحديث الملف
           </button>
@@ -182,11 +252,22 @@ function AdminCustomerWorkspace({
           <button
             type="button"
             onClick={onBack}
+            disabled={isSubmittingDecision}
           >
             العودة إلى ملفات العملاء
           </button>
         </div>
       </header>
+
+      <section aria-labelledby="required-action-title">
+        <h2 id="required-action-title">
+          الإجراء الحالي المطلوب
+        </h2>
+
+        <p>
+          <strong>{currentRequiredAction}</strong>
+        </p>
+      </section>
 
       <section aria-labelledby="file-status-title">
         <h2 id="file-status-title">
@@ -220,6 +301,24 @@ function AdminCustomerWorkspace({
             <dd>
               {formatDate(
                 customerFile.submitted_at
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>تاريخ القبول</dt>
+            <dd>
+              {formatDate(
+                customerFile.approved_at
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>تاريخ الرفض</dt>
+            <dd>
+              {formatDate(
+                customerFile.rejected_at
               )}
             </dd>
           </div>
@@ -299,6 +398,35 @@ function AdminCustomerWorkspace({
           </div>
 
           <div>
+            <dt>المساحة المحتسبة لكل دور</dt>
+            <dd>
+              {formatSquareMeters(
+                customerFile
+                  .building_area_per_floor
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>إجمالي مسطح البناء</dt>
+            <dd>
+              {formatSquareMeters(
+                customerFile
+                  .total_building_area
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>سعر متر البناء</dt>
+            <dd>
+              {formatSaudiRiyal(
+                customerFile.meter_rate
+              )}
+            </dd>
+          </div>
+
+          <div>
             <dt>تكلفة البناء التقديرية</dt>
             <dd>
               {formatSaudiRiyal(
@@ -313,8 +441,7 @@ function AdminCustomerWorkspace({
             <dd>
               <strong>
                 {formatSaudiRiyal(
-                  customerFile
-                    .estimated_project_cost
+                  estimatedProjectCost
                 )}
               </strong>
             </dd>
@@ -373,10 +500,7 @@ function AdminCustomerWorkspace({
             <dt>حصة المنصة 1.5٪</dt>
             <dd>
               {formatSaudiRiyal(
-                Number(
-                  customerFile
-                    .estimated_project_cost || 0
-                ) * 0.015
+                platformShare
               )}
             </dd>
           </div>
@@ -385,10 +509,7 @@ function AdminCustomerWorkspace({
             <dt>حصة مشرف المشروع 1.5٪</dt>
             <dd>
               {formatSaudiRiyal(
-                Number(
-                  customerFile
-                    .estimated_project_cost || 0
-                ) * 0.015
+                supervisorShare
               )}
             </dd>
           </div>
@@ -397,10 +518,7 @@ function AdminCustomerWorkspace({
             <dt>حصة المستثمرين 9٪</dt>
             <dd>
               {formatSaudiRiyal(
-                Number(
-                  customerFile
-                    .estimated_project_cost || 0
-                ) * 0.09
+                investorsShare
               )}
             </dd>
           </div>
@@ -442,6 +560,64 @@ function AdminCustomerWorkspace({
         </p>
       </section>
 
+      <section aria-labelledby="timeline-title">
+        <h2 id="timeline-title">
+          السجل الزمني
+        </h2>
+
+        {timeline.length === 0 ? (
+          <p>
+            لا توجد أحداث مسجلة في السجل الزمني.
+          </p>
+        ) : (
+          <ol>
+            {timeline.map((eventItem) => {
+              const eventLabel =
+                EVENT_TYPE_LABELS[
+                  eventItem.event_type
+                ] ||
+                eventItem.event_type ||
+                "حدث";
+
+              return (
+                <li key={eventItem.id}>
+                  <article>
+                    <header>
+                      <p>
+                        <strong>
+                          {eventItem.title ||
+                            eventLabel}
+                        </strong>
+                      </p>
+
+                      <time
+                        dateTime={
+                          eventItem.created_at
+                        }
+                      >
+                        {formatDate(
+                          eventItem.created_at
+                        )}
+                      </time>
+                    </header>
+
+                    {eventItem.description && (
+                      <p>
+                        {eventItem.description}
+                      </p>
+                    )}
+
+                    <p>
+                      نوع الحدث: {eventLabel}
+                    </p>
+                  </article>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
+
       <section aria-labelledby="notes-title">
         <h2 id="notes-title">
           ملاحظات الملف
@@ -451,21 +627,28 @@ function AdminCustomerWorkspace({
           <p>لا توجد ملاحظات مسجلة.</p>
         ) : (
           <div>
-            {notes.map((noteItem) => (
-              <article key={noteItem.id}>
-                <h3>
-                  {noteItem.note_type}
-                </h3>
+            {notes.map((noteItem) => {
+              const noteLabel =
+                NOTE_TYPE_LABELS[
+                  noteItem.note_type
+                ] ||
+                noteItem.note_type ||
+                "ملاحظة";
 
-                <p>{noteItem.note}</p>
+              return (
+                <article key={noteItem.id}>
+                  <h3>{noteLabel}</h3>
 
-                <p>
-                  {formatDate(
-                    noteItem.created_at
-                  )}
-                </p>
-              </article>
-            ))}
+                  <p>{noteItem.note}</p>
+
+                  <p>
+                    {formatDate(
+                      noteItem.created_at
+                    )}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -488,6 +671,7 @@ function AdminCustomerWorkspace({
                 setSelectedDecision(
                   event.target.value
                 );
+
                 setDecisionNote("");
               }}
               disabled={isSubmittingDecision}
