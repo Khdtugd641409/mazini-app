@@ -1,15 +1,18 @@
 import { supabase } from "../lib/supabase.js";
 
-export async function getCustomerFileByAccess({
+function normalizeCustomerAccess({
   fileNumber,
   mobileNumber,
 }) {
-  const normalizedFileNumber = fileNumber
+  const normalizedFileNumber = String(
+    fileNumber || ""
+  )
     .trim()
     .toUpperCase();
 
-  const normalizedMobileNumber =
-    mobileNumber.trim();
+  const normalizedMobileNumber = String(
+    mobileNumber || ""
+  ).trim();
 
   if (!normalizedFileNumber) {
     throw new Error("أدخل رقم الملف.");
@@ -19,11 +22,26 @@ export async function getCustomerFileByAccess({
     throw new Error("رقم الجوال غير صحيح.");
   }
 
+  return {
+    fileNumber: normalizedFileNumber,
+    mobileNumber: normalizedMobileNumber,
+  };
+}
+
+export async function getCustomerFileByAccess({
+  fileNumber,
+  mobileNumber,
+}) {
+  const normalized = normalizeCustomerAccess({
+    fileNumber,
+    mobileNumber,
+  });
+
   const { data, error } = await supabase.rpc(
     "get_customer_file_by_access",
     {
-      p_file_number: normalizedFileNumber,
-      p_mobile_number: normalizedMobileNumber,
+      p_file_number: normalized.fileNumber,
+      p_mobile_number: normalized.mobileNumber,
     }
   );
 
@@ -41,4 +59,54 @@ export async function getCustomerFileByAccess({
   }
 
   return data[0];
+}
+
+export async function getCustomerTimelineByAccess({
+  fileNumber,
+  mobileNumber,
+}) {
+  const normalized = normalizeCustomerAccess({
+    fileNumber,
+    mobileNumber,
+  });
+
+  const { data, error } = await supabase.rpc(
+    "get_customer_file_timeline_by_access",
+    {
+      p_file_number: normalized.fileNumber,
+      p_mobile_number: normalized.mobileNumber,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message ||
+        "تعذر تحميل السجل الزمني للملف."
+    );
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function getCustomerWorkspaceByAccess({
+  fileNumber,
+  mobileNumber,
+}) {
+  const [customerFile, timeline] =
+    await Promise.all([
+      getCustomerFileByAccess({
+        fileNumber,
+        mobileNumber,
+      }),
+
+      getCustomerTimelineByAccess({
+        fileNumber,
+        mobileNumber,
+      }),
+    ]);
+
+  return {
+    customerFile,
+    timeline,
+  };
 }
