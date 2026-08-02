@@ -1,0 +1,451 @@
+.customer-file-page {
+  min-height: 100vh;
+  padding: 28px;
+  direction: rtl;
+  color: #173f36;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(205, 166, 77, 0.14),
+      transparent 34%
+    ),
+    #f7f5ef;
+}
+
+.customer-file-container {
+  display: grid;
+  gap: 22px;
+  width: min(100%, 1180px);
+  margin: 0 auto;
+}
+
+.customer-file-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 59, 50, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 14px 40px rgba(40, 48, 42, 0.08);
+}
+
+.customer-file-header p {
+  margin: 0 0 8px;
+  color: #6d7c76;
+}
+
+.customer-file-header h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 50px);
+  line-height: 1.25;
+}
+
+.customer-file-number {
+  color: #a57618;
+}
+
+.customer-file-home-button {
+  min-height: 48px;
+  padding: 12px 19px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  background: #0b3b32;
+  border: 0;
+  border-radius: 14px;
+}
+
+.customer-file-home-button:hover,
+.customer-file-home-button:focus-visible {
+  background: #145548;
+}
+
+.customer-file-card {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 59, 50, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 12px 34px rgba(40, 48, 42, 0.065);
+}
+
+.customer-file-card h2 {
+  margin: 0 0 20px;
+  font-size: clamp(21px, 3vw, 30px);
+}
+
+.customer-current-action {
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      #0b3b32,
+      #18594b
+    );
+  border: 0;
+}
+
+.customer-current-action::after {
+  position: absolute;
+  top: -60px;
+  left: -35px;
+  width: 180px;
+  height: 180px;
+  content: "";
+  background: rgba(205, 166, 77, 0.17);
+  border-radius: 50%;
+}
+
+.customer-current-action h2 {
+  position: relative;
+  z-index: 1;
+  color: #d8b65f;
+}
+
+.customer-current-action p {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: clamp(21px, 3.5vw, 36px);
+  font-weight: 950;
+  line-height: 1.55;
+}
+
+.customer-current-action-description {
+  margin-top: 12px !important;
+  color: #e7f0ed;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+.customer-file-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.customer-file-grid.is-two-columns {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.customer-file-data-item {
+  min-width: 0;
+  padding: 17px;
+  background: #faf9f5;
+  border: 1px solid #e2e6e2;
+  border-radius: 16px;
+}
+
+.customer-file-data-item dt {
+  margin-bottom: 8px;
+  color: #718079;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.customer-file-data-item dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #153f36;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.customer-file-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 37px;
+  padding: 7px 14px;
+  font-size: 15px;
+  font-weight: 950;
+  border-radius: 999px;
+}
+
+.customer-file-status.is-under-review {
+  color: #704d00;
+  background: #fff0bd;
+}
+
+.customer-file-status.is-approved {
+  color: #14543b;
+  background: #dff4e8;
+}
+
+.customer-file-status.is-needs-completion {
+  color: #7a4211;
+  background: #fde2c8;
+}
+
+.customer-file-status.is-rejected {
+  color: #8b2020;
+  background: #f9dddd;
+}
+
+.customer-file-status.is-default {
+  color: #40544d;
+  background: #e8ece9;
+}
+
+.customer-file-financial-value {
+  color: #9a6b0f !important;
+  font-size: 21px !important;
+  font-weight: 950 !important;
+}
+
+.customer-file-stages {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: customer-stage;
+}
+
+.customer-file-stages li {
+  position: relative;
+  min-height: 74px;
+  padding: 17px 54px 17px 14px;
+  color: #52665f;
+  font-weight: 800;
+  background: #faf9f5;
+  border: 1px solid #e1e5e1;
+  border-radius: 15px;
+  counter-increment: customer-stage;
+}
+
+.customer-file-stages li::before {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  content: counter(customer-stage);
+  color: #ffffff;
+  background: #0b3b32;
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.customer-file-current-stage {
+  margin: 18px 0 0;
+  padding: 15px;
+  background: #f3ecd9;
+  border-right: 5px solid #b88825;
+  border-radius: 12px;
+}
+
+.customer-file-timeline {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0 30px 0 0;
+  list-style: none;
+}
+
+.customer-file-timeline::before {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: 3px;
+  content: "";
+  background: #d8c493;
+  border-radius: 999px;
+}
+
+.customer-file-timeline-item {
+  position: relative;
+}
+
+.customer-file-timeline-item::before {
+  position: absolute;
+  top: 20px;
+  right: -28px;
+  width: 16px;
+  height: 16px;
+  content: "";
+  background: #b7841e;
+  border: 4px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #d8c493;
+}
+
+.customer-file-timeline-article {
+  padding: 18px;
+  background: #faf9f5;
+  border: 1px solid #e1e5e1;
+  border-radius: 16px;
+}
+
+.customer-file-timeline-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.customer-file-timeline-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.customer-file-timeline-header time {
+  color: #7a8882;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.customer-file-timeline-description {
+  margin: 12px 0 0;
+  color: #4b5f58;
+  line-height: 1.75;
+}
+
+.customer-file-notice {
+  margin: 0;
+  padding: 16px;
+  color: #31564c;
+  line-height: 1.8;
+  background: #edf7f2;
+  border: 1px solid #cce5d9;
+  border-radius: 14px;
+}
+
+.customer-file-access-note {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-file-access-note p {
+  margin: 0;
+  line-height: 1.75;
+}
+
+.customer-file-access-values {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.customer-file-access-value {
+  padding: 16px;
+  background: #faf9f5;
+  border: 1px solid #e1e5e1;
+  border-radius: 14px;
+}
+
+.customer-file-access-value span {
+  display: block;
+  margin-bottom: 7px;
+  color: #718079;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.customer-file-access-value strong {
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+
+.customer-file-error-state {
+  width: min(100% - 28px, 720px);
+  margin: 50px auto;
+  padding: 30px;
+  direction: rtl;
+  color: #822222;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #e2c1c1;
+  border-radius: 22px;
+  box-shadow: 0 14px 40px rgba(40, 48, 42, 0.08);
+}
+
+.customer-file-error-state button {
+  min-height: 47px;
+  margin-top: 16px;
+  padding: 11px 18px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+  background: #0b3b32;
+  border: 0;
+  border-radius: 13px;
+}
+
+@media (max-width: 900px) {
+  .customer-file-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-file-stages {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .customer-file-page {
+    padding: 14px;
+  }
+
+  .customer-file-header {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .customer-file-home-button {
+    width: 100%;
+  }
+
+  .customer-file-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .customer-file-grid,
+  .customer-file-grid.is-two-columns,
+  .customer-file-stages,
+  .customer-file-access-values {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-file-timeline-header {
+    flex-direction: column;
+  }
+
+  .customer-file-timeline-header time {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 430px) {
+  .customer-file-page {
+    padding: 8px;
+  }
+
+  .customer-file-data-item dd {
+    font-size: 16px;
+  }
+
+  .customer-current-action p {
+    font-size: 21px;
+  }
+}
