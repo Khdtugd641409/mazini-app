@@ -6,6 +6,7 @@ import CustomerApplicationPage from "./pages/CustomerApplicationPage.jsx";
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminCustomerFilesPage from "./pages/admin/AdminCustomerFilesPage.jsx";
+import AdminCustomerWorkspace from "./pages/admin/AdminCustomerWorkspace.jsx";
 
 import {
   getCurrentAdmin,
@@ -14,7 +15,10 @@ import {
 } from "./services/adminAuthService.js";
 
 import {
+  decideCustomerApplication,
+  getAdminCustomerFile,
   getAdminDashboard,
+  listAdminCustomerFileNotes,
   listAdminCustomerFiles,
 } from "./services/adminCustomerFileService.js";
 
@@ -43,11 +47,51 @@ function App() {
     useState("");
 
   const [customerFiles, setCustomerFiles] = useState([]);
-  const [isCustomerFilesLoading, setIsCustomerFilesLoading] =
-    useState(false);
 
-  const [customerFilesError, setCustomerFilesError] =
-    useState("");
+  const [
+    isCustomerFilesLoading,
+    setIsCustomerFilesLoading,
+  ] = useState(false);
+
+  const [
+    customerFilesError,
+    setCustomerFilesError,
+  ] = useState("");
+
+  const [
+    selectedCustomerFileId,
+    setSelectedCustomerFileId,
+  ] = useState(null);
+
+  const [
+    selectedCustomerFile,
+    setSelectedCustomerFile,
+  ] = useState(null);
+
+  const [
+    selectedCustomerFileNotes,
+    setSelectedCustomerFileNotes,
+  ] = useState([]);
+
+  const [
+    isCustomerWorkspaceLoading,
+    setIsCustomerWorkspaceLoading,
+  ] = useState(false);
+
+  const [
+    customerWorkspaceError,
+    setCustomerWorkspaceError,
+  ] = useState("");
+
+  const [
+    isSubmittingDecision,
+    setIsSubmittingDecision,
+  ] = useState(false);
+
+  const [
+    customerDecisionError,
+    setCustomerDecisionError,
+  ] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -130,6 +174,49 @@ function App() {
     }
   };
 
+  const loadCustomerWorkspace = async (
+    customerFileId
+  ) => {
+    if (!customerFileId) {
+      setCustomerWorkspaceError(
+        "معرّف ملف العميل غير موجود."
+      );
+      return;
+    }
+
+    setIsCustomerWorkspaceLoading(true);
+    setCustomerWorkspaceError("");
+    setCustomerDecisionError("");
+
+    try {
+      const [customerFile, notes] =
+        await Promise.all([
+          getAdminCustomerFile(customerFileId),
+          listAdminCustomerFileNotes(
+            customerFileId
+          ),
+        ]);
+
+      setSelectedCustomerFile(customerFile);
+      setSelectedCustomerFileNotes(notes);
+    } catch (error) {
+      console.error(
+        "تعذر تحميل مساحة عمل العميل:",
+        error
+      );
+
+      setSelectedCustomerFile(null);
+      setSelectedCustomerFileNotes([]);
+
+      setCustomerWorkspaceError(
+        error?.message ||
+          "تعذر تحميل ملف العميل."
+      );
+    } finally {
+      setIsCustomerWorkspaceLoading(false);
+    }
+  };
+
   const openHomePage = () => {
     setCurrentPage("home");
     setAdminLoginError("");
@@ -201,11 +288,17 @@ function App() {
       );
     } finally {
       setCurrentAdmin(null);
+
       setDashboardData({
         pendingActions: [],
         sectionCounts: {},
       });
+
       setCustomerFiles([]);
+      setSelectedCustomerFileId(null);
+      setSelectedCustomerFile(null);
+      setSelectedCustomerFileNotes([]);
+
       setCurrentPage("home");
     }
   };
@@ -230,7 +323,9 @@ function App() {
     await loadCustomerFiles();
   };
 
-  const handleOpenAdminAction = async (actionType) => {
+  const handleOpenAdminAction = async (
+    actionType
+  ) => {
     const customerActions = [
       "new_customer_application",
       "customer_needs_completion",
@@ -248,7 +343,9 @@ function App() {
     );
   };
 
-  const handleOpenAdminSection = async (sectionKey) => {
+  const handleOpenAdminSection = async (
+    sectionKey
+  ) => {
     if (sectionKey === "customers") {
       await openAdminCustomers();
       return;
@@ -259,10 +356,87 @@ function App() {
     );
   };
 
-  const handleOpenCustomerFile = (customerFileId) => {
-    window.alert(
-      `سيتم فتح ملف العميل الإداري في الخطوة التالية.\nمعرّف الملف: ${customerFileId}`
-    );
+  const handleOpenCustomerFile = async (
+    customerFileId
+  ) => {
+    if (!currentAdmin) {
+      setCurrentPage("admin-login");
+      return;
+    }
+
+    setSelectedCustomerFileId(customerFileId);
+    setSelectedCustomerFile(null);
+    setSelectedCustomerFileNotes([]);
+    setCustomerWorkspaceError("");
+    setCustomerDecisionError("");
+
+    setCurrentPage("admin-customer-workspace");
+
+    await loadCustomerWorkspace(customerFileId);
+  };
+
+  const handleRefreshCustomerWorkspace =
+    async () => {
+      if (!selectedCustomerFileId) {
+        return;
+      }
+
+      await loadCustomerWorkspace(
+        selectedCustomerFileId
+      );
+    };
+
+  const handleBackToCustomerFiles =
+    async () => {
+      setCurrentPage("admin-customer-files");
+      setSelectedCustomerFileId(null);
+      setSelectedCustomerFile(null);
+      setSelectedCustomerFileNotes([]);
+      setCustomerWorkspaceError("");
+      setCustomerDecisionError("");
+
+      await loadCustomerFiles();
+    };
+
+  const handleCustomerDecision = async ({
+    customerFileId,
+    decision,
+    note,
+  }) => {
+    if (isSubmittingDecision) {
+      return;
+    }
+
+    setIsSubmittingDecision(true);
+    setCustomerDecisionError("");
+
+    try {
+      await decideCustomerApplication({
+        customerFileId,
+        decision,
+        note,
+      });
+
+      await Promise.all([
+        loadCustomerWorkspace(customerFileId),
+        loadCustomerFiles(),
+        loadAdminDashboard(),
+      ]);
+    } catch (error) {
+      console.error(
+        "تعذر تنفيذ قرار العميل:",
+        error
+      );
+
+      setCustomerDecisionError(
+        error?.message ||
+          "تعذر تنفيذ قرار الإدارة."
+      );
+
+      throw error;
+    } finally {
+      setIsSubmittingDecision(false);
+    }
   };
 
   if (currentPage === "customer-application") {
@@ -298,7 +472,9 @@ function App() {
 
     return (
       <AdminDashboardPage
-        adminProfile={currentAdmin.adminProfile}
+        adminProfile={
+          currentAdmin.adminProfile
+        }
         pendingActions={
           dashboardData.pendingActions
         }
@@ -314,7 +490,9 @@ function App() {
     );
   }
 
-  if (currentPage === "admin-customer-files") {
+  if (
+    currentPage === "admin-customer-files"
+  ) {
     if (!currentAdmin) {
       return (
         <AdminLoginPage
@@ -335,6 +513,48 @@ function App() {
           handleOpenCustomerFile
         }
         onBackToHome={openAdminDashboard}
+      />
+    );
+  }
+
+  if (
+    currentPage ===
+    "admin-customer-workspace"
+  ) {
+    if (!currentAdmin) {
+      return (
+        <AdminLoginPage
+          onSubmit={handleAdminSignIn}
+          isSubmitting={isAdminSigningIn}
+          errorMessage={adminLoginError}
+          onBackToHome={openHomePage}
+        />
+      );
+    }
+
+    return (
+      <AdminCustomerWorkspace
+        customerFile={selectedCustomerFile}
+        notes={selectedCustomerFileNotes}
+        isLoading={
+          isCustomerWorkspaceLoading
+        }
+        errorMessage={
+          customerWorkspaceError
+        }
+        isSubmittingDecision={
+          isSubmittingDecision
+        }
+        decisionError={
+          customerDecisionError
+        }
+        onBack={handleBackToCustomerFiles}
+        onRefresh={
+          handleRefreshCustomerWorkspace
+        }
+        onDecision={
+          handleCustomerDecision
+        }
       />
     );
   }
