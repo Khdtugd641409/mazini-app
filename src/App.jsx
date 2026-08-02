@@ -21,12 +21,27 @@ import {
   getAdminCustomerFile,
   getAdminDashboard,
   listAdminCustomerFileNotes,
-  listAdminCustomerFiles,
+  searchAdminCustomerFiles,
 } from "./services/adminCustomerFileService.js";
 
 import {
   getCustomerFileByAccess,
 } from "./services/customerAccessService.js";
+
+const INITIAL_CUSTOMER_FILTERS = {
+  search: "",
+  status: "all",
+  sort: "newest",
+};
+
+const INITIAL_PAGINATION = {
+  page: 1,
+  pageSize: 25,
+  totalCount: 0,
+  totalPages: 1,
+  hasPreviousPage: false,
+  hasNextPage: false,
+};
 
 function App() {
   const [currentPage, setCurrentPage] =
@@ -66,6 +81,16 @@ function App() {
 
   const [customerFiles, setCustomerFiles] =
     useState([]);
+
+  const [
+    customerFilters,
+    setCustomerFilters,
+  ] = useState(INITIAL_CUSTOMER_FILTERS);
+
+  const [
+    customerPagination,
+    setCustomerPagination,
+  ] = useState(INITIAL_PAGINATION);
 
   const [
     isCustomerFilesLoading,
@@ -134,11 +159,9 @@ function App() {
       try {
         const admin = await getCurrentAdmin();
 
-        if (!isMounted) {
-          return;
+        if (isMounted) {
+          setCurrentAdmin(admin);
         }
-
-        setCurrentAdmin(admin);
       } catch (error) {
         console.error(
           "تعذر استعادة جلسة الإدارة:",
@@ -168,7 +191,6 @@ function App() {
 
     try {
       const data = await getAdminDashboard();
-
       setDashboardData(data);
     } catch (error) {
       console.error(
@@ -185,20 +207,41 @@ function App() {
     }
   };
 
-  const loadCustomerFiles = async () => {
+  const loadCustomerFiles = async ({
+    search = customerFilters.search,
+    status = customerFilters.status,
+    sort = customerFilters.sort,
+    page = customerPagination.page,
+    pageSize = customerPagination.pageSize,
+  } = {}) => {
     setIsCustomerFilesLoading(true);
     setCustomerFilesError("");
 
     try {
-      const files =
-        await listAdminCustomerFiles();
+      const result =
+        await searchAdminCustomerFiles({
+          search,
+          status,
+          sort,
+          page,
+          pageSize,
+        });
 
-      setCustomerFiles(files);
+      setCustomerFiles(result.files);
+      setCustomerPagination(result.pagination);
+
+      setCustomerFilters({
+        search,
+        status,
+        sort,
+      });
     } catch (error) {
       console.error(
         "تعذر تحميل ملفات العملاء:",
         error
       );
+
+      setCustomerFiles([]);
 
       setCustomerFilesError(
         error?.message ||
@@ -228,7 +271,6 @@ function App() {
       const [customerFile, notes] =
         await Promise.all([
           getAdminCustomerFile(customerFileId),
-
           listAdminCustomerFileNotes(
             customerFileId
           ),
@@ -256,7 +298,6 @@ function App() {
 
   const openHomePage = () => {
     setCurrentPage("home");
-
     setAdminLoginError("");
     setCustomerAccessError("");
     setAccessedCustomerFile(null);
@@ -316,9 +357,7 @@ function App() {
 
     if (currentAdmin) {
       setCurrentPage("admin-dashboard");
-
       await loadAdminDashboard();
-
       return;
     }
 
@@ -378,6 +417,13 @@ function App() {
       });
 
       setCustomerFiles([]);
+      setCustomerFilters(
+        INITIAL_CUSTOMER_FILTERS
+      );
+      setCustomerPagination(
+        INITIAL_PAGINATION
+      );
+
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
@@ -393,7 +439,6 @@ function App() {
     }
 
     setCurrentPage("admin-dashboard");
-
     await loadAdminDashboard();
   };
 
@@ -403,28 +448,116 @@ function App() {
       return;
     }
 
+    const initialFilters =
+      INITIAL_CUSTOMER_FILTERS;
+
     setCurrentPage("admin-customer-files");
 
-    await loadCustomerFiles();
+    await loadCustomerFiles({
+      ...initialFilters,
+      page: 1,
+      pageSize: 25,
+    });
   };
+
+  const handleCustomerSearch = async (
+    search
+  ) => {
+    await loadCustomerFiles({
+      search,
+      status: customerFilters.status,
+      sort: customerFilters.sort,
+      page: 1,
+    });
+  };
+
+  const handleCustomerStatusChange =
+    async (status) => {
+      await loadCustomerFiles({
+        search: customerFilters.search,
+        status,
+        sort: customerFilters.sort,
+        page: 1,
+      });
+    };
+
+  const handleCustomerSortChange =
+    async (sort) => {
+      await loadCustomerFiles({
+        search: customerFilters.search,
+        status: customerFilters.status,
+        sort,
+        page: 1,
+      });
+    };
+
+  const handleCustomerPreviousPage =
+    async () => {
+      if (
+        !customerPagination.hasPreviousPage ||
+        isCustomerFilesLoading
+      ) {
+        return;
+      }
+
+      await loadCustomerFiles({
+        page: customerPagination.page - 1,
+      });
+    };
+
+  const handleCustomerNextPage =
+    async () => {
+      if (
+        !customerPagination.hasNextPage ||
+        isCustomerFilesLoading
+      ) {
+        return;
+      }
+
+      await loadCustomerFiles({
+        page: customerPagination.page + 1,
+      });
+    };
 
   const handleOpenAdminAction = async (
     actionType
   ) => {
-    const customerActions = [
-      "new_customer_application",
-      "customer_needs_completion",
-      "land_review",
-      "land_transfer",
-    ];
+    if (
+      actionType ===
+      "new_customer_application"
+    ) {
+      setCurrentPage("admin-customer-files");
 
-    if (customerActions.includes(actionType)) {
-      await openAdminCustomers();
+      await loadCustomerFiles({
+        search: "",
+        status: "under_review",
+        sort: "newest",
+        page: 1,
+        pageSize: 25,
+      });
+
+      return;
+    }
+
+    if (
+      actionType ===
+      "customer_needs_completion"
+    ) {
+      setCurrentPage("admin-customer-files");
+
+      await loadCustomerFiles({
+        search: "",
+        status: "needs_completion",
+        sort: "newest",
+        page: 1,
+        pageSize: 25,
+      });
+
       return;
     }
 
     window.alert(
-      "هذا القسم سيُربط عند إنشاء مرحلته في المنصة."
+      "هذا القسم سيُربط عند إنشاء مرحلته."
     );
   };
 
@@ -624,10 +757,25 @@ function App() {
     return (
       <AdminCustomerFilesPage
         customerFiles={customerFiles}
+        pagination={customerPagination}
+        filters={customerFilters}
         isLoading={
           isCustomerFilesLoading
         }
         errorMessage={customerFilesError}
+        onSearch={handleCustomerSearch}
+        onStatusChange={
+          handleCustomerStatusChange
+        }
+        onSortChange={
+          handleCustomerSortChange
+        }
+        onPreviousPage={
+          handleCustomerPreviousPage
+        }
+        onNextPage={
+          handleCustomerNextPage
+        }
         onOpenCustomerFile={
           handleOpenCustomerFile
         }
