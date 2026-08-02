@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   formatSaudiRiyal,
 } from "../../utils/projectCalculations.js";
+import "./AdminCustomerFilesPage.css";
 
 const STATUS_LABELS = {
   under_review: "متقدم",
@@ -82,10 +83,39 @@ function formatDate(value) {
     return "غير متوفر";
   }
 
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "غير متوفر";
+  }
+
   return new Intl.DateTimeFormat("ar-SA", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
+}
+
+function getStatusBadgeClass(status) {
+  if (status === "under_review") {
+    return "is-under-review";
+  }
+
+  if (
+    status === "approved" ||
+    status === "waiting_land"
+  ) {
+    return "is-approved";
+  }
+
+  if (status === "needs_completion") {
+    return "is-needs-completion";
+  }
+
+  if (status === "rejected") {
+    return "is-rejected";
+  }
+
+  return "is-default";
 }
 
 function AdminCustomerFilesPage({
@@ -117,75 +147,100 @@ function AdminCustomerFilesPage({
     filters.search || ""
   );
 
+  useEffect(() => {
+    setSearchInput(filters.search || "");
+  }, [filters.search]);
+
   const handleSearchSubmit = (event) => {
     event.preventDefault();
+
+    if (isLoading) {
+      return;
+    }
 
     onSearch(searchInput.trim());
   };
 
   const handleClearSearch = () => {
+    if (isLoading) {
+      return;
+    }
+
     setSearchInput("");
     onSearch("");
   };
 
   return (
-    <main>
-      <header>
+    <main className="admin-customer-files-page">
+      <header className="admin-customers-header">
         <div>
-          <p>نايف المزيني للبناء الذاتي</p>
+          <p>إدارة منصة نايف المزيني</p>
 
           <h1>
-            العملاء
-            {" "}
-            <span>
+            العملاء{" "}
+            <span className="admin-customers-count">
               ({Number(pagination.totalCount || 0)})
             </span>
           </h1>
 
           <p>
-            البحث وإدارة ملفات العملاء بجميع حالاتهم.
+            البحث وإدارة ملفات العملاء بمختلف
+            حالاتهم ومراحلهم.
           </p>
         </div>
 
         <button
           type="button"
+          className="admin-back-button"
           onClick={onBackToHome}
+          disabled={isLoading}
         >
           العودة إلى لوحة الإدارة
         </button>
       </header>
 
-      <section aria-labelledby="customer-search-title">
+      <section
+        className="customer-tools"
+        aria-labelledby="customer-search-title"
+      >
         <h2 id="customer-search-title">
           البحث والتصفية
         </h2>
 
-        <form onSubmit={handleSearchSubmit}>
-          <label htmlFor="customerSearch">
-            البحث في ملفات العملاء
-          </label>
+        <form
+          className="customer-search-form"
+          onSubmit={handleSearchSubmit}
+        >
+          <div className="customer-search-field">
+            <label htmlFor="customerSearch">
+              البحث في ملفات العملاء
+            </label>
 
-          <input
-            id="customerSearch"
-            type="search"
-            value={searchInput}
-            onChange={(event) =>
-              setSearchInput(event.target.value)
-            }
-            placeholder="رقم الملف، الاسم، الجوال أو البريد"
-            disabled={isLoading}
-          />
+            <input
+              id="customerSearch"
+              type="search"
+              value={searchInput}
+              onChange={(event) =>
+                setSearchInput(event.target.value)
+              }
+              placeholder="رقم الملف، الاسم، الجوال أو البريد"
+              disabled={isLoading}
+              autoComplete="off"
+            />
+          </div>
 
           <button
             type="submit"
+            className="customer-search-button"
             disabled={isLoading}
           >
-            بحث
+            {isLoading ? "جاري البحث..." : "بحث"}
           </button>
 
           {filters.search && (
             <button
               type="button"
+              className="customer-clear-button"
               onClick={handleClearSearch}
               disabled={isLoading}
             >
@@ -194,11 +249,15 @@ function AdminCustomerFilesPage({
           )}
         </form>
 
-        <div aria-label="تصنيف العملاء حسب الحالة">
+        <div
+          className="customer-tabs"
+          aria-label="تصنيف العملاء حسب الحالة"
+        >
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
               type="button"
+              className="customer-tab-button"
               onClick={() =>
                 onStatusChange(tab.value)
               }
@@ -212,37 +271,45 @@ function AdminCustomerFilesPage({
           ))}
         </div>
 
-        <label htmlFor="customerSort">
-          ترتيب النتائج
-        </label>
+        <div className="customer-sort-field">
+          <label htmlFor="customerSort">
+            ترتيب النتائج
+          </label>
 
-        <select
-          id="customerSort"
-          value={filters.sort}
-          onChange={(event) =>
-            onSortChange(event.target.value)
-          }
-          disabled={isLoading}
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option
-              key={option.value}
-              value={option.value}
-            >
-              {option.label}
-            </option>
-          ))}
-        </select>
+          <select
+            id="customerSort"
+            value={filters.sort}
+            onChange={(event) =>
+              onSortChange(event.target.value)
+            }
+            disabled={isLoading}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option
+                key={option.value}
+                value={option.value}
+              >
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </section>
 
       {isLoading && (
-        <p role="status">
+        <p
+          className="customer-system-message"
+          role="status"
+        >
           جاري تحميل ملفات العملاء...
         </p>
       )}
 
       {errorMessage && (
-        <p role="alert">
+        <p
+          className="customer-system-message is-error"
+          role="alert"
+        >
           <strong>{errorMessage}</strong>
         </p>
       )}
@@ -250,7 +317,7 @@ function AdminCustomerFilesPage({
       {!isLoading &&
         !errorMessage &&
         customerFiles.length === 0 && (
-          <section>
+          <section className="customer-empty-state">
             <h2>لا توجد نتائج</h2>
 
             <p>
@@ -264,8 +331,11 @@ function AdminCustomerFilesPage({
         !errorMessage &&
         customerFiles.length > 0 && (
           <>
-            <section aria-labelledby="customer-results-title">
-              <header>
+            <section
+              className="customer-results"
+              aria-labelledby="customer-results-title"
+            >
+              <header className="customer-results-header">
                 <h2 id="customer-results-title">
                   ملفات العملاء
                 </h2>
@@ -273,115 +343,144 @@ function AdminCustomerFilesPage({
                 <p>
                   الصفحة{" "}
                   <strong>{pagination.page}</strong>
-                  {" "}
-                  من{" "}
+                  {" "}من{" "}
                   <strong>
                     {pagination.totalPages}
                   </strong>
                 </p>
               </header>
 
-              <div role="table" aria-label="ملفات العملاء">
-                <div role="row">
-                  <span role="columnheader">
-                    رقم الملف
-                  </span>
+              <div className="customer-table-scroll">
+                <div
+                  className="customer-table"
+                  role="table"
+                  aria-label="ملفات العملاء"
+                >
+                  <div
+                    className="customer-table-header"
+                    role="row"
+                  >
+                    <span role="columnheader">
+                      رقم الملف
+                    </span>
 
-                  <span role="columnheader">
-                    اسم العميل
-                  </span>
+                    <span role="columnheader">
+                      اسم العميل
+                    </span>
 
-                  <span role="columnheader">
-                    رقم الجوال
-                  </span>
+                    <span role="columnheader">
+                      رقم الجوال
+                    </span>
 
-                  <span role="columnheader">
-                    قيمة المشروع
-                  </span>
+                    <span role="columnheader">
+                      قيمة المشروع
+                    </span>
 
-                  <span role="columnheader">
-                    الحالة
-                  </span>
+                    <span role="columnheader">
+                      الحالة
+                    </span>
 
-                  <span role="columnheader">
-                    المرحلة
-                  </span>
+                    <span role="columnheader">
+                      المرحلة
+                    </span>
 
-                  <span role="columnheader">
-                    آخر تحديث
-                  </span>
+                    <span role="columnheader">
+                      آخر تحديث
+                    </span>
+                  </div>
+
+                  {customerFiles.map(
+                    (customerFile) => {
+                      const statusLabel =
+                        STATUS_LABELS[
+                          customerFile.status
+                        ] ||
+                        customerFile.status ||
+                        "غير محددة";
+
+                      const stageLabel =
+                        STAGE_LABELS[
+                          customerFile.current_stage
+                        ] ||
+                        customerFile.current_stage ||
+                        "غير محددة";
+
+                      const statusClass =
+                        getStatusBadgeClass(
+                          customerFile.status
+                        );
+
+                      return (
+                        <button
+                          key={customerFile.id}
+                          type="button"
+                          className="customer-table-row"
+                          role="row"
+                          onClick={() =>
+                            onOpenCustomerFile(
+                              customerFile.id
+                            )
+                          }
+                          aria-label={`فتح ملف العميل ${customerFile.file_number}`}
+                        >
+                          <span
+                            role="cell"
+                            className="customer-file-number"
+                          >
+                            {customerFile.file_number ||
+                              "غير متوفر"}
+                          </span>
+
+                          <span
+                            role="cell"
+                            className="customer-name"
+                          >
+                            {customerFile.customer_name ||
+                              "غير متوفر"}
+                          </span>
+
+                          <span role="cell">
+                            {customerFile.mobile_number ||
+                              "غير متوفر"}
+                          </span>
+
+                          <span role="cell">
+                            {formatSaudiRiyal(
+                              customerFile
+                                .estimated_project_cost
+                            )}
+                          </span>
+
+                          <span role="cell">
+                            <span
+                              className={`customer-status-badge ${statusClass}`}
+                            >
+                              {statusLabel}
+                            </span>
+                          </span>
+
+                          <span role="cell">
+                            {stageLabel}
+                          </span>
+
+                          <span role="cell">
+                            {formatDate(
+                              customerFile.updated_at ||
+                                customerFile.submitted_at
+                            )}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
-
-                {customerFiles.map((customerFile) => {
-                  const statusLabel =
-                    STATUS_LABELS[
-                      customerFile.status
-                    ] ||
-                    customerFile.status ||
-                    "غير محددة";
-
-                  const stageLabel =
-                    STAGE_LABELS[
-                      customerFile.current_stage
-                    ] ||
-                    customerFile.current_stage ||
-                    "غير محددة";
-
-                  return (
-                    <button
-                      key={customerFile.id}
-                      type="button"
-                      role="row"
-                      onClick={() =>
-                        onOpenCustomerFile(
-                          customerFile.id
-                        )
-                      }
-                    >
-                      <span role="cell">
-                        <strong>
-                          {customerFile.file_number}
-                        </strong>
-                      </span>
-
-                      <span role="cell">
-                        {customerFile.customer_name ||
-                          "غير متوفر"}
-                      </span>
-
-                      <span role="cell">
-                        {customerFile.mobile_number ||
-                          "غير متوفر"}
-                      </span>
-
-                      <span role="cell">
-                        {formatSaudiRiyal(
-                          customerFile
-                            .estimated_project_cost
-                        )}
-                      </span>
-
-                      <span role="cell">
-                        {statusLabel}
-                      </span>
-
-                      <span role="cell">
-                        {stageLabel}
-                      </span>
-
-                      <span role="cell">
-                        {formatDate(
-                          customerFile.updated_at ||
-                            customerFile.submitted_at
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
               </div>
             </section>
 
-            <nav aria-label="صفحات ملفات العملاء">
+            <nav
+              className="customer-pagination"
+              aria-label="صفحات ملفات العملاء"
+            >
               <button
                 type="button"
                 onClick={onPreviousPage}
@@ -396,8 +495,7 @@ function AdminCustomerFilesPage({
               <span>
                 الصفحة{" "}
                 <strong>{pagination.page}</strong>
-                {" "}
-                من{" "}
+                {" "}من{" "}
                 <strong>
                   {pagination.totalPages}
                 </strong>
