@@ -4,6 +4,7 @@ import {
   formatSaudiRiyal,
   formatSquareMeters,
 } from "../../utils/projectCalculations.js";
+import "./AdminCustomerWorkspace.css";
 
 const STATUS_LABELS = {
   under_review: "تحت المراجعة",
@@ -50,15 +51,56 @@ const EVENT_TYPE_LABELS = {
   current_state_snapshot: "الحالة الحالية",
 };
 
+const PROJECT_STAGES = [
+  "تقديم الطلب",
+  "مراجعة الإدارة",
+  "قبول العميل",
+  "تقديم الأرض",
+  "فحص الأرض",
+  "إفراغ الأرض",
+  "تعيين مشرف المشروع",
+  "التنفيذ",
+  "الإغلاق",
+];
+
 function formatDate(value) {
   if (!value) {
+    return "غير متوفر";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
     return "غير متوفر";
   }
 
   return new Intl.DateTimeFormat("ar-SA", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
+}
+
+function getStatusClass(status) {
+  if (status === "under_review") {
+    return "is-under-review";
+  }
+
+  if (
+    status === "approved" ||
+    status === "waiting_land"
+  ) {
+    return "is-approved";
+  }
+
+  if (status === "needs_completion") {
+    return "is-needs-completion";
+  }
+
+  if (status === "rejected") {
+    return "is-rejected";
+  }
+
+  return "is-default";
 }
 
 function getCurrentRequiredAction(customerFile) {
@@ -89,9 +131,11 @@ function getCurrentRequiredAction(customerFile) {
     return "لا يوجد إجراء — الملف مغلق";
   }
 
-  return STAGE_LABELS[customerFile.current_stage] ||
+  return (
+    STAGE_LABELS[customerFile.current_stage] ||
     customerFile.current_stage ||
-    "غير محدد";
+    "غير محدد"
+  );
 }
 
 function AdminCustomerWorkspace({
@@ -122,6 +166,10 @@ function AdminCustomerWorkspace({
     customerFile?.current_stage ||
     "غير محددة";
 
+  const statusClass = getStatusClass(
+    customerFile?.status
+  );
+
   const currentRequiredAction =
     getCurrentRequiredAction(customerFile);
 
@@ -141,7 +189,9 @@ function AdminCustomerWorkspace({
       decisionNote.trim().length === 0);
 
   const financingRatio = useMemo(() => {
-    return Number(customerFile?.financing_ratio || 0);
+    return Number(
+      customerFile?.financing_ratio || 0
+    );
   }, [customerFile]);
 
   const estimatedProjectCost = Number(
@@ -160,7 +210,10 @@ function AdminCustomerWorkspace({
   const handleSubmitDecision = async (event) => {
     event.preventDefault();
 
-    if (decisionButtonDisabled) {
+    if (
+      decisionButtonDisabled ||
+      typeof onDecision !== "function"
+    ) {
       return;
     }
 
@@ -174,13 +227,13 @@ function AdminCustomerWorkspace({
       setSelectedDecision("");
       setDecisionNote("");
     } catch {
-      // يعرض App.jsx الخطأ داخل decisionError.
+      // App.jsx يعرض الخطأ من خلال decisionError.
     }
   };
 
   if (isLoading) {
     return (
-      <main>
+      <main className="workspace-loading">
         <p role="status">
           جاري تحميل ملف العميل...
         </p>
@@ -190,7 +243,7 @@ function AdminCustomerWorkspace({
 
   if (errorMessage) {
     return (
-      <main>
+      <main className="workspace-error-state">
         <h1>تعذر فتح ملف العميل</h1>
 
         <p role="alert">
@@ -199,6 +252,7 @@ function AdminCustomerWorkspace({
 
         <button
           type="button"
+          className="workspace-button"
           onClick={onBack}
         >
           العودة إلى ملفات العملاء
@@ -209,11 +263,12 @@ function AdminCustomerWorkspace({
 
   if (!customerFile) {
     return (
-      <main>
+      <main className="workspace-missing-state">
         <h1>ملف العميل غير موجود</h1>
 
         <button
           type="button"
+          className="workspace-button"
           onClick={onBack}
         >
           العودة إلى ملفات العملاء
@@ -223,533 +278,612 @@ function AdminCustomerWorkspace({
   }
 
   return (
-    <main>
-      <header>
-        <div>
-          <p>إدارة منصة نايف المزيني</p>
-
-          <h1>
-            ملف العميل {customerFile.file_number}
-          </h1>
-
-          <p>
-            آخر تحديث:{" "}
-            <strong>
-              {formatDate(customerFile.updated_at)}
-            </strong>
-          </p>
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isSubmittingDecision}
-          >
-            تحديث الملف
-          </button>
-
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={isSubmittingDecision}
-          >
-            العودة إلى ملفات العملاء
-          </button>
-        </div>
-      </header>
-
-      <section aria-labelledby="required-action-title">
-        <h2 id="required-action-title">
-          الإجراء الحالي المطلوب
-        </h2>
-
-        <p>
-          <strong>{currentRequiredAction}</strong>
-        </p>
-      </section>
-
-      <section aria-labelledby="file-status-title">
-        <h2 id="file-status-title">
-          الحالة التشغيلية
-        </h2>
-
-        <dl>
+    <main className="admin-customer-workspace">
+      <div className="workspace-container">
+        <header className="workspace-header">
           <div>
-            <dt>رقم الملف</dt>
-            <dd>
+            <p>إدارة منصة نايف المزيني</p>
+
+            <h1>
+              ملف العميل{" "}
+              {customerFile.file_number}
+            </h1>
+
+            <p>
+              آخر تحديث:{" "}
               <strong>
-                {customerFile.file_number}
+                {formatDate(
+                  customerFile.updated_at
+                )}
               </strong>
-            </dd>
+            </p>
           </div>
 
-          <div>
-            <dt>الحالة الحالية</dt>
-            <dd>
-              <strong>{statusLabel}</strong>
-            </dd>
+          <div className="workspace-header-actions">
+            <button
+              type="button"
+              className="workspace-button is-secondary"
+              onClick={onRefresh}
+              disabled={isSubmittingDecision}
+            >
+              تحديث الملف
+            </button>
+
+            <button
+              type="button"
+              className="workspace-button"
+              onClick={onBack}
+              disabled={isSubmittingDecision}
+            >
+              العودة إلى ملفات العملاء
+            </button>
           </div>
+        </header>
 
-          <div>
-            <dt>المرحلة الحالية</dt>
-            <dd>{stageLabel}</dd>
-          </div>
+        <section
+          className="workspace-card workspace-required-action"
+          aria-labelledby="required-action-title"
+        >
+          <h2 id="required-action-title">
+            الإجراء الحالي المطلوب
+          </h2>
 
-          <div>
-            <dt>تاريخ التقديم</dt>
-            <dd>
-              {formatDate(
-                customerFile.submitted_at
-              )}
-            </dd>
-          </div>
+          <p>{currentRequiredAction}</p>
+        </section>
 
-          <div>
-            <dt>تاريخ القبول</dt>
-            <dd>
-              {formatDate(
-                customerFile.approved_at
-              )}
-            </dd>
-          </div>
+        <section
+          className="workspace-card"
+          aria-labelledby="file-status-title"
+        >
+          <h2 id="file-status-title">
+            الحالة التشغيلية
+          </h2>
 
-          <div>
-            <dt>تاريخ الرفض</dt>
-            <dd>
-              {formatDate(
-                customerFile.rejected_at
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
+          <dl className="workspace-status-grid">
+            <div className="workspace-data-item">
+              <dt>رقم الملف</dt>
 
-      <section aria-labelledby="customer-data-title">
-        <h2 id="customer-data-title">
-          بيانات العميل
-        </h2>
+              <dd>
+                {customerFile.file_number}
+              </dd>
+            </div>
 
-        <dl>
-          <div>
-            <dt>الاسم الكامل</dt>
-            <dd>
-              {customerFile.customer_name ||
-                "غير متوفر"}
-            </dd>
-          </div>
+            <div className="workspace-data-item">
+              <dt>الحالة الحالية</dt>
 
-          <div>
-            <dt>رقم الجوال</dt>
-            <dd>
-              {customerFile.mobile_number ||
-                "غير متوفر"}
-            </dd>
-          </div>
+              <dd>
+                <span
+                  className={`workspace-status-badge ${statusClass}`}
+                >
+                  {statusLabel}
+                </span>
+              </dd>
+            </div>
 
-          <div>
-            <dt>البريد الإلكتروني</dt>
-            <dd>
-              {customerFile.email ||
-                "غير مضاف"}
-            </dd>
-          </div>
-        </dl>
-      </section>
+            <div className="workspace-data-item">
+              <dt>المرحلة الحالية</dt>
 
-      <section aria-labelledby="project-data-title">
-        <h2 id="project-data-title">
-          بيانات المشروع والتمويل
-        </h2>
+              <dd>{stageLabel}</dd>
+            </div>
 
-        <dl>
-          <div>
-            <dt>مساحة الأرض</dt>
-            <dd>
-              {formatSquareMeters(
-                customerFile.land_area
-              )}
-            </dd>
-          </div>
+            <div className="workspace-data-item">
+              <dt>تاريخ التقديم</dt>
 
-          <div>
-            <dt>قيمة الأرض</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile.estimated_land_price
-              )}
-            </dd>
-          </div>
+              <dd>
+                {formatDate(
+                  customerFile.submitted_at
+                )}
+              </dd>
+            </div>
 
-          <div>
-            <dt>عدد الأدوار</dt>
-            <dd>
-              {customerFile.floors}
-            </dd>
-          </div>
+            <div className="workspace-data-item">
+              <dt>تاريخ القبول</dt>
 
-          <div>
-            <dt>عرض البنك</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile.bank_offer
-              )}
-            </dd>
-          </div>
+              <dd>
+                {formatDate(
+                  customerFile.approved_at
+                )}
+              </dd>
+            </div>
 
-          <div>
-            <dt>المساحة المحتسبة لكل دور</dt>
-            <dd>
-              {formatSquareMeters(
-                customerFile
-                  .building_area_per_floor
-              )}
-            </dd>
-          </div>
+            <div className="workspace-data-item">
+              <dt>تاريخ الرفض</dt>
 
-          <div>
-            <dt>إجمالي مسطح البناء</dt>
-            <dd>
-              {formatSquareMeters(
-                customerFile
-                  .total_building_area
-              )}
-            </dd>
-          </div>
+              <dd>
+                {formatDate(
+                  customerFile.rejected_at
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-          <div>
-            <dt>سعر متر البناء</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile.meter_rate
-              )}
-            </dd>
-          </div>
+        <section
+          className="workspace-card"
+          aria-labelledby="customer-data-title"
+        >
+          <h2 id="customer-data-title">
+            بيانات العميل
+          </h2>
 
-          <div>
-            <dt>تكلفة البناء التقديرية</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile
-                  .estimated_construction_cost
-              )}
-            </dd>
-          </div>
+          <dl className="workspace-data-grid">
+            <div className="workspace-data-item">
+              <dt>الاسم الكامل</dt>
 
-          <div>
-            <dt>إجمالي تكلفة المشروع</dt>
-            <dd>
-              <strong>
+              <dd>
+                {customerFile.customer_name ||
+                  "غير متوفر"}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>رقم الجوال</dt>
+
+              <dd>
+                {customerFile.mobile_number ||
+                  "غير متوفر"}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>البريد الإلكتروني</dt>
+
+              <dd>
+                {customerFile.email ||
+                  "غير مضاف"}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section
+          className="workspace-card"
+          aria-labelledby="project-data-title"
+        >
+          <h2 id="project-data-title">
+            بيانات المشروع والتمويل
+          </h2>
+
+          <dl className="workspace-data-grid">
+            <div className="workspace-data-item">
+              <dt>مساحة الأرض</dt>
+
+              <dd>
+                {formatSquareMeters(
+                  customerFile.land_area
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>قيمة الأرض</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile
+                    .estimated_land_price
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>عدد الأدوار</dt>
+
+              <dd>
+                {customerFile.floors ??
+                  "غير متوفر"}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>عرض البنك</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile.bank_offer
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>
+                المساحة المحتسبة لكل دور
+              </dt>
+
+              <dd>
+                {formatSquareMeters(
+                  customerFile
+                    .building_area_per_floor
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>إجمالي مسطح البناء</dt>
+
+              <dd>
+                {formatSquareMeters(
+                  customerFile
+                    .total_building_area
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>سعر متر البناء</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile.meter_rate
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>تكلفة البناء التقديرية</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile
+                    .estimated_construction_cost
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>إجمالي تكلفة المشروع</dt>
+
+              <dd className="workspace-financial-highlight">
                 {formatSaudiRiyal(
                   estimatedProjectCost
                 )}
-              </strong>
-            </dd>
-          </div>
+              </dd>
+            </div>
 
-          <div>
-            <dt>
-              نسبة التكلفة إلى عرض البنك
-            </dt>
-            <dd>
-              {formatPercentage(
-                financingRatio
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
+            <div className="workspace-data-item">
+              <dt>
+                نسبة التكلفة إلى عرض البنك
+              </dt>
 
-      <section aria-labelledby="payment-title">
-        <h2 id="payment-title">
-          الدفعة المقدمة وتوزيعها
-        </h2>
+              <dd>
+                {formatPercentage(
+                  financingRatio
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-        <dl>
-          <div>
-            <dt>دفعة العميل الأساسية 12٪</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile.base_customer_payment
-              )}
-            </dd>
-          </div>
+        <section
+          className="workspace-card"
+          aria-labelledby="payment-title"
+        >
+          <h2 id="payment-title">
+            الدفعة المقدمة وتوزيعها
+          </h2>
 
-          <div>
-            <dt>فرق التجاوز عن 80٪</dt>
-            <dd>
-              {formatSaudiRiyal(
-                customerFile.excess_amount
-              )}
-            </dd>
-          </div>
+          <dl className="workspace-data-grid">
+            <div className="workspace-data-item">
+              <dt>
+                دفعة العميل الأساسية 12٪
+              </dt>
 
-          <div>
-            <dt>إجمالي الدفعة المطلوبة</dt>
-            <dd>
-              <strong>
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile
+                    .base_customer_payment
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>
+                فرق التجاوز عن حد 80٪
+              </dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  customerFile.excess_amount
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>
+                إجمالي الدفعة المطلوبة
+              </dt>
+
+              <dd className="workspace-financial-highlight">
                 {formatSaudiRiyal(
                   customerFile
                     .total_customer_payment
                 )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>حصة المنصة 1.5٪</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  platformShare
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>
+                حصة مشرف المشروع 1.5٪
+              </dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  supervisorShare
+                )}
+              </dd>
+            </div>
+
+            <div className="workspace-data-item">
+              <dt>حصة المستثمرين 9٪</dt>
+
+              <dd>
+                {formatSaudiRiyal(
+                  investorsShare
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          {customerFile
+            .requires_extra_payment_approval && (
+            <p className="workspace-approval-message">
+              موافقة العميل على الدفعة
+              الإضافية:{" "}
+              <strong>
+                {customerFile
+                  .extra_payment_approved
+                  ? "تمت الموافقة"
+                  : "لم تتم الموافقة"}
               </strong>
-            </dd>
-          </div>
+            </p>
+          )}
+        </section>
 
-          <div>
-            <dt>حصة المنصة 1.5٪</dt>
-            <dd>
-              {formatSaudiRiyal(
-                platformShare
-              )}
-            </dd>
-          </div>
-
-          <div>
-            <dt>حصة مشرف المشروع 1.5٪</dt>
-            <dd>
-              {formatSaudiRiyal(
-                supervisorShare
-              )}
-            </dd>
-          </div>
-
-          <div>
-            <dt>حصة المستثمرين 9٪</dt>
-            <dd>
-              {formatSaudiRiyal(
-                investorsShare
-              )}
-            </dd>
-          </div>
-        </dl>
-
-        {customerFile
-          .requires_extra_payment_approval && (
-          <p>
-            موافقة العميل على الدفعة الإضافية:{" "}
-            <strong>
-              {customerFile.extra_payment_approved
-                ? "تمت الموافقة"
-                : "لم تتم الموافقة"}
-            </strong>
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="stages-title">
-        <h2 id="stages-title">
-          مراحل ملف العميل
-        </h2>
-
-        <ol>
-          <li>تقديم الطلب</li>
-          <li>مراجعة الإدارة</li>
-          <li>قبول العميل</li>
-          <li>تقديم الأرض</li>
-          <li>فحص الأرض</li>
-          <li>إفراغ الأرض</li>
-          <li>تعيين مشرف المشروع</li>
-          <li>التنفيذ</li>
-          <li>الإغلاق</li>
-        </ol>
-
-        <p>
-          المرحلة الحالية:{" "}
-          <strong>{stageLabel}</strong>
-        </p>
-      </section>
-
-      <section aria-labelledby="timeline-title">
-        <h2 id="timeline-title">
-          السجل الزمني
-        </h2>
-
-        {timeline.length === 0 ? (
-          <p>
-            لا توجد أحداث مسجلة في السجل الزمني.
-          </p>
-        ) : (
-          <ol>
-            {timeline.map((eventItem) => {
-              const eventLabel =
-                EVENT_TYPE_LABELS[
-                  eventItem.event_type
-                ] ||
-                eventItem.event_type ||
-                "حدث";
-
-              return (
-                <li key={eventItem.id}>
-                  <article>
-                    <header>
-                      <p>
-                        <strong>
-                          {eventItem.title ||
-                            eventLabel}
-                        </strong>
-                      </p>
-
-                      <time
-                        dateTime={
-                          eventItem.created_at
-                        }
-                      >
-                        {formatDate(
-                          eventItem.created_at
-                        )}
-                      </time>
-                    </header>
-
-                    {eventItem.description && (
-                      <p>
-                        {eventItem.description}
-                      </p>
-                    )}
-
-                    <p>
-                      نوع الحدث: {eventLabel}
-                    </p>
-                  </article>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </section>
-
-      <section aria-labelledby="notes-title">
-        <h2 id="notes-title">
-          ملاحظات الملف
-        </h2>
-
-        {notes.length === 0 ? (
-          <p>لا توجد ملاحظات مسجلة.</p>
-        ) : (
-          <div>
-            {notes.map((noteItem) => {
-              const noteLabel =
-                NOTE_TYPE_LABELS[
-                  noteItem.note_type
-                ] ||
-                noteItem.note_type ||
-                "ملاحظة";
-
-              return (
-                <article key={noteItem.id}>
-                  <h3>{noteLabel}</h3>
-
-                  <p>{noteItem.note}</p>
-
-                  <p>
-                    {formatDate(
-                      noteItem.created_at
-                    )}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {canDecide && (
-        <section aria-labelledby="decision-title">
-          <h2 id="decision-title">
-            قرار إدارة المنصة
+        <section
+          className="workspace-card"
+          aria-labelledby="stages-title"
+        >
+          <h2 id="stages-title">
+            مراحل ملف العميل
           </h2>
 
-          <form onSubmit={handleSubmitDecision}>
-            <label htmlFor="adminDecision">
-              القرار
-            </label>
+          <ol className="workspace-stage-list">
+            {PROJECT_STAGES.map((stage) => (
+              <li key={stage}>{stage}</li>
+            ))}
+          </ol>
 
-            <select
-              id="adminDecision"
-              value={selectedDecision}
-              onChange={(event) => {
-                setSelectedDecision(
-                  event.target.value
-                );
-
-                setDecisionNote("");
-              }}
-              disabled={isSubmittingDecision}
-              required
-            >
-              <option value="">
-                اختر القرار
-              </option>
-
-              <option value="approve">
-                قبول العميل
-              </option>
-
-              <option value="needs_completion">
-                طلب استكمال
-              </option>
-
-              <option value="reject">
-                رفض الطلب
-              </option>
-            </select>
-
-            <label htmlFor="decisionNote">
-              {selectedDecision ===
-              "needs_completion"
-                ? "البيانات المطلوب استكمالها"
-                : selectedDecision === "reject"
-                  ? "سبب الرفض"
-                  : "ملاحظة القبول — اختيارية"}
-            </label>
-
-            <textarea
-              id="decisionNote"
-              value={decisionNote}
-              onChange={(event) =>
-                setDecisionNote(
-                  event.target.value
-                )
-              }
-              rows="5"
-              disabled={isSubmittingDecision}
-              required={requiresDecisionNote}
-            />
-
-            {decisionError && (
-              <p role="alert">
-                <strong>
-                  {decisionError}
-                </strong>
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={decisionButtonDisabled}
-            >
-              {isSubmittingDecision
-                ? "جاري تنفيذ القرار..."
-                : selectedDecision
-                  ? DECISION_LABELS[
-                      selectedDecision
-                    ]
-                  : "تنفيذ القرار"}
-            </button>
-          </form>
-        </section>
-      )}
-
-      {!canDecide && (
-        <section>
-          <h2>قرار الطلب الأولي</h2>
-
-          <p>
-            لا يمكن تنفيذ قرار جديد على الطلب في
-            حالته الحالية.
+          <p className="workspace-current-stage">
+            المرحلة الحالية:{" "}
+            <strong>{stageLabel}</strong>
           </p>
         </section>
-      )}
+
+        {/* نهاية الجزء الأول — ألصق الجزء الثاني مباشرة هنا */}
+                <section
+          className="workspace-card"
+          aria-labelledby="timeline-title"
+        >
+          <h2 id="timeline-title">
+            السجل الزمني
+          </h2>
+
+          {timeline.length === 0 ? (
+            <p>
+              لا توجد أحداث مسجلة في السجل الزمني.
+            </p>
+          ) : (
+            <ol className="workspace-timeline">
+              {timeline.map((eventItem) => {
+                const eventLabel =
+                  EVENT_TYPE_LABELS[
+                    eventItem.event_type
+                  ] ||
+                  eventItem.event_type ||
+                  "حدث";
+
+                return (
+                  <li
+                    key={eventItem.id}
+                    className="workspace-timeline-item"
+                  >
+                    <article className="workspace-timeline-article">
+                      <header className="workspace-timeline-header">
+                        <p>
+                          <strong>
+                            {eventItem.title ||
+                              eventLabel}
+                          </strong>
+                        </p>
+
+                        <time
+                          dateTime={
+                            eventItem.created_at
+                          }
+                        >
+                          {formatDate(
+                            eventItem.created_at
+                          )}
+                        </time>
+                      </header>
+
+                      {eventItem.description && (
+                        <p className="workspace-timeline-description">
+                          {eventItem.description}
+                        </p>
+                      )}
+
+                      <p className="workspace-timeline-type">
+                        نوع الحدث: {eventLabel}
+                      </p>
+                    </article>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+                <section
+          className="workspace-card"
+          aria-labelledby="notes-title"
+        >
+          <h2 id="notes-title">
+            ملاحظات الملف
+          </h2>
+
+          {notes.length === 0 ? (
+            <p>لا توجد ملاحظات مسجلة.</p>
+          ) : (
+            <div className="workspace-notes-list">
+              {notes.map((noteItem) => {
+                const noteLabel =
+                  NOTE_TYPE_LABELS[
+                    noteItem.note_type
+                  ] ||
+                  noteItem.note_type ||
+                  "ملاحظة";
+
+                return (
+                  <article
+                    key={noteItem.id}
+                    className="workspace-note"
+                  >
+                    <h3>{noteLabel}</h3>
+
+                    <p>{noteItem.note}</p>
+
+                    <p className="workspace-note-date">
+                      {formatDate(
+                        noteItem.created_at
+                      )}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+                {canDecide ? (
+          <section
+            className="workspace-card workspace-decision-card"
+            aria-labelledby="decision-title"
+          >
+            <h2 id="decision-title">
+              قرار إدارة المنصة
+            </h2>
+
+            <form
+              className="workspace-decision-form"
+              onSubmit={handleSubmitDecision}
+            >
+              <label htmlFor="adminDecision">
+                القرار
+              </label>
+
+              <select
+                id="adminDecision"
+                value={selectedDecision}
+                onChange={(event) => {
+                  setSelectedDecision(
+                    event.target.value
+                  );
+
+                  setDecisionNote("");
+                }}
+                disabled={isSubmittingDecision}
+                required
+              >
+                <option value="">
+                  اختر القرار
+                </option>
+
+                <option value="approve">
+                  قبول العميل
+                </option>
+
+                <option value="needs_completion">
+                  طلب استكمال
+                </option>
+
+                <option value="reject">
+                  رفض الطلب
+                </option>
+              </select>
+
+              <label htmlFor="decisionNote">
+                {selectedDecision ===
+                "needs_completion"
+                  ? "البيانات المطلوب استكمالها"
+                  : selectedDecision === "reject"
+                    ? "سبب الرفض"
+                    : "ملاحظة القبول — اختيارية"}
+              </label>
+
+              <textarea
+                id="decisionNote"
+                value={decisionNote}
+                onChange={(event) =>
+                  setDecisionNote(
+                    event.target.value
+                  )
+                }
+                rows="5"
+                disabled={isSubmittingDecision}
+                required={requiresDecisionNote}
+              />
+
+              {decisionError && (
+                <p
+                  className="workspace-decision-error"
+                  role="alert"
+                >
+                  <strong>
+                    {decisionError}
+                  </strong>
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="workspace-decision-submit"
+                disabled={decisionButtonDisabled}
+              >
+                {isSubmittingDecision
+                  ? "جاري تنفيذ القرار..."
+                  : selectedDecision
+                    ? DECISION_LABELS[
+                        selectedDecision
+                      ]
+                    : "تنفيذ القرار"}
+              </button>
+            </form>
+          </section>
+        ) : (
+          <section
+            className="workspace-card workspace-closed-decision"
+            aria-labelledby="closed-decision-title"
+          >
+            <h2 id="closed-decision-title">
+              قرار الطلب الأولي
+            </h2>
+
+            <p>
+              لا يمكن تنفيذ قرار جديد على الطلب في
+              حالته الحالية.
+            </p>
+          </section>
+        )}
+      </div>
     </main>
   );
 }
