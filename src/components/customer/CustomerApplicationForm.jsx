@@ -8,7 +8,6 @@ import {
 
 const INITIAL_FORM = {
   customerName: "",
-  nationalId: "",
   mobileNumber: "",
   email: "",
   landArea: "",
@@ -33,7 +32,6 @@ function CustomerApplicationForm({ onReview }) {
 
   const isCustomerDataComplete =
     formData.customerName.trim().length >= 3 &&
-    /^\d{10}$/.test(formData.nationalId) &&
     /^05\d{8}$/.test(formData.mobileNumber);
 
   const submitDisabled =
@@ -69,7 +67,6 @@ function CustomerApplicationForm({ onReview }) {
     onReview({
       formData: {
         customerName: formData.customerName.trim(),
-        nationalId: formData.nationalId,
         mobileNumber: formData.mobileNumber,
         email: formData.email.trim(),
         landArea: formData.landArea,
@@ -101,27 +98,9 @@ function CustomerApplicationForm({ onReview }) {
           type="text"
           value={formData.customerName}
           onChange={handleChange}
-          placeholder="الاسم الرباعي"
+          placeholder="الاسم الكامل"
           autoComplete="name"
           minLength="3"
-          required
-        />
-
-        <label htmlFor="nationalId">
-          رقم الهوية الوطنية
-        </label>
-
-        <input
-          id="nationalId"
-          name="nationalId"
-          type="text"
-          inputMode="numeric"
-          value={formData.nationalId}
-          onChange={handleChange}
-          placeholder="10 أرقام"
-          pattern="\d{10}"
-          maxLength="10"
-          autoComplete="off"
           required
         />
 
