@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import HomePage from "./pages/HomePage.jsx";
 import CustomerApplicationPage from "./pages/CustomerApplicationPage.jsx";
+import CustomerAccessPage from "./pages/CustomerAccessPage.jsx";
+import CustomerFilePage from "./pages/CustomerFilePage.jsx";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
@@ -22,31 +24,48 @@ import {
   listAdminCustomerFiles,
 } from "./services/adminCustomerFileService.js";
 
-function App() {
-  const [currentPage, setCurrentPage] = useState("home");
+import {
+  getCustomerFileByAccess,
+} from "./services/customerAccessService.js";
 
-  const [currentAdmin, setCurrentAdmin] = useState(null);
+function App() {
+  const [currentPage, setCurrentPage] =
+    useState("home");
+
+  const [currentAdmin, setCurrentAdmin] =
+    useState(null);
+
   const [isCheckingAdmin, setIsCheckingAdmin] =
     useState(true);
 
-  const [isAdminSigningIn, setIsAdminSigningIn] =
-    useState(false);
+  const [
+    isAdminSigningIn,
+    setIsAdminSigningIn,
+  ] = useState(false);
 
-  const [adminLoginError, setAdminLoginError] =
-    useState("");
+  const [
+    adminLoginError,
+    setAdminLoginError,
+  ] = useState("");
 
-  const [dashboardData, setDashboardData] = useState({
-    pendingActions: [],
-    sectionCounts: {},
-  });
+  const [dashboardData, setDashboardData] =
+    useState({
+      pendingActions: [],
+      sectionCounts: {},
+    });
 
-  const [isDashboardLoading, setIsDashboardLoading] =
-    useState(false);
+  const [
+    isDashboardLoading,
+    setIsDashboardLoading,
+  ] = useState(false);
 
-  const [dashboardError, setDashboardError] =
-    useState("");
+  const [
+    dashboardError,
+    setDashboardError,
+  ] = useState("");
 
-  const [customerFiles, setCustomerFiles] = useState([]);
+  const [customerFiles, setCustomerFiles] =
+    useState([]);
 
   const [
     isCustomerFilesLoading,
@@ -91,6 +110,21 @@ function App() {
   const [
     customerDecisionError,
     setCustomerDecisionError,
+  ] = useState("");
+
+  const [
+    accessedCustomerFile,
+    setAccessedCustomerFile,
+  ] = useState(null);
+
+  const [
+    isCustomerAccessLoading,
+    setIsCustomerAccessLoading,
+  ] = useState(false);
+
+  const [
+    customerAccessError,
+    setCustomerAccessError,
   ] = useState("");
 
   useEffect(() => {
@@ -156,7 +190,8 @@ function App() {
     setCustomerFilesError("");
 
     try {
-      const files = await listAdminCustomerFiles();
+      const files =
+        await listAdminCustomerFiles();
 
       setCustomerFiles(files);
     } catch (error) {
@@ -181,6 +216,7 @@ function App() {
       setCustomerWorkspaceError(
         "معرّف ملف العميل غير موجود."
       );
+
       return;
     }
 
@@ -192,6 +228,7 @@ function App() {
       const [customerFile, notes] =
         await Promise.all([
           getAdminCustomerFile(customerFileId),
+
           listAdminCustomerFileNotes(
             customerFileId
           ),
@@ -219,11 +256,55 @@ function App() {
 
   const openHomePage = () => {
     setCurrentPage("home");
+
     setAdminLoginError("");
+    setCustomerAccessError("");
+    setAccessedCustomerFile(null);
   };
 
   const openCustomerApplication = () => {
     setCurrentPage("customer-application");
+  };
+
+  const openCustomerAccess = () => {
+    setCustomerAccessError("");
+    setAccessedCustomerFile(null);
+    setCurrentPage("customer-access");
+  };
+
+  const handleCustomerAccess = async ({
+    fileNumber,
+    mobileNumber,
+  }) => {
+    if (isCustomerAccessLoading) {
+      return;
+    }
+
+    setIsCustomerAccessLoading(true);
+    setCustomerAccessError("");
+
+    try {
+      const customerFile =
+        await getCustomerFileByAccess({
+          fileNumber,
+          mobileNumber,
+        });
+
+      setAccessedCustomerFile(customerFile);
+      setCurrentPage("customer-file");
+    } catch (error) {
+      console.error(
+        "تعذر فتح ملف العميل:",
+        error
+      );
+
+      setCustomerAccessError(
+        error?.message ||
+          "تعذر فتح ملف العميل."
+      );
+    } finally {
+      setIsCustomerAccessLoading(false);
+    }
   };
 
   const openAdminEntry = async () => {
@@ -235,7 +316,9 @@ function App() {
 
     if (currentAdmin) {
       setCurrentPage("admin-dashboard");
+
       await loadAdminDashboard();
+
       return;
     }
 
@@ -310,6 +393,7 @@ function App() {
     }
 
     setCurrentPage("admin-dashboard");
+
     await loadAdminDashboard();
   };
 
@@ -320,6 +404,7 @@ function App() {
     }
 
     setCurrentPage("admin-customer-files");
+
     await loadCustomerFiles();
   };
 
@@ -370,9 +455,13 @@ function App() {
     setCustomerWorkspaceError("");
     setCustomerDecisionError("");
 
-    setCurrentPage("admin-customer-workspace");
+    setCurrentPage(
+      "admin-customer-workspace"
+    );
 
-    await loadCustomerWorkspace(customerFileId);
+    await loadCustomerWorkspace(
+      customerFileId
+    );
   };
 
   const handleRefreshCustomerWorkspace =
@@ -389,6 +478,7 @@ function App() {
   const handleBackToCustomerFiles =
     async () => {
       setCurrentPage("admin-customer-files");
+
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
@@ -439,10 +529,37 @@ function App() {
     }
   };
 
-  if (currentPage === "customer-application") {
+  if (
+    currentPage === "customer-application"
+  ) {
     return (
       <CustomerApplicationPage
         onBack={openHomePage}
+      />
+    );
+  }
+
+  if (currentPage === "customer-access") {
+    return (
+      <CustomerAccessPage
+        onSubmit={handleCustomerAccess}
+        isSubmitting={
+          isCustomerAccessLoading
+        }
+        errorMessage={customerAccessError}
+        onBackToHome={openHomePage}
+      />
+    );
+  }
+
+  if (
+    currentPage === "customer-file" &&
+    accessedCustomerFile
+  ) {
+    return (
+      <CustomerFilePage
+        customerFile={accessedCustomerFile}
+        onBackToHome={openHomePage}
       />
     );
   }
@@ -507,7 +624,9 @@ function App() {
     return (
       <AdminCustomerFilesPage
         customerFiles={customerFiles}
-        isLoading={isCustomerFilesLoading}
+        isLoading={
+          isCustomerFilesLoading
+        }
         errorMessage={customerFilesError}
         onOpenCustomerFile={
           handleOpenCustomerFile
@@ -563,6 +682,9 @@ function App() {
     <HomePage
       onOpenCustomerApplication={
         openCustomerApplication
+      }
+      onOpenCustomerAccess={
+        openCustomerAccess
       }
       onOpenAdmin={openAdminEntry}
       isCheckingAdmin={isCheckingAdmin}
