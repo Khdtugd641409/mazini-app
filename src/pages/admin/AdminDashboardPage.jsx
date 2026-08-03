@@ -1,5 +1,5 @@
 import "./AdminDashboardPage.css";
-
+// Admin dashboard redesign deployed
 const ACTION_TYPE_LABELS = {
   new_customer_application:
     "طلبات عملاء جديدة",
