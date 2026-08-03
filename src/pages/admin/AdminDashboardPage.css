@@ -1,0 +1,336 @@
+.admin-dashboard-page {
+  min-height: 100vh;
+  padding: 28px;
+  direction: rtl;
+  color: #173f36;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(205, 166, 77, 0.14),
+      transparent 34%
+    ),
+    #f7f5ef;
+}
+
+.admin-dashboard-container {
+  display: grid;
+  gap: 22px;
+  width: min(100%, 1500px);
+  margin: 0 auto;
+}
+
+.admin-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 59, 50, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 14px 40px rgba(40, 48, 42, 0.08);
+}
+
+.admin-dashboard-header p {
+  margin: 0 0 8px;
+  color: #6d7c76;
+}
+
+.admin-dashboard-header h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 50px);
+  line-height: 1.2;
+}
+
+.admin-dashboard-welcome {
+  margin-top: 10px !important;
+  color: #36564d !important;
+  font-size: 17px;
+}
+
+.admin-dashboard-signout {
+  min-height: 48px;
+  padding: 12px 19px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  background: #0b3b32;
+  border: 0;
+  border-radius: 14px;
+}
+
+.admin-dashboard-signout:hover,
+.admin-dashboard-signout:focus-visible {
+  background: #145548;
+}
+
+.admin-dashboard-status {
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 59, 50, 0.1);
+  border-radius: 16px;
+}
+
+.admin-dashboard-status.is-error {
+  color: #8b2020;
+  background: #fff2f2;
+  border-color: #e7bcbc;
+}
+
+.admin-dashboard-card {
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 59, 50, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 12px 34px rgba(40, 48, 42, 0.065);
+}
+
+.admin-dashboard-card h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+.admin-dashboard-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.admin-dashboard-card-header p {
+  margin: 0;
+  color: #687872;
+}
+
+.admin-dashboard-total-pending {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 7px 12px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 950;
+  background: #b7831e;
+  border-radius: 999px;
+}
+
+.admin-dashboard-empty {
+  padding: 30px 20px;
+  text-align: center;
+  background: #faf9f5;
+  border: 1px solid #e3e6e2;
+  border-radius: 16px;
+}
+
+.admin-dashboard-empty h3 {
+  margin: 0 0 8px;
+}
+
+.admin-dashboard-empty p {
+  margin: 0;
+  color: #6c7b75;
+}
+
+.admin-action-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-action-button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 96px;
+  padding: 18px;
+  color: #173f36;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  background:
+    linear-gradient(
+      135deg,
+      #fbfaf7,
+      #f3ecdc
+    );
+  border: 1px solid #dfd5bd;
+  border-radius: 17px;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.admin-action-button:hover,
+.admin-action-button:focus-visible {
+  transform: translateY(-2px);
+  border-color: #b98a2b;
+  box-shadow: 0 14px 28px rgba(86, 67, 28, 0.12);
+  outline: none;
+}
+
+.admin-action-label {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.admin-action-count {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 7px 11px;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 950;
+  background: #0b3b32;
+  border-radius: 14px;
+}
+
+.admin-section-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.admin-section-button {
+  display: grid;
+  gap: 14px;
+  min-height: 130px;
+  padding: 20px;
+  color: #173f36;
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+  background: #faf9f5;
+  border: 1px solid #e0e5e1;
+  border-radius: 17px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.admin-section-button:hover,
+.admin-section-button:focus-visible {
+  transform: translateY(-2px);
+  background: #f3ecd9;
+  box-shadow: 0 14px 30px rgba(40, 48, 42, 0.09);
+  outline: none;
+}
+
+.admin-section-icon {
+  font-size: 30px;
+}
+
+.admin-section-label {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-section-count {
+  color: #9a6b0f;
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0 0;
+}
+
+.admin-summary-item {
+  min-width: 0;
+  padding: 20px;
+  background: #faf9f5;
+  border: 1px solid #e1e5e1;
+  border-radius: 16px;
+}
+
+.admin-summary-item dt {
+  margin-bottom: 10px;
+  color: #728079;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.admin-summary-item dd {
+  margin: 0;
+  color: #0b3b32;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 950;
+}
+
+.admin-summary-item.is-highlight dd {
+  color: #a17116;
+}
+
+@media (max-width: 1100px) {
+  .admin-action-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-section-grid,
+  .admin-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-dashboard-page {
+    padding: 14px;
+  }
+
+  .admin-dashboard-header {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .admin-dashboard-signout {
+    width: 100%;
+  }
+
+  .admin-dashboard-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .admin-dashboard-card-header {
+    flex-direction: column;
+  }
+
+  .admin-action-grid,
+  .admin-section-grid,
+  .admin-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-dashboard-page {
+    padding: 8px;
+  }
+
+  .admin-action-button {
+    min-height: 86px;
+    padding: 15px;
+  }
+
+  .admin-section-button {
+    min-height: 112px;
+  }
+}
