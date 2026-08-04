@@ -207,7 +207,7 @@ export default function CustomerAccountLoginPage() {
                 lineHeight: '1.8',
               }}
             >
-              أرسلنا رمزًا مكونًا من 6 أرقام إلى:
+              أرسلنا رمزًا مكونًا من 8 أرقام إلى:
               <br />
               <strong dir="ltr">{email}</strong>
             </p>
@@ -233,14 +233,14 @@ export default function CustomerAccountLoginPage() {
               onChange={(event) => {
                 const value = event.target.value
                   .replace(/[^\d٠-٩۰-۹]/g, '')
-                  .slice(0, 6)
+                  .slice(0, 8)
 
                 setOtp(value)
               }}
               disabled={loading}
-              placeholder="000000"
+              placeholder="00000000"
               required
-              maxLength={6}
+              maxLength={8}
               style={{
                 width: '100%',
                 height: '54px',
@@ -249,14 +249,14 @@ export default function CustomerAccountLoginPage() {
                 border: '1px solid #cbd5e1',
                 borderRadius: '10px',
                 fontSize: '24px',
-                letterSpacing: '8px',
+                letterSpacing: '6px',
                 textAlign: 'center',
               }}
             />
 
             <button
               type="submit"
-              disabled={loading || otp.length !== 6}
+              disabled={loading || otp.length !== 8}
               style={{
                 width: '100%',
                 minHeight: '48px',
@@ -264,14 +264,14 @@ export default function CustomerAccountLoginPage() {
                 border: 0,
                 borderRadius: '10px',
                 background:
-                  loading || otp.length !== 6
+                  loading || otp.length !== 8
                     ? '#9ca3af'
                     : '#111827',
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: '700',
                 cursor:
-                  loading || otp.length !== 6
+                  loading || otp.length !== 8
                     ? 'not-allowed'
                     : 'pointer',
               }}
