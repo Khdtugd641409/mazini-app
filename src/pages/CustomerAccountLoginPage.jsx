@@ -11,21 +11,18 @@ export default function CustomerAccountLoginPage() {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [loading, setLoading] =
-    useState(false);
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] = useState("");
-  const [
-    successMessage,
-    setSuccessMessage,
-  ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] =
+    useState("");
+  const [successMessage, setSuccessMessage] =
+    useState("");
 
   async function handleSendCode(event) {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setLoading(true);
     setErrorMessage("");
@@ -33,9 +30,7 @@ export default function CustomerAccountLoginPage() {
 
     try {
       const result =
-        await sendCustomerLoginCode(
-          email
-        );
+        await sendCustomerLoginCode(email);
 
       setEmail(result.email);
       setStep("otp");
@@ -56,7 +51,9 @@ export default function CustomerAccountLoginPage() {
   async function handleVerifyCode(event) {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setLoading(true);
     setErrorMessage("");
@@ -85,7 +82,9 @@ export default function CustomerAccountLoginPage() {
   }
 
   function handleChangeEmail() {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setStep("email");
     setOtp("");
@@ -94,64 +93,67 @@ export default function CustomerAccountLoginPage() {
   }
 
   function handleBackToHome() {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     window.location.href = "/";
   }
 
   return (
-    <main className="customer-login-page">
-      <div className="customer-login-shell">
-        <header className="customer-login-header">
+    <main className="customer-account-login-page">
+      <div className="customer-account-login-shell">
+        <header className="customer-account-login-header">
           <button
             type="button"
-            className="customer-login-back-button"
+            className="customer-account-login-back"
             onClick={handleBackToHome}
             disabled={loading}
           >
             العودة إلى الصفحة الرئيسية
           </button>
 
-          <div className="customer-login-brand">
-            <span aria-hidden="true">
-              NM
-            </span>
+          <div className="customer-account-login-title">
+            <h1>حساب العميل</h1>
 
-            <div>
-              <p>منصة نايف المزيني</p>
-              <strong>
-                للبناء الذاتي
-              </strong>
-            </div>
+            <p>
+              الدخول إلى جميع مشاريعك من
+              حساب واحد.
+            </p>
           </div>
         </header>
 
-        <section className="customer-login-card">
-          <div className="customer-login-icon">
-            {step === "email"
-              ? "✉️"
-              : "🔐"}
+        <section className="customer-account-card">
+          <div className="customer-account-brand">
+            <div
+              className="customer-account-brand-mark"
+              aria-hidden="true"
+            >
+              NM
+            </div>
+
+            <h1>منصة نايف المزيني</h1>
+
+            <p>
+              للبناء الذاتي وإدارة المشاريع
+            </p>
           </div>
 
-          <p className="customer-login-eyebrow">
-            حساب العميل
-          </p>
-
-          <h1>
+          <h2>
             {step === "email"
               ? "تسجيل الدخول"
               : "تأكيد رمز الدخول"}
-          </h1>
+          </h2>
 
-          <p className="customer-login-description">
+          <p>
             {step === "email"
-              ? "أدخل بريدك الإلكتروني لفتح حسابك ومتابعة جميع مشاريعك."
+              ? "أدخل البريد الإلكتروني المسجل عند تقديم الطلب."
               : "أدخل الرمز المكوّن من 8 أرقام الذي أرسلناه إلى بريدك."}
           </p>
 
           {errorMessage && (
             <div
-              className="customer-login-alert is-error"
+              className="customer-account-alert error"
               role="alert"
             >
               {errorMessage}
@@ -159,17 +161,17 @@ export default function CustomerAccountLoginPage() {
           )}
 
           {successMessage && (
-            <div className="customer-login-alert is-success">
+            <div className="customer-account-alert success">
               {successMessage}
             </div>
           )}
 
           {step === "email" ? (
             <form
-              className="customer-login-form"
+              className="customer-account-form"
               onSubmit={handleSendCode}
             >
-              <div className="customer-login-field">
+              <div className="customer-account-field">
                 <label htmlFor="customer-email">
                   البريد الإلكتروني
                 </label>
@@ -179,7 +181,6 @@ export default function CustomerAccountLoginPage() {
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  dir="ltr"
                   value={email}
                   onChange={(event) =>
                     setEmail(
@@ -190,16 +191,11 @@ export default function CustomerAccountLoginPage() {
                   placeholder="name@example.com"
                   required
                 />
-
-                <p>
-                  استخدم البريد المسجل عند
-                  تقديم طلب البناء.
-                </p>
               </div>
 
               <button
                 type="submit"
-                className="customer-login-primary-button"
+                className="customer-account-submit"
                 disabled={loading}
               >
                 {loading
@@ -209,31 +205,28 @@ export default function CustomerAccountLoginPage() {
             </form>
           ) : (
             <form
-              className="customer-login-form"
+              className="customer-account-form"
               onSubmit={handleVerifyCode}
             >
-              <div className="customer-login-email-summary">
-                <span>
-                  تم إرسال الرمز إلى
-                </span>
+              <p className="customer-account-email-preview">
+                تم إرسال الرمز إلى:
 
-                <strong dir="ltr">
+                <strong>
                   {email}
                 </strong>
-              </div>
+              </p>
 
-              <div className="customer-login-field">
+              <div className="customer-account-field">
                 <label htmlFor="customer-otp">
                   رمز الدخول
                 </label>
 
                 <input
                   id="customer-otp"
-                  className="customer-login-otp-input"
+                  className="customer-account-otp"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  dir="ltr"
                   value={otp}
                   onChange={(event) => {
                     const value =
@@ -253,42 +246,58 @@ export default function CustomerAccountLoginPage() {
                 />
               </div>
 
-              <button
-                type="submit"
-                className="customer-login-primary-button"
-                disabled={
-                  loading ||
-                  otp.length !== 8
-                }
-              >
-                {loading
-                  ? "جاري التحقق..."
-                  : "تسجيل الدخول"}
-              </button>
+              <div className="customer-account-actions">
+                <button
+                  type="submit"
+                  className="customer-account-submit"
+                  disabled={
+                    loading ||
+                    otp.length !== 8
+                  }
+                >
+                  {loading
+                    ? "جاري التحقق..."
+                    : "تسجيل الدخول"}
+                </button>
 
-              <button
-                type="button"
-                className="customer-login-secondary-button"
-                onClick={handleChangeEmail}
-                disabled={loading}
-              >
-                تغيير البريد الإلكتروني
-              </button>
+                <button
+                  type="button"
+                  className="customer-account-secondary"
+                  onClick={handleChangeEmail}
+                  disabled={loading}
+                >
+                  تغيير البريد الإلكتروني
+                </button>
+              </div>
             </form>
           )}
 
-          <div className="customer-login-security-note">
-            <span aria-hidden="true">
-              🛡️
-            </span>
+          <div className="customer-account-tip">
+            <h3>دخول آمن بدون كلمة مرور</h3>
 
             <p>
-              لن نطلب منك كلمة مرور. رمز
-              الدخول مؤقت ويُستخدم مرة واحدة
-              فقط.
+              رمز الدخول مؤقت ويُستخدم مرة
+              واحدة فقط، وتبقى جلسة الحساب
+              محفوظة على جهازك حتى تسجيل
+              الخروج.
+            </p>
+          </div>
+
+          <div className="customer-account-note">
+            <h4>مهم</h4>
+
+            <p>
+              استخدم البريد الإلكتروني نفسه
+              الذي سجلته عند تقديم طلب البناء،
+              حتى تظهر مشاريعك تلقائيًا داخل
+              الحساب.
             </p>
           </div>
         </section>
+
+        <footer className="customer-account-footer">
+          نايف المزيني للبناء الذاتي
+        </footer>
       </div>
     </main>
   );
