@@ -4,6 +4,8 @@ import HomePage from "./pages/HomePage.jsx";
 import CustomerApplicationPage from "./pages/CustomerApplicationPage.jsx";
 import CustomerAccessPage from "./pages/CustomerAccessPage.jsx";
 import CustomerFilePage from "./pages/CustomerFilePage.jsx";
+import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
+import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
@@ -44,9 +46,32 @@ const INITIAL_PAGINATION = {
   hasNextPage: false,
 };
 
+function getInitialPageFromPath() {
+  const path =
+    window.location.pathname.replace(/\/+$/, "") ||
+    "/";
+
+  const routes = {
+    "/": "home",
+    "/customer/application":
+      "customer-application",
+    "/customer/access": "customer-access",
+    "/customer/account-login":
+      "customer-account-login",
+    "/customer/projects":
+      "customer-projects",
+    "/admin/login": "admin-login",
+    "/admin/dashboard": "admin-dashboard",
+    "/admin/customers":
+      "admin-customer-files",
+  };
+
+  return routes[path] || "home";
+}
+
 function App() {
   const [currentPage, setCurrentPage] =
-    useState("home");
+    useState(getInitialPageFromPath);
 
   const [currentAdmin, setCurrentAdmin] =
     useState(null);
@@ -708,6 +733,19 @@ function App() {
       setIsSubmittingDecision(false);
     }
   };
+
+  if (
+    currentPage ===
+    "customer-account-login"
+  ) {
+    return <CustomerAccountLoginPage />;
+  }
+
+  if (
+    currentPage === "customer-projects"
+  ) {
+    return <CustomerProjectsPage />;
+  }
 
   if (
     currentPage === "customer-application"
