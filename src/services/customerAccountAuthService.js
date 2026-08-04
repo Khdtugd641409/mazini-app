@@ -1,9 +1,34 @@
 import { supabase } from "../lib/supabase.js";
 
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
 function normalizeEmail(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function validateEmail(value) {
+  const normalizedEmail =
+    normalizeEmail(value);
+
+  if (!normalizedEmail) {
+    throw new Error(
+      "أدخل البريد الإلكتروني."
+    );
+  }
+
+  if (
+    normalizedEmail.length > 254 ||
+    !EMAIL_PATTERN.test(normalizedEmail)
+  ) {
+    throw new Error(
+      "أدخل بريدًا إلكترونيًا صحيحًا."
+    );
+  }
+
+  return normalizedEmail;
 }
 
 function normalizeOtp(value) {
@@ -31,11 +56,13 @@ function getArabicAuthError(
   ).toLowerCase();
 
   if (message.includes("rate limit")) {
-    return "تم طلب رموز كثيرة. انتظر قليلًا ثم أعد المحاولة.";
+    return "بلغت خدمة البريد حد الإرسال المؤقت. انتظر قليلًا ثم أعد المحاولة.";
   }
 
   if (
-    message.includes("token has expired") ||
+    message.includes(
+      "token has expired"
+    ) ||
     message.includes("otp expired") ||
     message.includes("invalid token") ||
     message.includes("invalid otp")
@@ -48,6 +75,38 @@ function getArabicAuthError(
   }
 
   return fallbackMessage;
+}
+
+function getArabicProjectSyncError(error) {
+  const message = String(
+    error?.message || ""
+  ).toUpperCase();
+
+  if (
+    message.includes(
+      "AUTHENTICATION_REQUIRED"
+    )
+  ) {
+    return "انتهت جلسة الدخول. سجل الدخول مجددًا.";
+  }
+
+  if (
+    message.includes(
+      "CUSTOMER_EMAIL_NOT_FOUND"
+    )
+  ) {
+    return "لم يُعثر على بريد إلكتروني صالح في حساب العميل.";
+  }
+
+  if (
+    message.includes(
+      "CUSTOMER_ACCOUNT_NOT_FOUND"
+    )
+  ) {
+    return "حساب العميل غير موجود أو غير نشط.";
+  }
+
+  return "تعذر ربط المشاريع المطابقة بالبريد الإلكتروني.";
 }
 
 function getArabicClaimError(error) {
@@ -94,26 +153,12 @@ export async function sendCustomerLoginCode(
   email
 ) {
   const normalizedEmail =
-    normalizeEmail(email);
-
-  if (!normalizedEmail) {
-    throw new Error(
-      "أدخل البريد الإلكتروني."
-    );
-  }
-
-  const emailPattern =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!emailPattern.test(normalizedEmail)) {
-    throw new Error(
-      "أدخل بريدًا إلكترونيًا صحيحًا."
-    );
-  }
+    validateEmail(email);
 
   const { error } =
     await supabase.auth.signInWithOtp({
       email: normalizedEmail,
+
       options: {
         shouldCreateUser: true,
       },
@@ -138,21 +183,42 @@ export async function sendCustomerLoginCode(
   };
 }
 
+export async function syncMyCustomerProjects() {
+  const { data, error } =
+    await supabase.rpc(
+      "customer_sync_my_projects"
+    );
+
+  if (error) {
+    console.error(
+      "customer_sync_my_projects:",
+      error
+    );
+
+    throw new Error(
+      getArabicProjectSyncError(error)
+    );
+  }
+
+  const linkedProjectsCount =
+    Number(data);
+
+  return Number.isFinite(
+    linkedProjectsCount
+  )
+    ? linkedProjectsCount
+    : 0;
+}
+
 export async function verifyCustomerLoginCode(
   email,
   otp
 ) {
   const normalizedEmail =
-    normalizeEmail(email);
+    validateEmail(email);
 
   const normalizedOtp =
     normalizeOtp(otp);
-
-  if (!normalizedEmail) {
-    throw new Error(
-      "البريد الإلكتروني مفقود."
-    );
-  }
 
   if (!/^\d{8}$/.test(normalizedOtp)) {
     throw new Error(
@@ -214,14 +280,46 @@ export async function verifyCustomerLoginCode(
     );
   }
 
+  let linkedProjectsCount = 0;
+  let projectSyncError = "";
+
+  /*
+   * لا نلغي جلسة العميل إذا تعذر الربط
+   * بعد نجاح رمز البريد؛ لأن الرمز يكون قد
+   * استُخدم بالفعل. ستُعاد محاولة الربط
+   * عند فتح صفحة مشاريعي.
+   */
+  try {
+    linkedProjectsCount =
+      await syncMyCustomerProjects();
+  } catch (error) {
+    console.error(
+      "تعذر الربط التلقائي بعد الدخول:",
+      error
+    );
+
+    projectSyncError =
+      error?.message ||
+      "تعذر ربط المشاريع تلقائيًا.";
+  }
+
   return {
     user: authData.user,
     session: authData.session,
     account,
+    linkedProjectsCount,
+    projectSyncError,
   };
 }
 
 export async function getMyCustomerProjects() {
+  /*
+   * تعاد المزامنة في كل مرة تُفتح فيها
+   * صفحة مشاريعي، حتى تظهر المشاريع التي
+   * وافقت عليها الإدارة بعد دخول العميل.
+   */
+  await syncMyCustomerProjects();
+
   const { data, error } =
     await supabase.rpc(
       "customer_get_my_projects"
@@ -238,7 +336,9 @@ export async function getMyCustomerProjects() {
     );
   }
 
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(data)
+    ? data
+    : [];
 }
 
 export async function claimExistingCustomerProject({
@@ -246,17 +346,27 @@ export async function claimExistingCustomerProject({
   mobileNumber,
 }) {
   const normalizedFileNumber =
-    String(fileNumber || "").trim();
+    String(fileNumber || "")
+      .trim()
+      .toUpperCase();
 
   const normalizedMobileNumber =
     String(mobileNumber || "").trim();
 
   if (!normalizedFileNumber) {
-    throw new Error("أدخل رقم الملف.");
+    throw new Error(
+      "أدخل رقم الملف."
+    );
   }
 
-  if (!normalizedMobileNumber) {
-    throw new Error("أدخل رقم الجوال.");
+  if (
+    !/^05\d{8}$/.test(
+      normalizedMobileNumber
+    )
+  ) {
+    throw new Error(
+      "أدخل رقم جوال صحيحًا."
+    );
   }
 
   const { data, error } =
@@ -265,6 +375,7 @@ export async function claimExistingCustomerProject({
       {
         p_file_number:
           normalizedFileNumber,
+
         p_mobile_number:
           normalizedMobileNumber,
       }
@@ -282,7 +393,9 @@ export async function claimExistingCustomerProject({
   }
 
   const linkedProject =
-    Array.isArray(data) ? data[0] : null;
+    Array.isArray(data)
+      ? data[0]
+      : null;
 
   if (!linkedProject) {
     throw new Error(
