@@ -3,6 +3,7 @@ import "./HomePage.css";
 
 function HomePage({
   onOpenCustomerApplication,
+  onOpenCustomerAccountLogin,
   onOpenCustomerAccess,
   onOpenAdmin,
   isCheckingAdmin = false,
@@ -11,7 +12,9 @@ function HomePage({
     useState(false);
 
   const toggleLoginMenu = () => {
-    setIsLoginMenuOpen((currentValue) => !currentValue);
+    setIsLoginMenuOpen(
+      (currentValue) => !currentValue
+    );
   };
 
   const closeLoginMenu = () => {
@@ -23,9 +26,23 @@ function HomePage({
     onOpenCustomerApplication();
   };
 
-  const handleOpenCustomerAccess = () => {
+  const handleOpenCustomerAccount = () => {
     closeLoginMenu();
-    onOpenCustomerAccess();
+
+    if (
+      typeof onOpenCustomerAccountLogin ===
+      "function"
+    ) {
+      onOpenCustomerAccountLogin();
+      return;
+    }
+
+    if (
+      typeof onOpenCustomerAccess ===
+      "function"
+    ) {
+      onOpenCustomerAccess();
+    }
   };
 
   const handleOpenAdmin = () => {
@@ -33,7 +50,9 @@ function HomePage({
     onOpenAdmin();
   };
 
-  const handleUnavailableSection = (sectionName) => {
+  const handleUnavailableSection = (
+    sectionName
+  ) => {
     closeLoginMenu();
 
     window.alert(
@@ -98,10 +117,14 @@ function HomePage({
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleOpenCustomerAccess}
+                onClick={
+                  handleOpenCustomerAccount
+                }
               >
-                <span>عميل</span>
-                <span aria-hidden="true">👤</span>
+                <span>حساب العميل</span>
+                <span aria-hidden="true">
+                  👤
+                </span>
               </button>
 
               <button
@@ -114,7 +137,9 @@ function HomePage({
                 }
               >
                 <span>مستثمر</span>
-                <span aria-hidden="true">📈</span>
+                <span aria-hidden="true">
+                  📈
+                </span>
               </button>
 
               <button
@@ -127,7 +152,9 @@ function HomePage({
                 }
               >
                 <span>مشرف</span>
-                <span aria-hidden="true">🏗️</span>
+                <span aria-hidden="true">
+                  🏗️
+                </span>
               </button>
 
               <button
@@ -137,7 +164,9 @@ function HomePage({
                 disabled={isCheckingAdmin}
               >
                 <span>إدارة منصة</span>
-                <span aria-hidden="true">🛡️</span>
+                <span aria-hidden="true">
+                  🛡️
+                </span>
               </button>
             </div>
           )}
@@ -160,7 +189,9 @@ function HomePage({
           <button
             type="button"
             className="application-button"
-            onClick={handleOpenCustomerApplication}
+            onClick={
+              handleOpenCustomerApplication
+            }
           >
             <span
               className="application-icon"
@@ -229,8 +260,8 @@ function HomePage({
           <h2>إشراف احترافي</h2>
 
           <p>
-            متابعة مراحل المشروع وتوثيق التقدم
-            حتى اكتمال المنزل.
+            متابعة مراحل المشروع وتوثيق
+            التقدم حتى اكتمال المنزل.
           </p>
         </article>
 
