@@ -1,319 +1,295 @@
-import { useState } from 'react'
+import { useState } from "react";
+
 import {
   sendCustomerLoginCode,
   verifyCustomerLoginCode,
-} from '../services/customerAccountAuthService'
+} from "../services/customerAccountAuthService.js";
+
+import "./CustomerAccountLoginPage.css";
 
 export default function CustomerAccountLoginPage() {
-  const [step, setStep] = useState('email')
-  const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [step, setStep] = useState("email");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] =
+    useState(false);
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] = useState("");
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] = useState("");
 
   async function handleSendCode(event) {
-    event.preventDefault()
+    event.preventDefault();
 
-    if (loading) return
+    if (loading) return;
 
-    setLoading(true)
-    setErrorMessage('')
-    setSuccessMessage('')
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      const result = await sendCustomerLoginCode(email)
+      const result =
+        await sendCustomerLoginCode(
+          email
+        );
 
-      setEmail(result.email)
-      setStep('otp')
+      setEmail(result.email);
+      setStep("otp");
+
       setSuccessMessage(
-        'تم إرسال رمز الدخول إلى بريدك الإلكتروني.'
-      )
+        "تم إرسال رمز الدخول إلى بريدك الإلكتروني."
+      );
     } catch (error) {
       setErrorMessage(
-        error?.message || 'تعذر إرسال رمز الدخول.'
-      )
+        error?.message ||
+          "تعذر إرسال رمز الدخول."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   async function handleVerifyCode(event) {
-    event.preventDefault()
+    event.preventDefault();
 
-    if (loading) return
+    if (loading) return;
 
-    setLoading(true)
-    setErrorMessage('')
-    setSuccessMessage('')
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      await verifyCustomerLoginCode(email, otp)
+      await verifyCustomerLoginCode(
+        email,
+        otp
+      );
 
-      setSuccessMessage('تم تسجيل الدخول بنجاح.')
+      setSuccessMessage(
+        "تم تسجيل الدخول بنجاح."
+      );
 
-      window.location.href = '/customer/projects'
+      window.location.href =
+        "/customer/projects";
     } catch (error) {
       setErrorMessage(
-        error?.message || 'تعذر التحقق من رمز الدخول.'
-      )
+        error?.message ||
+          "تعذر التحقق من رمز الدخول."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   function handleChangeEmail() {
-    if (loading) return
+    if (loading) return;
 
-    setStep('email')
-    setOtp('')
-    setErrorMessage('')
-    setSuccessMessage('')
+    setStep("email");
+    setOtp("");
+    setErrorMessage("");
+    setSuccessMessage("");
+  }
+
+  function handleBackToHome() {
+    if (loading) return;
+
+    window.location.href = "/";
   }
 
   return (
-    <main
-      dir="rtl"
-      style={{
-        minHeight: '100vh',
-        background: '#f5f5f5',
-        padding: '32px 16px',
-        boxSizing: 'border-box',
-      }}
-    >
-      <section
-        style={{
-          width: '100%',
-          maxWidth: '480px',
-          margin: '0 auto',
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '16px',
-          padding: '24px',
-          boxSizing: 'border-box',
-        }}
-      >
-        <h1
-          style={{
-            marginTop: 0,
-            marginBottom: '8px',
-            fontSize: '26px',
-          }}
-        >
-          دخول العميل
-        </h1>
-
-        <p
-          style={{
-            marginTop: 0,
-            marginBottom: '24px',
-            color: '#555',
-            lineHeight: '1.8',
-          }}
-        >
-          ادخل إلى حسابك لمتابعة جميع مشاريعك.
-        </p>
-
-        {errorMessage && (
-          <div
-            role="alert"
-            style={{
-              marginBottom: '16px',
-              padding: '12px',
-              background: '#fff1f2',
-              border: '1px solid #fecdd3',
-              borderRadius: '10px',
-              color: '#9f1239',
-            }}
+    <main className="customer-login-page">
+      <div className="customer-login-shell">
+        <header className="customer-login-header">
+          <button
+            type="button"
+            className="customer-login-back-button"
+            onClick={handleBackToHome}
+            disabled={loading}
           >
-            {errorMessage}
+            العودة إلى الصفحة الرئيسية
+          </button>
+
+          <div className="customer-login-brand">
+            <span aria-hidden="true">
+              NM
+            </span>
+
+            <div>
+              <p>منصة نايف المزيني</p>
+              <strong>
+                للبناء الذاتي
+              </strong>
+            </div>
           </div>
-        )}
+        </header>
 
-        {successMessage && (
-          <div
-            style={{
-              marginBottom: '16px',
-              padding: '12px',
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '10px',
-              color: '#166534',
-            }}
-          >
-            {successMessage}
+        <section className="customer-login-card">
+          <div className="customer-login-icon">
+            {step === "email"
+              ? "✉️"
+              : "🔐"}
           </div>
-        )}
 
-        {step === 'email' ? (
-          <form onSubmit={handleSendCode}>
-            <label
-              htmlFor="customer-email"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: '700',
-              }}
-            >
-              البريد الإلكتروني
-            </label>
+          <p className="customer-login-eyebrow">
+            حساب العميل
+          </p>
 
-            <input
-              id="customer-email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              dir="ltr"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              disabled={loading}
-              placeholder="name@example.com"
-              required
-              style={{
-                width: '100%',
-                height: '48px',
-                padding: '0 12px',
-                boxSizing: 'border-box',
-                border: '1px solid #cbd5e1',
-                borderRadius: '10px',
-                fontSize: '16px',
-                textAlign: 'left',
-              }}
-            />
+          <h1>
+            {step === "email"
+              ? "تسجيل الدخول"
+              : "تأكيد رمز الدخول"}
+          </h1>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                minHeight: '48px',
-                marginTop: '18px',
-                border: 0,
-                borderRadius: '10px',
-                background: loading
-                  ? '#9ca3af'
-                  : '#111827',
-                color: '#ffffff',
-                fontSize: '16px',
-                fontWeight: '700',
-                cursor: loading
-                  ? 'not-allowed'
-                  : 'pointer',
-              }}
+          <p className="customer-login-description">
+            {step === "email"
+              ? "أدخل بريدك الإلكتروني لفتح حسابك ومتابعة جميع مشاريعك."
+              : "أدخل الرمز المكوّن من 8 أرقام الذي أرسلناه إلى بريدك."}
+          </p>
+
+          {errorMessage && (
+            <div
+              className="customer-login-alert is-error"
+              role="alert"
             >
-              {loading
-                ? 'جاري الإرسال...'
-                : 'إرسال رمز الدخول'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyCode}>
-            <p
-              style={{
-                marginTop: 0,
-                marginBottom: '18px',
-                lineHeight: '1.8',
-              }}
+              {errorMessage}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="customer-login-alert is-success">
+              {successMessage}
+            </div>
+          )}
+
+          {step === "email" ? (
+            <form
+              className="customer-login-form"
+              onSubmit={handleSendCode}
             >
-              أرسلنا رمزًا مكونًا من 8 أرقام إلى:
-              <br />
-              <strong dir="ltr">{email}</strong>
+              <div className="customer-login-field">
+                <label htmlFor="customer-email">
+                  البريد الإلكتروني
+                </label>
+
+                <input
+                  id="customer-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  dir="ltr"
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(
+                      event.target.value
+                    )
+                  }
+                  disabled={loading}
+                  placeholder="name@example.com"
+                  required
+                />
+
+                <p>
+                  استخدم البريد المسجل عند
+                  تقديم طلب البناء.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="customer-login-primary-button"
+                disabled={loading}
+              >
+                {loading
+                  ? "جاري الإرسال..."
+                  : "إرسال رمز الدخول"}
+              </button>
+            </form>
+          ) : (
+            <form
+              className="customer-login-form"
+              onSubmit={handleVerifyCode}
+            >
+              <div className="customer-login-email-summary">
+                <span>
+                  تم إرسال الرمز إلى
+                </span>
+
+                <strong dir="ltr">
+                  {email}
+                </strong>
+              </div>
+
+              <div className="customer-login-field">
+                <label htmlFor="customer-otp">
+                  رمز الدخول
+                </label>
+
+                <input
+                  id="customer-otp"
+                  className="customer-login-otp-input"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  dir="ltr"
+                  value={otp}
+                  onChange={(event) => {
+                    const value =
+                      event.target.value
+                        .replace(
+                          /[^\d٠-٩۰-۹]/g,
+                          ""
+                        )
+                        .slice(0, 8);
+
+                    setOtp(value);
+                  }}
+                  disabled={loading}
+                  placeholder="00000000"
+                  required
+                  maxLength={8}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="customer-login-primary-button"
+                disabled={
+                  loading ||
+                  otp.length !== 8
+                }
+              >
+                {loading
+                  ? "جاري التحقق..."
+                  : "تسجيل الدخول"}
+              </button>
+
+              <button
+                type="button"
+                className="customer-login-secondary-button"
+                onClick={handleChangeEmail}
+                disabled={loading}
+              >
+                تغيير البريد الإلكتروني
+              </button>
+            </form>
+          )}
+
+          <div className="customer-login-security-note">
+            <span aria-hidden="true">
+              🛡️
+            </span>
+
+            <p>
+              لن نطلب منك كلمة مرور. رمز
+              الدخول مؤقت ويُستخدم مرة واحدة
+              فقط.
             </p>
-
-            <label
-              htmlFor="customer-otp"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: '700',
-              }}
-            >
-              رمز الدخول
-            </label>
-
-            <input
-              id="customer-otp"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              dir="ltr"
-              value={otp}
-              onChange={(event) => {
-                const value = event.target.value
-                  .replace(/[^\d٠-٩۰-۹]/g, '')
-                  .slice(0, 8)
-
-                setOtp(value)
-              }}
-              disabled={loading}
-              placeholder="00000000"
-              required
-              maxLength={8}
-              style={{
-                width: '100%',
-                height: '54px',
-                padding: '0 12px',
-                boxSizing: 'border-box',
-                border: '1px solid #cbd5e1',
-                borderRadius: '10px',
-                fontSize: '24px',
-                letterSpacing: '6px',
-                textAlign: 'center',
-              }}
-            />
-
-            <button
-              type="submit"
-              disabled={loading || otp.length !== 8}
-              style={{
-                width: '100%',
-                minHeight: '48px',
-                marginTop: '18px',
-                border: 0,
-                borderRadius: '10px',
-                background:
-                  loading || otp.length !== 8
-                    ? '#9ca3af'
-                    : '#111827',
-                color: '#ffffff',
-                fontSize: '16px',
-                fontWeight: '700',
-                cursor:
-                  loading || otp.length !== 8
-                    ? 'not-allowed'
-                    : 'pointer',
-              }}
-            >
-              {loading
-                ? 'جاري التحقق...'
-                : 'تسجيل الدخول'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleChangeEmail}
-              disabled={loading}
-              style={{
-                width: '100%',
-                minHeight: '44px',
-                marginTop: '10px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                background: '#ffffff',
-                color: '#111827',
-                fontSize: '15px',
-                cursor: loading
-                  ? 'not-allowed'
-                  : 'pointer',
-              }}
-            >
-              تغيير البريد الإلكتروني
-            </button>
-          </form>
-        )}
-      </section>
+          </div>
+        </section>
+      </div>
     </main>
-  )
+  );
 }
