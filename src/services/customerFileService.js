@@ -1,5 +1,64 @@
 import { supabase } from "../lib/supabase.js";
 
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
+function normalizeEmail(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function validateEmail(value) {
+  const normalizedEmail =
+    normalizeEmail(value);
+
+  if (!normalizedEmail) {
+    throw new Error(
+      "البريد الإلكتروني إلزامي لتقديم الطلب."
+    );
+  }
+
+  if (
+    normalizedEmail.length > 254 ||
+    !EMAIL_PATTERN.test(normalizedEmail)
+  ) {
+    throw new Error(
+      "البريد الإلكتروني غير صحيح."
+    );
+  }
+
+  return normalizedEmail;
+}
+
+function validateCustomerName(value) {
+  const customerName = String(
+    value || ""
+  ).trim();
+
+  if (customerName.length < 3) {
+    throw new Error(
+      "أدخل الاسم الكامل للعميل."
+    );
+  }
+
+  return customerName;
+}
+
+function validateMobileNumber(value) {
+  const mobileNumber = String(
+    value || ""
+  ).trim();
+
+  if (!/^05\d{8}$/.test(mobileNumber)) {
+    throw new Error(
+      "رقم الجوال غير صحيح."
+    );
+  }
+
+  return mobileNumber;
+}
+
 function validateRequestId(requestId) {
   const normalizedRequestId = String(
     requestId || ""
@@ -24,20 +83,21 @@ async function getFullCustomerFile({
     );
   }
 
-  const { data, error } = await supabase.rpc(
-    "get_customer_file_by_access",
-    {
-      p_file_number: String(
-        fileNumber
-      )
-        .trim()
-        .toUpperCase(),
+  const { data, error } =
+    await supabase.rpc(
+      "get_customer_file_by_access",
+      {
+        p_file_number: String(
+          fileNumber
+        )
+          .trim()
+          .toUpperCase(),
 
-      p_mobile_number: String(
-        mobileNumber || ""
-      ).trim(),
-    }
-  );
+        p_mobile_number: String(
+          mobileNumber || ""
+        ).trim(),
+      }
+    );
 
   if (error) {
     throw new Error(
@@ -65,80 +125,114 @@ export async function createCustomerFile({
   requestId,
   allowSimilarApplication = false,
 }) {
+  if (!formData) {
+    throw new Error(
+      "بيانات طلب العميل غير موجودة."
+    );
+  }
+
+  if (!calculation) {
+    throw new Error(
+      "بيانات حساب المشروع غير موجودة."
+    );
+  }
+
   const normalizedRequestId =
     validateRequestId(requestId);
 
-  const mobileNumber = String(
-    formData.mobileNumber || ""
-  ).trim();
+  const customerName =
+    validateCustomerName(
+      formData.customerName
+    );
 
-  const { data, error } = await supabase.rpc(
-    "create_customer_file",
-    {
-      p_customer_name:
-        formData.customerName,
+  const mobileNumber =
+    validateMobileNumber(
+      formData.mobileNumber
+    );
 
-      p_mobile_number:
-        mobileNumber,
+  const normalizedEmail =
+    validateEmail(formData.email);
 
-      p_email:
-        formData.email || null,
+  const { data, error } =
+    await supabase.rpc(
+      "create_customer_file",
+      {
+        p_customer_name:
+          customerName,
 
-      p_land_area:
-        Number(formData.landArea),
+        p_mobile_number:
+          mobileNumber,
 
-      p_estimated_land_price:
-        Number(formData.landPrice),
+        p_email:
+          normalizedEmail,
 
-      p_floors:
-        Number(formData.floors),
+        p_land_area:
+          Number(formData.landArea),
 
-      p_bank_offer:
-        Number(formData.bankOffer),
+        p_estimated_land_price:
+          Number(formData.landPrice),
 
-      p_building_area_per_floor:
-        calculation.buildingAreaPerFloor,
+        p_floors:
+          Number(formData.floors),
 
-      p_total_building_area:
-        calculation.totalBuildingArea,
+        p_bank_offer:
+          Number(formData.bankOffer),
 
-      p_meter_rate:
-        calculation.meterRate,
+        p_building_area_per_floor:
+          calculation
+            .buildingAreaPerFloor,
 
-      p_estimated_construction_cost:
-        calculation.constructionCost,
+        p_total_building_area:
+          calculation
+            .totalBuildingArea,
 
-      p_estimated_project_cost:
-        calculation.estimatedProjectCost,
+        p_meter_rate:
+          calculation.meterRate,
 
-      p_financing_ratio:
-        calculation.financingRatio,
+        p_estimated_construction_cost:
+          calculation
+            .constructionCost,
 
-      p_bank_limit_at_80_percent:
-        calculation.bankLimitAt80Percent,
+        p_estimated_project_cost:
+          calculation
+            .estimatedProjectCost,
 
-      p_base_customer_payment:
-        calculation.baseCustomerPayment,
+        p_financing_ratio:
+          calculation
+            .financingRatio,
 
-      p_excess_amount:
-        calculation.excessAmount,
+        p_bank_limit_at_80_percent:
+          calculation
+            .bankLimitAt80Percent,
 
-      p_total_customer_payment:
-        calculation.totalCustomerPayment,
+        p_base_customer_payment:
+          calculation
+            .baseCustomerPayment,
 
-      p_requires_extra_payment_approval:
-        calculation.excessAmount > 0,
+        p_excess_amount:
+          calculation.excessAmount,
 
-      p_extra_payment_approved:
-        acceptedExtraPayment,
+        p_total_customer_payment:
+          calculation
+            .totalCustomerPayment,
 
-      p_request_id:
-        normalizedRequestId,
+        p_requires_extra_payment_approval:
+          calculation.excessAmount > 0,
 
-      p_allow_similar_application:
-        Boolean(allowSimilarApplication),
-    }
-  );
+        p_extra_payment_approved:
+          Boolean(
+            acceptedExtraPayment
+          ),
+
+        p_request_id:
+          normalizedRequestId,
+
+        p_allow_similar_application:
+          Boolean(
+            allowSimilarApplication
+          ),
+      }
+    );
 
   if (error) {
     throw new Error(
@@ -176,12 +270,16 @@ export async function createCustomerFile({
 
   const customerFile =
     await getFullCustomerFile({
-      fileNumber: result.file_number,
+      fileNumber:
+        result.file_number,
+
       mobileNumber,
     });
 
   return {
-    resultType: result.result_type,
+    resultType:
+      result.result_type,
+
     customerFile,
   };
 }
