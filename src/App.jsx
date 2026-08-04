@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 
 import HomePage from "./pages/HomePage.jsx";
 import CustomerApplicationPage from "./pages/CustomerApplicationPage.jsx";
-import CustomerAccessPage from "./pages/CustomerAccessPage.jsx";
-import CustomerFilePage from "./pages/CustomerFilePage.jsx";
 import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
 import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
 import CustomerProjectPage from "./pages/CustomerProjectPage.jsx";
@@ -27,10 +25,6 @@ import {
   listAdminCustomerFileTimeline,
   searchAdminCustomerFiles,
 } from "./services/adminCustomerFileService.js";
-
-import {
-  getCustomerWorkspaceByAccess,
-} from "./services/customerAccessService.js";
 
 const INITIAL_CUSTOMER_FILTERS = {
   search: "",
@@ -60,18 +54,30 @@ function getInitialPageFromPath() {
 
   const routes = {
     "/": "home",
+
     "/customer/application":
       "customer-application",
-    "/customer/access":
-      "customer-access",
+
     "/customer/account-login":
       "customer-account-login",
+
     "/customer/projects":
       "customer-projects",
+
+    /*
+     * تحويل الرابط القديم إلى نظام البريد
+     * حتى لا تظهر صفحة رقم الملف والجوال
+     * لمن يحتفظ بالرابط السابق.
+     */
+    "/customer/access":
+      "customer-account-login",
+
     "/admin/login":
       "admin-login",
+
     "/admin/dashboard":
       "admin-dashboard",
+
     "/admin/customers":
       "admin-customer-files",
   };
@@ -182,26 +188,6 @@ function App() {
   const [
     customerDecisionError,
     setCustomerDecisionError,
-  ] = useState("");
-
-  const [
-    accessedCustomerFile,
-    setAccessedCustomerFile,
-  ] = useState(null);
-
-  const [
-    accessedCustomerTimeline,
-    setAccessedCustomerTimeline,
-  ] = useState([]);
-
-  const [
-    isCustomerAccessLoading,
-    setIsCustomerAccessLoading,
-  ] = useState(false);
-
-  const [
-    customerAccessError,
-    setCustomerAccessError,
   ] = useState("");
 
   useEffect(() => {
@@ -381,12 +367,7 @@ function App() {
 
   const openHomePage = () => {
     setCurrentPage("home");
-
     setAdminLoginError("");
-    setCustomerAccessError("");
-
-    setAccessedCustomerFile(null);
-    setAccessedCustomerTimeline([]);
   };
 
   const openCustomerApplication = () => {
@@ -396,67 +377,14 @@ function App() {
   };
 
   const openCustomerAccountLogin = () => {
+    /*
+     * صفحة المشروعات تتحقق من الجلسة:
+     * إذا كانت موجودة تعرض المشاريع،
+     * وإن لم تكن موجودة تعيد العميل
+     * إلى صفحة البريد والرمز.
+     */
     window.location.href =
       "/customer/projects";
-  };
-
-  const openCustomerAccess = () => {
-    setCustomerAccessError("");
-
-    setAccessedCustomerFile(null);
-    setAccessedCustomerTimeline([]);
-
-    setCurrentPage("customer-access");
-  };
-
-  const handleCustomerAccess = async ({
-    fileNumber,
-    mobileNumber,
-  }) => {
-    if (isCustomerAccessLoading) {
-      return;
-    }
-
-    setIsCustomerAccessLoading(true);
-    setCustomerAccessError("");
-
-    try {
-      const {
-        customerFile,
-        timeline,
-      } =
-        await getCustomerWorkspaceByAccess(
-          {
-            fileNumber,
-            mobileNumber,
-          }
-        );
-
-      setAccessedCustomerFile(
-        customerFile
-      );
-
-      setAccessedCustomerTimeline(
-        timeline
-      );
-
-      setCurrentPage("customer-file");
-    } catch (error) {
-      console.error(
-        "تعذر فتح ملف العميل:",
-        error
-      );
-
-      setAccessedCustomerFile(null);
-      setAccessedCustomerTimeline([]);
-
-      setCustomerAccessError(
-        error?.message ||
-          "تعذر فتح ملف العميل."
-      );
-    } finally {
-      setIsCustomerAccessLoading(false);
-    }
   };
 
   const openAdminEntry = async () => {
@@ -606,9 +534,12 @@ function App() {
       await loadCustomerFiles({
         search:
           customerFilters.search,
+
         status,
+
         sort:
           customerFilters.sort,
+
         page: 1,
       });
     };
@@ -618,9 +549,12 @@ function App() {
       await loadCustomerFiles({
         search:
           customerFilters.search,
+
         status:
           customerFilters.status,
+
         sort,
+
         page: 1,
       });
     };
@@ -864,48 +798,6 @@ function App() {
     return (
       <CustomerApplicationPage
         onBack={openHomePage}
-      />
-    );
-  }
-
-  if (
-    currentPage ===
-    "customer-access"
-  ) {
-    return (
-      <CustomerAccessPage
-        onSubmit={
-          handleCustomerAccess
-        }
-        isSubmitting={
-          isCustomerAccessLoading
-        }
-        errorMessage={
-          customerAccessError
-        }
-        onBackToHome={
-          openHomePage
-        }
-      />
-    );
-  }
-
-  if (
-    currentPage ===
-      "customer-file" &&
-    accessedCustomerFile
-  ) {
-    return (
-      <CustomerFilePage
-        customerFile={
-          accessedCustomerFile
-        }
-        timeline={
-          accessedCustomerTimeline
-        }
-        onBackToHome={
-          openHomePage
-        }
       />
     );
   }
