@@ -55,13 +55,16 @@ function getInitialPageFromPath() {
     "/": "home",
     "/customer/application":
       "customer-application",
-    "/customer/access": "customer-access",
+    "/customer/access":
+      "customer-access",
     "/customer/account-login":
       "customer-account-login",
     "/customer/projects":
       "customer-projects",
-    "/admin/login": "admin-login",
-    "/admin/dashboard": "admin-dashboard",
+    "/admin/login":
+      "admin-login",
+    "/admin/dashboard":
+      "admin-dashboard",
     "/admin/customers":
       "admin-customer-files",
   };
@@ -76,8 +79,10 @@ function App() {
   const [currentAdmin, setCurrentAdmin] =
     useState(null);
 
-  const [isCheckingAdmin, setIsCheckingAdmin] =
-    useState(true);
+  const [
+    isCheckingAdmin,
+    setIsCheckingAdmin,
+  ] = useState(true);
 
   const [
     isAdminSigningIn,
@@ -89,11 +94,13 @@ function App() {
     setAdminLoginError,
   ] = useState("");
 
-  const [dashboardData, setDashboardData] =
-    useState({
-      pendingActions: [],
-      sectionCounts: {},
-    });
+  const [
+    dashboardData,
+    setDashboardData,
+  ] = useState({
+    pendingActions: [],
+    sectionCounts: {},
+  });
 
   const [
     isDashboardLoading,
@@ -105,8 +112,10 @@ function App() {
     setDashboardError,
   ] = useState("");
 
-  const [customerFiles, setCustomerFiles] =
-    useState([]);
+  const [
+    customerFiles,
+    setCustomerFiles,
+  ] = useState([]);
 
   const [
     customerFilters,
@@ -193,7 +202,8 @@ function App() {
 
     async function restoreAdminSession() {
       try {
-        const admin = await getCurrentAdmin();
+        const admin =
+          await getCurrentAdmin();
 
         if (isMounted) {
           setCurrentAdmin(admin);
@@ -226,7 +236,8 @@ function App() {
     setDashboardError("");
 
     try {
-      const data = await getAdminDashboard();
+      const data =
+        await getAdminDashboard();
 
       setDashboardData(data);
     } catch (error) {
@@ -249,7 +260,8 @@ function App() {
     status = customerFilters.status,
     sort = customerFilters.sort,
     page = customerPagination.page,
-    pageSize = customerPagination.pageSize,
+    pageSize =
+      customerPagination.pageSize,
   } = {}) => {
     setIsCustomerFilesLoading(true);
     setCustomerFilesError("");
@@ -265,7 +277,9 @@ function App() {
         });
 
       setCustomerFiles(result.files);
-      setCustomerPagination(result.pagination);
+      setCustomerPagination(
+        result.pagination
+      );
 
       setCustomerFilters({
         search,
@@ -310,7 +324,9 @@ function App() {
         notes,
         timeline,
       ] = await Promise.all([
-        getAdminCustomerFile(customerFileId),
+        getAdminCustomerFile(
+          customerFileId
+        ),
 
         listAdminCustomerFileNotes(
           customerFileId
@@ -321,8 +337,14 @@ function App() {
         ),
       ]);
 
-      setSelectedCustomerFile(customerFile);
-      setSelectedCustomerFileNotes(notes);
+      setSelectedCustomerFile(
+        customerFile
+      );
+
+      setSelectedCustomerFileNotes(
+        notes
+      );
+
       setSelectedCustomerFileTimeline(
         timeline
       );
@@ -334,14 +356,18 @@ function App() {
 
       setSelectedCustomerFile(null);
       setSelectedCustomerFileNotes([]);
-      setSelectedCustomerFileTimeline([]);
+      setSelectedCustomerFileTimeline(
+        []
+      );
 
       setCustomerWorkspaceError(
         error?.message ||
           "تعذر تحميل ملف العميل."
       );
     } finally {
-      setIsCustomerWorkspaceLoading(false);
+      setIsCustomerWorkspaceLoading(
+        false
+      );
     }
   };
 
@@ -356,7 +382,14 @@ function App() {
   };
 
   const openCustomerApplication = () => {
-    setCurrentPage("customer-application");
+    setCurrentPage(
+      "customer-application"
+    );
+  };
+
+  const openCustomerAccountLogin = () => {
+    window.location.href =
+      "/customer/projects";
   };
 
   const openCustomerAccess = () => {
@@ -383,13 +416,21 @@ function App() {
       const {
         customerFile,
         timeline,
-      } = await getCustomerWorkspaceByAccess({
-        fileNumber,
-        mobileNumber,
-      });
+      } =
+        await getCustomerWorkspaceByAccess(
+          {
+            fileNumber,
+            mobileNumber,
+          }
+        );
 
-      setAccessedCustomerFile(customerFile);
-      setAccessedCustomerTimeline(timeline);
+      setAccessedCustomerFile(
+        customerFile
+      );
+
+      setAccessedCustomerTimeline(
+        timeline
+      );
 
       setCurrentPage("customer-file");
     } catch (error) {
@@ -418,7 +459,9 @@ function App() {
     }
 
     if (currentAdmin) {
-      setCurrentPage("admin-dashboard");
+      setCurrentPage(
+        "admin-dashboard"
+      );
 
       await loadAdminDashboard();
 
@@ -440,13 +483,17 @@ function App() {
     setAdminLoginError("");
 
     try {
-      const admin = await signInAdmin({
-        email,
-        password,
-      });
+      const admin =
+        await signInAdmin({
+          email,
+          password,
+        });
 
       setCurrentAdmin(admin);
-      setCurrentPage("admin-dashboard");
+
+      setCurrentPage(
+        "admin-dashboard"
+      );
 
       await loadAdminDashboard();
     } catch (error) {
@@ -492,8 +539,14 @@ function App() {
 
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
-      setSelectedCustomerFileNotes([]);
-      setSelectedCustomerFileTimeline([]);
+
+      setSelectedCustomerFileNotes(
+        []
+      );
+
+      setSelectedCustomerFileTimeline(
+        []
+      );
 
       setCurrentPage("home");
     }
@@ -505,7 +558,9 @@ function App() {
       return;
     }
 
-    setCurrentPage("admin-dashboard");
+    setCurrentPage(
+      "admin-dashboard"
+    );
 
     await loadAdminDashboard();
   };
@@ -516,7 +571,9 @@ function App() {
       return;
     }
 
-    setCurrentPage("admin-customer-files");
+    setCurrentPage(
+      "admin-customer-files"
+    );
 
     await loadCustomerFiles({
       ...INITIAL_CUSTOMER_FILTERS,
@@ -539,9 +596,11 @@ function App() {
   const handleCustomerStatusChange =
     async (status) => {
       await loadCustomerFiles({
-        search: customerFilters.search,
+        search:
+          customerFilters.search,
         status,
-        sort: customerFilters.sort,
+        sort:
+          customerFilters.sort,
         page: 1,
       });
     };
@@ -549,8 +608,10 @@ function App() {
   const handleCustomerSortChange =
     async (sort) => {
       await loadCustomerFiles({
-        search: customerFilters.search,
-        status: customerFilters.status,
+        search:
+          customerFilters.search,
+        status:
+          customerFilters.status,
         sort,
         page: 1,
       });
@@ -559,28 +620,32 @@ function App() {
   const handleCustomerPreviousPage =
     async () => {
       if (
-        !customerPagination.hasPreviousPage ||
+        !customerPagination
+          .hasPreviousPage ||
         isCustomerFilesLoading
       ) {
         return;
       }
 
       await loadCustomerFiles({
-        page: customerPagination.page - 1,
+        page:
+          customerPagination.page - 1,
       });
     };
 
   const handleCustomerNextPage =
     async () => {
       if (
-        !customerPagination.hasNextPage ||
+        !customerPagination
+          .hasNextPage ||
         isCustomerFilesLoading
       ) {
         return;
       }
 
       await loadCustomerFiles({
-        page: customerPagination.page + 1,
+        page:
+          customerPagination.page + 1,
       });
     };
 
@@ -591,7 +656,9 @@ function App() {
       actionType ===
       "new_customer_application"
     ) {
-      setCurrentPage("admin-customer-files");
+      setCurrentPage(
+        "admin-customer-files"
+      );
 
       await loadCustomerFiles({
         search: "",
@@ -608,11 +675,14 @@ function App() {
       actionType ===
       "customer_needs_completion"
     ) {
-      setCurrentPage("admin-customer-files");
+      setCurrentPage(
+        "admin-customer-files"
+      );
 
       await loadCustomerFiles({
         search: "",
-        status: "needs_completion",
+        status:
+          "needs_completion",
         sort: "newest",
         page: 1,
         pageSize: 25,
@@ -652,8 +722,15 @@ function App() {
     );
 
     setSelectedCustomerFile(null);
-    setSelectedCustomerFileNotes([]);
-    setSelectedCustomerFileTimeline([]);
+
+    setSelectedCustomerFileNotes(
+      []
+    );
+
+    setSelectedCustomerFileTimeline(
+      []
+    );
+
     setCustomerWorkspaceError("");
     setCustomerDecisionError("");
 
@@ -679,12 +756,21 @@ function App() {
 
   const handleBackToCustomerFiles =
     async () => {
-      setCurrentPage("admin-customer-files");
+      setCurrentPage(
+        "admin-customer-files"
+      );
 
       setSelectedCustomerFileId(null);
       setSelectedCustomerFile(null);
-      setSelectedCustomerFileNotes([]);
-      setSelectedCustomerFileTimeline([]);
+
+      setSelectedCustomerFileNotes(
+        []
+      );
+
+      setSelectedCustomerFileTimeline(
+        []
+      );
+
       setCustomerWorkspaceError("");
       setCustomerDecisionError("");
 
@@ -738,17 +824,23 @@ function App() {
     currentPage ===
     "customer-account-login"
   ) {
-    return <CustomerAccountLoginPage />;
+    return (
+      <CustomerAccountLoginPage />
+    );
   }
 
   if (
-    currentPage === "customer-projects"
+    currentPage ===
+    "customer-projects"
   ) {
-    return <CustomerProjectsPage />;
+    return (
+      <CustomerProjectsPage />
+    );
   }
 
   if (
-    currentPage === "customer-application"
+    currentPage ===
+    "customer-application"
   ) {
     return (
       <CustomerApplicationPage
@@ -757,53 +849,87 @@ function App() {
     );
   }
 
-  if (currentPage === "customer-access") {
+  if (
+    currentPage ===
+    "customer-access"
+  ) {
     return (
       <CustomerAccessPage
-        onSubmit={handleCustomerAccess}
+        onSubmit={
+          handleCustomerAccess
+        }
         isSubmitting={
           isCustomerAccessLoading
         }
-        errorMessage={customerAccessError}
-        onBackToHome={openHomePage}
+        errorMessage={
+          customerAccessError
+        }
+        onBackToHome={
+          openHomePage
+        }
       />
     );
   }
 
   if (
-    currentPage === "customer-file" &&
+    currentPage ===
+      "customer-file" &&
     accessedCustomerFile
   ) {
     return (
       <CustomerFilePage
-        customerFile={accessedCustomerFile}
-        timeline={accessedCustomerTimeline}
-        onBackToHome={openHomePage}
+        customerFile={
+          accessedCustomerFile
+        }
+        timeline={
+          accessedCustomerTimeline
+        }
+        onBackToHome={
+          openHomePage
+        }
       />
     );
   }
 
-  if (currentPage === "admin-login") {
+  if (
+    currentPage ===
+    "admin-login"
+  ) {
     return (
       <AdminLoginPage
         onSubmit={handleAdminSignIn}
-        isSubmitting={isAdminSigningIn}
-        errorMessage={adminLoginError}
-        onBackToHome={openHomePage}
+        isSubmitting={
+          isAdminSigningIn
+        }
+        errorMessage={
+          adminLoginError
+        }
+        onBackToHome={
+          openHomePage
+        }
       />
     );
   }
 
-  if (currentPage === "admin-dashboard") {
+  if (
+    currentPage ===
+    "admin-dashboard"
+  ) {
     if (!currentAdmin) {
       return (
         <AdminLoginPage
-          onSubmit={handleAdminSignIn}
+          onSubmit={
+            handleAdminSignIn
+          }
           isSubmitting={
             isAdminSigningIn
           }
-          errorMessage={adminLoginError}
-          onBackToHome={openHomePage}
+          errorMessage={
+            adminLoginError
+          }
+          onBackToHome={
+            openHomePage
+          }
         />
       );
     }
@@ -819,45 +945,68 @@ function App() {
         sectionCounts={
           dashboardData.sectionCounts
         }
-        isLoading={isDashboardLoading}
-        errorMessage={dashboardError}
+        isLoading={
+          isDashboardLoading
+        }
+        errorMessage={
+          dashboardError
+        }
         onOpenAction={
           handleOpenAdminAction
         }
         onOpenSection={
           handleOpenAdminSection
         }
-        onSignOut={handleAdminSignOut}
+        onSignOut={
+          handleAdminSignOut
+        }
       />
     );
   }
 
   if (
-    currentPage === "admin-customer-files"
+    currentPage ===
+    "admin-customer-files"
   ) {
     if (!currentAdmin) {
       return (
         <AdminLoginPage
-          onSubmit={handleAdminSignIn}
+          onSubmit={
+            handleAdminSignIn
+          }
           isSubmitting={
             isAdminSigningIn
           }
-          errorMessage={adminLoginError}
-          onBackToHome={openHomePage}
+          errorMessage={
+            adminLoginError
+          }
+          onBackToHome={
+            openHomePage
+          }
         />
       );
     }
 
     return (
       <AdminCustomerFilesPage
-        customerFiles={customerFiles}
-        pagination={customerPagination}
-        filters={customerFilters}
+        customerFiles={
+          customerFiles
+        }
+        pagination={
+          customerPagination
+        }
+        filters={
+          customerFilters
+        }
         isLoading={
           isCustomerFilesLoading
         }
-        errorMessage={customerFilesError}
-        onSearch={handleCustomerSearch}
+        errorMessage={
+          customerFilesError
+        }
+        onSearch={
+          handleCustomerSearch
+        }
         onStatusChange={
           handleCustomerStatusChange
         }
@@ -887,12 +1036,18 @@ function App() {
     if (!currentAdmin) {
       return (
         <AdminLoginPage
-          onSubmit={handleAdminSignIn}
+          onSubmit={
+            handleAdminSignIn
+          }
           isSubmitting={
             isAdminSigningIn
           }
-          errorMessage={adminLoginError}
-          onBackToHome={openHomePage}
+          errorMessage={
+            adminLoginError
+          }
+          onBackToHome={
+            openHomePage
+          }
         />
       );
     }
@@ -938,11 +1093,15 @@ function App() {
       onOpenCustomerApplication={
         openCustomerApplication
       }
-      onOpenCustomerAccess={
-        openCustomerAccess
+      onOpenCustomerAccountLogin={
+        openCustomerAccountLogin
       }
-      onOpenAdmin={openAdminEntry}
-      isCheckingAdmin={isCheckingAdmin}
+      onOpenAdmin={
+        openAdminEntry
+      }
+      isCheckingAdmin={
+        isCheckingAdmin
+      }
     />
   );
 }
