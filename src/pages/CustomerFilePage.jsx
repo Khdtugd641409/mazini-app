@@ -145,6 +145,7 @@ function getCurrentAction(customerFile) {
       STAGE_LABELS[customerFile.current_stage] ||
       customerFile.current_stage ||
       "متابعة الملف",
+
     description:
       "تابع حالة الملف والتعليمات المرتبطة بالمرحلة الحالية.",
   };
@@ -168,7 +169,7 @@ function CustomerFilePage({
           type="button"
           onClick={onBackToHome}
         >
-          العودة إلى الصفحة الرئيسية
+          العودة
         </button>
       </main>
     );
@@ -218,7 +219,7 @@ function CustomerFilePage({
             className="customer-file-home-button"
             onClick={onBackToHome}
           >
-            العودة إلى الصفحة الرئيسية
+            العودة
           </button>
         </header>
 
@@ -248,7 +249,6 @@ function CustomerFilePage({
           <dl className="customer-file-grid">
             <div className="customer-file-data-item">
               <dt>رقم الملف</dt>
-
               <dd>{customerFile.file_number}</dd>
             </div>
 
@@ -266,7 +266,6 @@ function CustomerFilePage({
 
             <div className="customer-file-data-item">
               <dt>المرحلة الحالية</dt>
-
               <dd>{stageLabel}</dd>
             </div>
 
@@ -557,42 +556,41 @@ function CustomerFilePage({
           aria-labelledby="customer-access-title"
         >
           <h2 id="customer-access-title">
-            الدخول إلى الملف لاحقًا
+            الدخول إلى حسابك لاحقًا
           </h2>
 
           <div className="customer-file-access-note">
             <p>
-              يمكنك فتح ملفك من الصفحة الرئيسية عبر
-              أيقونة <strong>دخول ← عميل</strong>.
+              يمكنك العودة إلى جميع مشاريعك من
+              الصفحة الرئيسية عبر{" "}
+              <strong>
+                دخول ← حساب العميل
+              </strong>
+              .
             </p>
 
             <p>
-              استخدم البيانات المسجلة عند تقديم
-              الطلب:
+              أدخل البريد الإلكتروني نفسه الذي
+              سجلته عند تقديم الطلب، ثم استخدم رمز
+              الدخول المرسل إلى بريدك.
             </p>
 
             <div className="customer-file-access-values">
               <div className="customer-file-access-value">
-                <span>رقم الملف</span>
+                <span>البريد الإلكتروني المسجل</span>
 
-                <strong>
-                  {customerFile.file_number}
-                </strong>
-              </div>
-
-              <div className="customer-file-access-value">
-                <span>رقم الجوال المسجل</span>
-
-                <strong>
-                  {customerFile.mobile_number}
+                <strong dir="ltr">
+                  {customerFile.email ||
+                    "البريد المسجل في الطلب"}
                 </strong>
               </div>
             </div>
 
             <p className="customer-file-notice">
-              هذا الدخول مخصص حاليًا لمتابعة حالة
-              الطلب والجدولة، ولا يعتمد على كلمة
-              مرور.
+              بعد تسجيل الدخول ستظهر جميع المشاريع
+              المرتبطة بالبريد نفسه داخل صفحة
+              «مشاريعي»، دون الحاجة إلى إدخال رقم
+              الملف أو رقم الجوال.
             </p>
           </div>
         </section>
