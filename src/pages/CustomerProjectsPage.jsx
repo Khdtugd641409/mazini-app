@@ -1,490 +1,303 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
+
 import {
-  claimExistingCustomerProject,
   getCustomerSession,
   getMyCustomerProjects,
   signOutCustomerAccount,
-} from '../services/customerAccountAuthService'
+} from "../services/customerAccountAuthService.js";
 
 function getStatusLabel(status) {
   const labels = {
-    submitted: 'متقدم',
-    under_review: 'تحت المراجعة',
-    pending: 'تحت المراجعة',
-    accepted: 'مقبول',
-    needs_completion: 'مطلوب استكمال',
-    rejected: 'مرفوض',
-    active: 'نشط',
-    completed: 'مكتمل',
-  }
+    submitted: "متقدم",
+    under_review: "تحت المراجعة",
+    pending: "تحت المراجعة",
+    approved: "مقبول",
+    accepted: "مقبول",
+    needs_completion: "مطلوب استكمال",
+    rejected: "مرفوض",
+    waiting_land: "بانتظار تقديم الأرض",
+    land_under_review: "الأرض تحت المراجعة",
+    land_approved: "تم قبول الأرض",
+    land_rejected: "تم رفض الأرض",
+    waiting_transfer: "بانتظار الإفراغ",
+    transfer_in_progress: "إجراءات الإفراغ جارية",
+    active_project: "المشروع قيد التنفيذ",
+    active: "نشط",
+    completed: "مكتمل",
+    closed: "مغلق",
+  };
 
-  return labels[status] || status || 'غير محدد'
+  return labels[status] || status || "غير محدد";
 }
 
 function getStageLabel(stage) {
   const labels = {
-    initial_application: 'التقديم الأولي',
-    waiting_admin_review:
-      'انتظار مراجعة المنصة',
-    waiting_land_submission:
-      'انتظار تقديم الأرض',
-    land_submission: 'تقديم الأرض',
-  }
+    initial_application: "التقديم الأولي",
+    application_review: "مراجعة طلب العميل",
+    waiting_admin_review: "انتظار مراجعة المنصة",
+    waiting_land_submission: "انتظار تقديم الأرض",
+    waiting_land: "انتظار تقديم الأرض",
+    land_submission: "تقديم الأرض",
+    land_review: "فحص الأرض",
+    land_transfer: "إفراغ الأرض",
+    project_execution: "تنفيذ المشروع",
+    project_closure: "إغلاق المشروع",
+  };
 
-  return (
-    labels[stage] ||
-    stage ||
-    'لم تحدد المرحلة'
-  )
+  return labels[stage] || stage || "لم تحدد المرحلة";
 }
 
 export default function CustomerProjectsPage() {
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] =
-    useState(false)
-
-  const [
-    showClaimForm,
-    setShowClaimForm,
-  ] = useState(false)
-
-  const [fileNumber, setFileNumber] =
-    useState('')
-
-  const [mobileNumber, setMobileNumber] =
-    useState('')
-
-  const [
-    isClaimingProject,
-    setIsClaimingProject,
-  ] = useState(false)
+    useState(false);
 
   const [errorMessage, setErrorMessage] =
-    useState('')
-
-  const [
-    claimErrorMessage,
-    setClaimErrorMessage,
-  ] = useState('')
-
-  const [
-    claimSuccessMessage,
-    setClaimSuccessMessage,
-  ] = useState('')
+    useState("");
 
   useEffect(() => {
-    let pageIsActive = true
+    let pageIsActive = true;
 
     async function loadPage() {
       try {
-        setLoading(true)
-        setErrorMessage('')
+        setLoading(true);
+        setErrorMessage("");
 
         const session =
-          await getCustomerSession()
+          await getCustomerSession();
 
         if (!session) {
           window.location.replace(
-            '/customer/account-login'
-          )
-          return
+            "/customer/account-login"
+          );
+
+          return;
         }
 
         const result =
-          await getMyCustomerProjects()
+          await getMyCustomerProjects();
 
         if (pageIsActive) {
-          setProjects(result)
+          setProjects(result);
         }
       } catch (error) {
         if (pageIsActive) {
+          setProjects([]);
+
           setErrorMessage(
             error?.message ||
-              'تعذر تحميل مشاريع الحساب.'
-          )
+              "تعذر تحميل مشاريع الحساب."
+          );
         }
       } finally {
         if (pageIsActive) {
-          setLoading(false)
+          setLoading(false);
         }
       }
     }
 
-    loadPage()
+    loadPage();
 
     return () => {
-      pageIsActive = false
-    }
-  }, [])
-
-  async function handleClaimProject(event) {
-    event.preventDefault()
-
-    if (isClaimingProject) return
-
-    try {
-      setIsClaimingProject(true)
-      setClaimErrorMessage('')
-      setClaimSuccessMessage('')
-
-      const linkedProject =
-        await claimExistingCustomerProject({
-          fileNumber,
-          mobileNumber,
-        })
-
-      const updatedProjects =
-        await getMyCustomerProjects()
-
-      setProjects(updatedProjects)
-      setFileNumber('')
-      setMobileNumber('')
-
-      setClaimSuccessMessage(
-        `تم ربط المشروع ${linkedProject.file_number} بحسابك بنجاح.`
-      )
-    } catch (error) {
-      setClaimErrorMessage(
-        error?.message ||
-          'تعذر ربط المشروع بالحساب.'
-      )
-    } finally {
-      setIsClaimingProject(false)
-    }
-  }
-
-  function handleToggleClaimForm() {
-    if (isClaimingProject) return
-
-    setShowClaimForm((current) => !current)
-    setClaimErrorMessage('')
-    setClaimSuccessMessage('')
-  }
+      pageIsActive = false;
+    };
+  }, []);
 
   async function handleSignOut() {
-    if (signingOut) return
+    if (signingOut) {
+      return;
+    }
 
     try {
-      setSigningOut(true)
-      setErrorMessage('')
+      setSigningOut(true);
+      setErrorMessage("");
 
-      await signOutCustomerAccount()
+      await signOutCustomerAccount();
 
       window.location.replace(
-        '/customer/account-login'
-      )
+        "/customer/account-login"
+      );
     } catch (error) {
       setErrorMessage(
         error?.message ||
-          'تعذر تسجيل الخروج.'
-      )
+          "تعذر تسجيل الخروج."
+      );
 
-      setSigningOut(false)
+      setSigningOut(false);
     }
+  }
+
+  function handleBackToHome() {
+    window.location.href = "/";
   }
 
   return (
     <main
       dir="rtl"
       style={{
-        minHeight: '100vh',
-        background: '#f5f5f5',
-        padding: '24px 16px',
-        boxSizing: 'border-box',
+        minHeight: "100vh",
+        color: "#0b3b32",
+        background:
+          "radial-gradient(circle at 50% 20%, rgba(255,255,255,0.98) 0%, rgba(255,252,246,0.96) 42%, rgba(243,233,213,0.92) 100%)",
+        padding: "24px 16px 70px",
+        boxSizing: "border-box",
       }}
     >
       <section
         style={{
-          width: '100%',
-          maxWidth: '900px',
-          margin: '0 auto',
+          width: "100%",
+          maxWidth: "960px",
+          margin: "0 auto",
         }}
       >
         <header
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:
-              'space-between',
-            gap: '16px',
-            marginBottom: '24px',
-            flexWrap: 'wrap',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            marginBottom: "34px",
+            flexWrap: "wrap",
           }}
         >
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                marginBottom: '6px',
-                fontSize: '28px',
-              }}
-            >
-              مشاريعي
-            </h1>
-
-            <p
-              style={{
-                margin: 0,
-                color: '#6b7280',
-              }}
-            >
-              جميع مشاريع البناء المرتبطة
-              بحسابك.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
+          <div
             style={{
-              minHeight: '42px',
-              padding: '0 16px',
-              border:
-                '1px solid #d1d5db',
-              borderRadius: '10px',
-              background: '#ffffff',
-              cursor: signingOut
-                ? 'not-allowed'
-                : 'pointer',
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
             }}
           >
-            {signingOut
-              ? 'جاري الخروج...'
-              : 'تسجيل الخروج'}
-          </button>
+            <div
+              aria-hidden="true"
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: "52px",
+                height: "52px",
+                color: "#b98822",
+                fontSize: "22px",
+                fontWeight: "950",
+                border: "2px solid #cda64d",
+                borderRadius: "15px",
+                transform: "rotate(-7deg)",
+              }}
+            >
+              NM
+            </div>
+
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  marginBottom: "5px",
+                  fontSize: "30px",
+                }}
+              >
+                مشاريعي
+              </h1>
+
+              <p
+                style={{
+                  margin: 0,
+                  color: "#65756f",
+                  lineHeight: "1.7",
+                }}
+              >
+                جميع مشاريع البناء المرتبطة
+                بحسابك.
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleBackToHome}
+              disabled={signingOut}
+              style={{
+                minHeight: "44px",
+                padding: "0 15px",
+                color: "#0b3b32",
+                font: "inherit",
+                fontWeight: "800",
+                cursor: signingOut
+                  ? "not-allowed"
+                  : "pointer",
+                background:
+                  "rgba(255,255,255,0.86)",
+                border:
+                  "1px solid rgba(11,59,50,0.14)",
+                borderRadius: "13px",
+              }}
+            >
+              الصفحة الرئيسية
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              style={{
+                minHeight: "44px",
+                padding: "0 15px",
+                color: "#ffffff",
+                font: "inherit",
+                fontWeight: "800",
+                cursor: signingOut
+                  ? "not-allowed"
+                  : "pointer",
+                background: signingOut
+                  ? "#879792"
+                  : "#0b3b32",
+                border: 0,
+                borderRadius: "13px",
+              }}
+            >
+              {signingOut
+                ? "جاري الخروج..."
+                : "تسجيل الخروج"}
+            </button>
+          </div>
         </header>
 
         {errorMessage && (
           <div
             role="alert"
             style={{
-              marginBottom: '18px',
-              padding: '14px',
-              background: '#fff1f2',
-              border:
-                '1px solid #fecdd3',
-              borderRadius: '10px',
-              color: '#9f1239',
+              marginBottom: "18px",
+              padding: "15px 17px",
+              color: "#94283b",
+              background: "#fff1f3",
+              border: "1px solid #f1bcc6",
+              borderRadius: "14px",
+              fontWeight: "800",
+              lineHeight: "1.7",
             }}
           >
             {errorMessage}
           </div>
         )}
 
-        <section
-          style={{
-            marginBottom: '20px',
-            padding: '20px',
-            background: '#ffffff',
-            border:
-              '1px solid #e5e7eb',
-            borderRadius: '14px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleToggleClaimForm}
-            disabled={isClaimingProject}
-            style={{
-              width: '100%',
-              minHeight: '48px',
-              border: 0,
-              borderRadius: '10px',
-              background: '#111827',
-              color: '#ffffff',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: isClaimingProject
-                ? 'not-allowed'
-                : 'pointer',
-            }}
-          >
-            {showClaimForm
-              ? 'إغلاق ربط المشروع'
-              : 'ربط مشروع حالي'}
-          </button>
-
-          {showClaimForm && (
-            <form
-              onSubmit={handleClaimProject}
-              style={{
-                marginTop: '20px',
-              }}
-            >
-              <p
-                style={{
-                  marginTop: 0,
-                  marginBottom: '18px',
-                  color: '#4b5563',
-                  lineHeight: '1.8',
-                }}
-              >
-                أدخل رقم الملف ورقم الجوال
-                المستخدمين في نظام الدخول
-                القديم. لن يتوقف الدخول القديم
-                بعد الربط.
-              </p>
-
-              {claimErrorMessage && (
-                <div
-                  role="alert"
-                  style={{
-                    marginBottom: '16px',
-                    padding: '12px',
-                    background: '#fff1f2',
-                    border:
-                      '1px solid #fecdd3',
-                    borderRadius: '10px',
-                    color: '#9f1239',
-                  }}
-                >
-                  {claimErrorMessage}
-                </div>
-              )}
-
-              {claimSuccessMessage && (
-                <div
-                  style={{
-                    marginBottom: '16px',
-                    padding: '12px',
-                    background: '#f0fdf4',
-                    border:
-                      '1px solid #bbf7d0',
-                    borderRadius: '10px',
-                    color: '#166534',
-                  }}
-                >
-                  {claimSuccessMessage}
-                </div>
-              )}
-
-              <label
-                htmlFor="claim-file-number"
-                style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '700',
-                }}
-              >
-                رقم الملف
-              </label>
-
-              <input
-                id="claim-file-number"
-                type="text"
-                dir="ltr"
-                autoComplete="off"
-                value={fileNumber}
-                onChange={(event) =>
-                  setFileNumber(
-                    event.target.value
-                  )
-                }
-                disabled={isClaimingProject}
-                placeholder="NM-100001"
-                required
-                style={{
-                  width: '100%',
-                  height: '48px',
-                  padding: '0 12px',
-                  boxSizing: 'border-box',
-                  border:
-                    '1px solid #cbd5e1',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  textAlign: 'left',
-                }}
-              />
-
-              <label
-                htmlFor="claim-mobile-number"
-                style={{
-                  display: 'block',
-                  marginTop: '16px',
-                  marginBottom: '8px',
-                  fontWeight: '700',
-                }}
-              >
-                رقم الجوال
-              </label>
-
-              <input
-                id="claim-mobile-number"
-                type="tel"
-                inputMode="tel"
-                dir="ltr"
-                autoComplete="tel"
-                value={mobileNumber}
-                onChange={(event) =>
-                  setMobileNumber(
-                    event.target.value
-                  )
-                }
-                disabled={isClaimingProject}
-                placeholder="05xxxxxxxx"
-                required
-                style={{
-                  width: '100%',
-                  height: '48px',
-                  padding: '0 12px',
-                  boxSizing: 'border-box',
-                  border:
-                    '1px solid #cbd5e1',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  textAlign: 'left',
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={
-                  isClaimingProject ||
-                  !fileNumber.trim() ||
-                  !mobileNumber.trim()
-                }
-                style={{
-                  width: '100%',
-                  minHeight: '48px',
-                  marginTop: '18px',
-                  border: 0,
-                  borderRadius: '10px',
-                  background:
-                    isClaimingProject ||
-                    !fileNumber.trim() ||
-                    !mobileNumber.trim()
-                      ? '#9ca3af'
-                      : '#111827',
-                  color: '#ffffff',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  cursor:
-                    isClaimingProject ||
-                    !fileNumber.trim() ||
-                    !mobileNumber.trim()
-                      ? 'not-allowed'
-                      : 'pointer',
-                }}
-              >
-                {isClaimingProject
-                  ? 'جاري التحقق والربط...'
-                  : 'تحقق واربط المشروع'}
-              </button>
-            </form>
-          )}
-        </section>
-
         {loading ? (
           <div
             style={{
-              padding: '30px',
-              background: '#ffffff',
+              padding: "34px",
+              background:
+                "rgba(255,255,255,0.9)",
               border:
-                '1px solid #e5e7eb',
-              borderRadius: '14px',
-              textAlign: 'center',
+                "1px solid rgba(11,59,50,0.11)",
+              borderRadius: "22px",
+              boxShadow:
+                "0 18px 50px rgba(50,42,27,0.1)",
+              textAlign: "center",
+              fontWeight: "800",
             }}
           >
             جاري تحميل المشاريع...
@@ -492,71 +305,95 @@ export default function CustomerProjectsPage() {
         ) : projects.length === 0 ? (
           <div
             style={{
-              padding: '30px',
-              background: '#ffffff',
+              padding: "38px 24px",
+              background:
+                "rgba(255,255,255,0.9)",
               border:
-                '1px solid #e5e7eb',
-              borderRadius: '14px',
-              textAlign: 'center',
+                "1px solid rgba(11,59,50,0.11)",
+              borderRadius: "22px",
+              boxShadow:
+                "0 18px 50px rgba(50,42,27,0.1)",
+              textAlign: "center",
             }}
           >
+            <div
+              aria-hidden="true"
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: "64px",
+                height: "64px",
+                margin: "0 auto 18px",
+                fontSize: "30px",
+                background: "#f7f1e5",
+                border: "1px solid #e2d2ae",
+                borderRadius: "20px",
+              }}
+            >
+              🏗️
+            </div>
+
             <h2
               style={{
                 marginTop: 0,
-                marginBottom: '10px',
-                fontSize: '21px',
+                marginBottom: "10px",
+                fontSize: "23px",
               }}
             >
-              لا توجد مشاريع مرتبطة
-              بالحساب
+              لا توجد مشاريع ظاهرة حاليًا
             </h2>
 
             <p
               style={{
-                margin: 0,
-                color: '#6b7280',
-                lineHeight: '1.8',
+                maxWidth: "600px",
+                margin: "0 auto",
+                color: "#65756f",
+                lineHeight: "1.9",
               }}
             >
-              استخدم زر «ربط مشروع حالي»
-              وأدخل رقم الملف ورقم الجوال.
+              تظهر المشاريع تلقائيًا بعد
+              قبول الطلب إذا كان البريد
+              المستخدم في الحساب مطابقًا
+              للبريد المسجل عند تقديم الطلب.
             </p>
           </div>
         ) : (
           <div
             style={{
-              display: 'grid',
-              gap: '14px',
+              display: "grid",
+              gap: "16px",
             }}
           >
             {projects.map((project) => (
               <article
                 key={project.id}
                 style={{
-                  padding: '20px',
-                  background: '#ffffff',
+                  padding: "22px",
+                  background:
+                    "rgba(255,255,255,0.92)",
                   border:
-                    '1px solid #e5e7eb',
-                  borderRadius: '14px',
+                    "1px solid rgba(11,59,50,0.11)",
+                  borderRadius: "20px",
+                  boxShadow:
+                    "0 15px 40px rgba(50,42,27,0.08)",
                 }}
               >
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems:
-                      'flex-start',
+                    display: "flex",
+                    alignItems: "flex-start",
                     justifyContent:
-                      'space-between',
-                    gap: '14px',
-                    flexWrap: 'wrap',
+                      "space-between",
+                    gap: "14px",
+                    flexWrap: "wrap",
                   }}
                 >
                   <div>
                     <div
                       style={{
-                        marginBottom: '8px',
-                        color: '#6b7280',
-                        fontSize: '14px',
+                        marginBottom: "7px",
+                        color: "#718079",
+                        fontSize: "14px",
                       }}
                     >
                       رقم الملف
@@ -565,8 +402,9 @@ export default function CustomerProjectsPage() {
                     <strong
                       dir="ltr"
                       style={{
-                        display: 'block',
-                        fontSize: '21px',
+                        display: "block",
+                        color: "#173f36",
+                        fontSize: "22px",
                       }}
                     >
                       {project.file_number}
@@ -575,11 +413,13 @@ export default function CustomerProjectsPage() {
 
                   <span
                     style={{
-                      padding: '7px 12px',
-                      background: '#f3f4f6',
-                      borderRadius: '999px',
-                      fontSize: '14px',
-                      fontWeight: '700',
+                      padding: "8px 13px",
+                      color: "#8d620e",
+                      background: "#f5ecda",
+                      border: "1px solid #ddc58e",
+                      borderRadius: "999px",
+                      fontSize: "14px",
+                      fontWeight: "900",
                     }}
                   >
                     {getStatusLabel(
@@ -590,23 +430,28 @@ export default function CustomerProjectsPage() {
 
                 <div
                   style={{
-                    marginTop: '18px',
-                    paddingTop: '16px',
+                    marginTop: "19px",
+                    paddingTop: "17px",
                     borderTop:
-                      '1px solid #e5e7eb',
+                      "1px solid rgba(11,59,50,0.09)",
                   }}
                 >
                   <div
                     style={{
-                      marginBottom: '6px',
-                      color: '#6b7280',
-                      fontSize: '14px',
+                      marginBottom: "6px",
+                      color: "#718079",
+                      fontSize: "14px",
                     }}
                   >
                     المرحلة الحالية
                   </div>
 
-                  <div>
+                  <div
+                    style={{
+                      color: "#173f36",
+                      fontWeight: "800",
+                    }}
+                  >
                     {getStageLabel(
                       project.current_stage
                     )}
@@ -617,19 +462,22 @@ export default function CustomerProjectsPage() {
                   type="button"
                   onClick={() => {
                     window.location.href =
-                      `/customer/project/${project.id}`
+                      `/customer/project/${project.id}`;
                   }}
                   style={{
-                    width: '100%',
-                    minHeight: '46px',
-                    marginTop: '18px',
+                    width: "100%",
+                    minHeight: "49px",
+                    marginTop: "19px",
+                    color: "#ffffff",
+                    font: "inherit",
+                    fontSize: "16px",
+                    fontWeight: "900",
+                    cursor: "pointer",
+                    background: "#0b3b32",
                     border: 0,
-                    borderRadius: '10px',
-                    background: '#111827',
-                    color: '#ffffff',
-                    fontSize: '16px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
+                    borderRadius: "14px",
+                    boxShadow:
+                      "0 12px 26px rgba(11,59,50,0.18)",
                   }}
                 >
                   فتح المشروع
@@ -640,5 +488,5 @@ export default function CustomerProjectsPage() {
         )}
       </section>
     </main>
-  )
+  );
 }
