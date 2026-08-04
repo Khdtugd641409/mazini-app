@@ -36,16 +36,11 @@ function getArabicAuthError(
 
   if (
     message.includes("token has expired") ||
-    message.includes("otp expired")
-  ) {
-    return "انتهت صلاحية رمز الدخول. اطلب رمزًا جديدًا.";
-  }
-
-  if (
+    message.includes("otp expired") ||
     message.includes("invalid token") ||
     message.includes("invalid otp")
   ) {
-    return "رمز الدخول غير صحيح.";
+    return "رمز الدخول غير صالح أو انتهت صلاحيته. اطلب رمزًا جديدًا واستخدم أحدث رسالة.";
   }
 
   if (message.includes("email")) {
@@ -119,9 +114,9 @@ export async function verifyCustomerLoginCode(
     );
   }
 
-  if (!/^\d{6}$/.test(normalizedOtp)) {
+  if (!/^\d{8}$/.test(normalizedOtp)) {
     throw new Error(
-      "أدخل رمز الدخول المكوّن من 6 أرقام."
+      "أدخل رمز الدخول المكوّن من 8 أرقام."
     );
   }
 
