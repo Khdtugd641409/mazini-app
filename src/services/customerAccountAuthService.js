@@ -50,6 +50,46 @@ function getArabicAuthError(
   return fallbackMessage;
 }
 
+function getArabicClaimError(error) {
+  const message = String(
+    error?.message || ""
+  ).toUpperCase();
+
+  if (
+    message.includes(
+      "PROJECT_VERIFICATION_FAILED"
+    )
+  ) {
+    return "رقم الملف أو رقم الجوال غير صحيح.";
+  }
+
+  if (
+    message.includes(
+      "PROJECT_ALREADY_LINKED"
+    )
+  ) {
+    return "هذا المشروع مرتبط بحساب عميل آخر.";
+  }
+
+  if (
+    message.includes(
+      "ACTIVE_CUSTOMER_ACCOUNT_REQUIRED"
+    )
+  ) {
+    return "حساب العميل غير نشط أو غير مكتمل.";
+  }
+
+  if (
+    message.includes(
+      "AUTHENTICATION_REQUIRED"
+    )
+  ) {
+    return "انتهت جلسة الدخول. سجل الدخول مجددًا.";
+  }
+
+  return "تعذر ربط المشروع بالحساب.";
+}
+
 export async function sendCustomerLoginCode(
   email
 ) {
@@ -199,6 +239,58 @@ export async function getMyCustomerProjects() {
   }
 
   return Array.isArray(data) ? data : [];
+}
+
+export async function claimExistingCustomerProject({
+  fileNumber,
+  mobileNumber,
+}) {
+  const normalizedFileNumber =
+    String(fileNumber || "").trim();
+
+  const normalizedMobileNumber =
+    String(mobileNumber || "").trim();
+
+  if (!normalizedFileNumber) {
+    throw new Error("أدخل رقم الملف.");
+  }
+
+  if (!normalizedMobileNumber) {
+    throw new Error("أدخل رقم الجوال.");
+  }
+
+  const { data, error } =
+    await supabase.rpc(
+      "customer_claim_existing_project",
+      {
+        p_file_number:
+          normalizedFileNumber,
+        p_mobile_number:
+          normalizedMobileNumber,
+      }
+    );
+
+  if (error) {
+    console.error(
+      "claimExistingCustomerProject:",
+      error
+    );
+
+    throw new Error(
+      getArabicClaimError(error)
+    );
+  }
+
+  const linkedProject =
+    Array.isArray(data) ? data[0] : null;
+
+  if (!linkedProject) {
+    throw new Error(
+      "تم تنفيذ الطلب، لكن لم يُعثر على المشروع المرتبط."
+    );
+  }
+
+  return linkedProject;
 }
 
 export async function getCustomerSession() {
