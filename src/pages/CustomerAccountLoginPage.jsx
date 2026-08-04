@@ -26,7 +26,9 @@ export default function CustomerAccountLoginPage() {
 
       setEmail(result.email)
       setStep('otp')
-      setSuccessMessage('تم إرسال رمز الدخول إلى بريدك الإلكتروني.')
+      setSuccessMessage(
+        'تم إرسال رمز الدخول إلى بريدك الإلكتروني.'
+      )
     } catch (error) {
       setErrorMessage(
         error?.message || 'تعذر إرسال رمز الدخول.'
@@ -163,7 +165,9 @@ export default function CustomerAccountLoginPage() {
               autoComplete="email"
               dir="ltr"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               disabled={loading}
               placeholder="name@example.com"
               required
@@ -188,14 +192,20 @@ export default function CustomerAccountLoginPage() {
                 marginTop: '18px',
                 border: 0,
                 borderRadius: '10px',
-                background: loading ? '#9ca3af' : '#111827',
+                background: loading
+                  ? '#9ca3af'
+                  : '#111827',
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: '700',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: loading
+                  ? 'not-allowed'
+                  : 'pointer',
               }}
             >
-              {loading ? 'جاري الإرسال...' : 'إرسال رمز الدخول'}
+              {loading
+                ? 'جاري الإرسال...'
+                : 'إرسال رمز الدخول'}
             </button>
           </form>
         ) : (
@@ -276,7 +286,9 @@ export default function CustomerAccountLoginPage() {
                     : 'pointer',
               }}
             >
-              {loading ? 'جاري التحقق...' : 'تسجيل الدخول'}
+              {loading
+                ? 'جاري التحقق...'
+                : 'تسجيل الدخول'}
             </button>
 
             <button
@@ -292,33 +304,15 @@ export default function CustomerAccountLoginPage() {
                 background: '#ffffff',
                 color: '#111827',
                 fontSize: '15px',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: loading
+                  ? 'not-allowed'
+                  : 'pointer',
               }}
             >
               تغيير البريد الإلكتروني
             </button>
           </form>
         )}
-
-        <hr
-          style={{
-            margin: '24px 0',
-            border: 0,
-            borderTop: '1px solid #e5e7eb',
-          }}
-        />
-
-        <a
-          href="/customer/access"
-          style={{
-            display: 'block',
-            textAlign: 'center',
-            color: '#374151',
-            textDecoration: 'underline',
-          }}
-        >
-          الدخول القديم برقم الملف والجوال
-        </a>
       </section>
     </main>
   )
