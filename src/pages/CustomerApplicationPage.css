@@ -1,0 +1,472 @@
+.customer-application-page {
+  min-height: 100vh;
+  direction: rtl;
+  color: #0b3b32;
+  background:
+    radial-gradient(
+      circle at 50% 18%,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 252, 246, 0.96) 42%,
+      rgba(243, 233, 213, 0.92) 100%
+    );
+}
+
+.customer-application-shell {
+  width: min(100% - 28px, 1040px);
+  margin: 0 auto;
+  padding: 24px 0 70px;
+}
+
+.customer-application-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 44px;
+}
+
+.customer-application-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.customer-application-brand > span {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  color: #b98822;
+  font-size: 22px;
+  font-weight: 950;
+  border: 2px solid #cda64d;
+  border-radius: 15px;
+  transform: rotate(-7deg);
+}
+
+.customer-application-brand p,
+.customer-application-brand strong {
+  display: block;
+  margin: 0;
+}
+
+.customer-application-brand p {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.customer-application-brand strong {
+  margin-top: 3px;
+  color: #65756f;
+  font-size: 13px;
+}
+
+.customer-application-back-button {
+  min-height: 46px;
+  padding: 10px 17px;
+  color: #0b3b32;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(11, 59, 50, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(40, 48, 42, 0.08);
+}
+
+.customer-application-intro {
+  max-width: 760px;
+  margin: 0 auto 30px;
+  text-align: center;
+}
+
+.customer-application-eyebrow {
+  margin: 0 0 8px;
+  color: #a87511;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.customer-application-intro h1,
+.customer-similar-card h1 {
+  margin: 0;
+  font-size: clamp(34px, 6vw, 58px);
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.customer-application-intro > p:last-child,
+.customer-application-lead {
+  margin: 16px auto 0;
+  color: #5f6f69;
+  font-size: clamp(17px, 2vw, 21px);
+  line-height: 1.9;
+}
+
+.customer-application-form,
+.customer-application-review {
+  display: grid;
+  gap: 20px;
+}
+
+.customer-application-card {
+  padding: clamp(20px, 4vw, 34px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(11, 59, 50, 0.11);
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(50, 42, 27, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.customer-application-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.customer-application-card-heading > span {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  font-size: 25px;
+  background: #f7f1e5;
+  border: 1px solid #e2d2ae;
+  border-radius: 16px;
+}
+
+.customer-application-card-heading p,
+.customer-application-card-heading h2 {
+  margin: 0;
+}
+
+.customer-application-card-heading p {
+  color: #a87511;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.customer-application-card-heading h2 {
+  margin-top: 3px;
+  font-size: clamp(23px, 3vw, 30px);
+}
+
+.customer-application-fields-grid,
+.customer-application-data-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.customer-application-field-wide {
+  grid-column: 1 / -1;
+}
+
+.customer-application-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 900;
+}
+
+.customer-application-field input,
+.customer-application-field select {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  color: #173f36;
+  font: inherit;
+  font-size: 17px;
+  background: #fffdf9;
+  border: 1px solid #cfd8d4;
+  border-radius: 14px;
+  box-sizing: border-box;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.customer-application-field input:focus,
+.customer-application-field select:focus {
+  border-color: #b98822;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(185, 136, 34, 0.12);
+}
+
+.customer-application-field input[aria-invalid="true"] {
+  border-color: #a22b3e;
+}
+
+.customer-application-field-help,
+.customer-application-field-error {
+  margin: 8px 2px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.customer-application-field-help {
+  color: #74817c;
+}
+
+.customer-application-field-error {
+  color: #a22b3e;
+}
+
+.customer-application-data-grid {
+  margin: 0;
+}
+
+.customer-application-data-grid > div {
+  padding: 17px;
+  background: #faf9f5;
+  border: 1px solid rgba(11, 59, 50, 0.08);
+  border-radius: 16px;
+}
+
+.customer-application-data-grid dt {
+  color: #718079;
+  font-size: 14px;
+}
+
+.customer-application-data-grid dd {
+  margin: 8px 0 0;
+  color: #173f36;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.customer-application-featured-data {
+  background:
+    linear-gradient(
+      135deg,
+      #0b3b32,
+      #164f43
+    ) !important;
+  border-color: transparent !important;
+}
+
+.customer-application-featured-data dt {
+  color: #d8e5e0;
+}
+
+.customer-application-featured-data dd {
+  color: #f0cc70;
+  font-size: 21px;
+}
+
+.customer-application-eligibility,
+.customer-application-status-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 17px 19px;
+  background: #f5ecda;
+  border: 1px solid #ddc58e;
+  border-radius: 16px;
+}
+
+.customer-application-eligibility span,
+.customer-application-status-preview span {
+  color: #65756f;
+  font-weight: 800;
+}
+
+.customer-application-eligibility strong,
+.customer-application-status-preview strong {
+  color: #8d620e;
+  font-size: 18px;
+}
+
+.customer-application-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 18px;
+  cursor: pointer;
+  background: #fffaf0;
+  border: 1px solid #ddc58e;
+  border-radius: 16px;
+  line-height: 1.8;
+}
+
+.customer-application-checkbox input {
+  width: 22px;
+  height: 22px;
+  margin-top: 4px;
+  flex: 0 0 auto;
+  accent-color: #0b3b32;
+}
+
+.customer-application-alert {
+  margin-top: 18px;
+  padding: 15px 17px;
+  border-radius: 14px;
+  font-weight: 850;
+  line-height: 1.7;
+}
+
+.customer-application-alert.is-success {
+  color: #17623f;
+  background: #effaf3;
+  border: 1px solid #b8e7c7;
+}
+
+.customer-application-alert.is-error {
+  color: #94283b;
+  background: #fff1f3;
+  border: 1px solid #f1bcc6;
+}
+
+.customer-application-primary-button,
+.customer-application-secondary-button,
+.customer-application-text-button {
+  min-height: 52px;
+  padding: 12px 20px;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+  border-radius: 15px;
+}
+
+.customer-application-primary-button {
+  color: #ffffff;
+  background: #0b3b32;
+  border: 0;
+  box-shadow: 0 14px 30px rgba(11, 59, 50, 0.2);
+}
+
+.customer-application-secondary-button {
+  color: #173f36;
+  background: #f5ecda;
+  border: 1px solid #ddc58e;
+}
+
+.customer-application-text-button {
+  color: #536b64;
+  background: transparent;
+  border: 1px solid #d7dfdb;
+}
+
+.customer-application-primary-button:disabled,
+.customer-application-secondary-button:disabled,
+.customer-application-text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.customer-application-submit-button {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.customer-application-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.customer-review-actions {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.customer-review-intro {
+  margin-bottom: 4px;
+}
+
+.customer-similar-card {
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.customer-application-section-icon {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 18px;
+  font-size: 32px;
+  background: #fff5dc;
+  border: 1px solid #e4c675;
+  border-radius: 20px;
+}
+
+.customer-application-highlight-value {
+  color: #a87511 !important;
+  font-size: 23px !important;
+}
+
+@media (max-width: 720px) {
+  .customer-application-shell {
+    width: min(100% - 20px, 1040px);
+    padding-top: 14px;
+  }
+
+  .customer-application-header {
+    align-items: flex-start;
+    margin-bottom: 34px;
+  }
+
+  .customer-application-brand > span {
+    width: 43px;
+    height: 43px;
+    font-size: 18px;
+  }
+
+  .customer-application-brand p {
+    font-size: 14px;
+  }
+
+  .customer-application-brand strong {
+    font-size: 11px;
+  }
+
+  .customer-application-back-button {
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .customer-application-fields-grid,
+  .customer-application-data-grid,
+  .customer-review-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-application-field-wide {
+    grid-column: auto;
+  }
+
+  .customer-application-card {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+
+  .customer-application-card-heading {
+    margin-bottom: 20px;
+  }
+
+  .customer-application-card-heading > span {
+    width: 45px;
+    height: 45px;
+    font-size: 22px;
+  }
+
+  .customer-application-eligibility,
+  .customer-application-status-preview {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
