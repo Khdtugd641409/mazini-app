@@ -6,6 +6,7 @@ import CustomerAccessPage from "./pages/CustomerAccessPage.jsx";
 import CustomerFilePage from "./pages/CustomerFilePage.jsx";
 import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
 import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
+import CustomerProjectPage from "./pages/CustomerProjectPage.jsx";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
@@ -50,6 +51,12 @@ function getInitialPageFromPath() {
   const path =
     window.location.pathname.replace(/\/+$/, "") ||
     "/";
+
+  if (
+    /^\/customer\/project\/[^/]+$/i.test(path)
+  ) {
+    return "customer-project";
+  }
 
   const routes = {
     "/": "home",
@@ -277,6 +284,7 @@ function App() {
         });
 
       setCustomerFiles(result.files);
+
       setCustomerPagination(
         result.pagination
       );
@@ -800,7 +808,9 @@ function App() {
         loadCustomerWorkspace(
           customerFileId
         ),
+
         loadCustomerFiles(),
+
         loadAdminDashboard(),
       ]);
     } catch (error) {
@@ -835,6 +845,15 @@ function App() {
   ) {
     return (
       <CustomerProjectsPage />
+    );
+  }
+
+  if (
+    currentPage ===
+    "customer-project"
+  ) {
+    return (
+      <CustomerProjectPage />
     );
   }
 
