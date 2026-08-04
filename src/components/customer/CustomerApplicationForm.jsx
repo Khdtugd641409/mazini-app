@@ -139,170 +139,232 @@ function CustomerApplicationForm({ onReview }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <fieldset>
-        <legend>بيانات العميل</legend>
+    <form
+      className="customer-application-form"
+      onSubmit={handleSubmit}
+    >
+      <section className="customer-application-card">
+        <div className="customer-application-card-heading">
+          <span aria-hidden="true">👤</span>
 
-        <label htmlFor="customerName">
-          الاسم الكامل
-        </label>
+          <div>
+            <p>الخطوة الأولى</p>
+            <h2>بيانات العميل</h2>
+          </div>
+        </div>
 
-        <input
-          id="customerName"
-          name="customerName"
-          type="text"
-          value={formData.customerName}
-          onChange={handleChange}
-          placeholder="الاسم الكامل"
-          autoComplete="name"
-          minLength="3"
-          required
-        />
+        <div className="customer-application-fields-grid">
+          <div className="customer-application-field">
+            <label htmlFor="customerName">
+              الاسم الكامل
+            </label>
 
-        <label htmlFor="mobileNumber">
-          رقم الجوال
-        </label>
+            <input
+              id="customerName"
+              name="customerName"
+              type="text"
+              value={formData.customerName}
+              onChange={handleChange}
+              placeholder="الاسم الكامل"
+              autoComplete="name"
+              minLength="3"
+              required
+            />
+          </div>
 
-        <input
-          id="mobileNumber"
-          name="mobileNumber"
-          type="tel"
-          inputMode="tel"
-          value={formData.mobileNumber}
-          onChange={handleChange}
-          placeholder="05xxxxxxxx"
-          pattern="05\d{8}"
-          maxLength="10"
-          autoComplete="tel"
-          required
-        />
+          <div className="customer-application-field">
+            <label htmlFor="mobileNumber">
+              رقم الجوال
+            </label>
 
-        <label htmlFor="email">
-          البريد الإلكتروني
-        </label>
+            <input
+              id="mobileNumber"
+              name="mobileNumber"
+              type="tel"
+              inputMode="tel"
+              dir="ltr"
+              value={formData.mobileNumber}
+              onChange={handleChange}
+              placeholder="05xxxxxxxx"
+              pattern="05\d{8}"
+              maxLength="10"
+              autoComplete="tel"
+              required
+            />
+          </div>
 
-        <input
-          id="email"
-          name="email"
-          type="email"
-          inputMode="email"
-          value={formData.email}
-          onChange={handleChange}
-          onBlur={handleEmailBlur}
-          placeholder="name@example.com"
-          autoComplete="email"
-          maxLength="254"
-          required
-          aria-invalid={
-            emailTouched && !isEmailValid
-              ? "true"
-              : "false"
-          }
-          aria-describedby="email-help email-error"
-        />
+          <div className="customer-application-field customer-application-field-wide">
+            <label htmlFor="email">
+              البريد الإلكتروني
+            </label>
 
-        <p id="email-help">
-          استخدم بريدًا تستطيع فتحه؛ سيُرسل
-          إليه رمز الدخول إلى حسابك ومشاريعك.
-        </p>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              inputMode="email"
+              dir="ltr"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleEmailBlur}
+              placeholder="name@example.com"
+              autoComplete="email"
+              maxLength="254"
+              required
+              aria-invalid={
+                emailTouched &&
+                !isEmailValid
+                  ? "true"
+                  : "false"
+              }
+              aria-describedby="email-help email-error"
+            />
 
-        {emailTouched && !isEmailValid && (
-          <p
-            id="email-error"
-            role="alert"
-          >
-            <strong>
-              أدخل بريدًا إلكترونيًا صحيحًا.
-            </strong>
-          </p>
-        )}
-      </fieldset>
+            <p
+              id="email-help"
+              className="customer-application-field-help"
+            >
+              سيُرسل إلى هذا البريد رمز
+              الدخول إلى حسابك وجميع
+              مشاريعك.
+            </p>
 
-      <fieldset>
-        <legend>
-          بيانات الأرض والتمويل
-        </legend>
+            {emailTouched &&
+              !isEmailValid && (
+                <p
+                  id="email-error"
+                  className="customer-application-field-error"
+                  role="alert"
+                >
+                  أدخل بريدًا إلكترونيًا
+                  صحيحًا.
+                </p>
+              )}
+          </div>
+        </div>
+      </section>
 
-        <label htmlFor="landArea">
-          مساحة الأرض بالمتر المربع
-        </label>
+      <section className="customer-application-card">
+        <div className="customer-application-card-heading">
+          <span aria-hidden="true">🏡</span>
 
-        <input
-          id="landArea"
-          name="landArea"
-          type="number"
-          min="1"
-          step="1"
-          inputMode="decimal"
-          value={formData.landArea}
-          onChange={handleChange}
-          placeholder="مثال: 500"
-          required
-        />
+          <div>
+            <p>الخطوة الثانية</p>
+            <h2>
+              بيانات الأرض والتمويل
+            </h2>
+          </div>
+        </div>
 
-        <label htmlFor="landPrice">
-          قيمة الأرض بالريال
-        </label>
+        <div className="customer-application-fields-grid">
+          <div className="customer-application-field">
+            <label htmlFor="landArea">
+              مساحة الأرض
+            </label>
 
-        <input
-          id="landPrice"
-          name="landPrice"
-          type="number"
-          min="0"
-          step="1"
-          inputMode="decimal"
-          value={formData.landPrice}
-          onChange={handleChange}
-          placeholder="مثال: 400000"
-          required
-        />
+            <input
+              id="landArea"
+              name="landArea"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="decimal"
+              value={formData.landArea}
+              onChange={handleChange}
+              placeholder="مثال: 500"
+              required
+            />
 
-        <label htmlFor="floors">
-          عدد الأدوار
-        </label>
+            <p className="customer-application-field-help">
+              بالمتر المربع
+            </p>
+          </div>
 
-        <select
-          id="floors"
-          name="floors"
-          value={formData.floors}
-          onChange={handleChange}
-          required
-        >
-          <option value="1">
-            دور واحد
-          </option>
+          <div className="customer-application-field">
+            <label htmlFor="landPrice">
+              قيمة الأرض
+            </label>
 
-          <option value="2">
-            دوران
-          </option>
+            <input
+              id="landPrice"
+              name="landPrice"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="decimal"
+              value={formData.landPrice}
+              onChange={handleChange}
+              placeholder="مثال: 400000"
+              required
+            />
 
-          <option value="3">
-            ثلاثة أدوار
-          </option>
-        </select>
+            <p className="customer-application-field-help">
+              بالريال السعودي
+            </p>
+          </div>
 
-        <label htmlFor="bankOffer">
-          الحد الأعلى للتمويل في عرض البنك
-        </label>
+          <div className="customer-application-field">
+            <label htmlFor="floors">
+              عدد الأدوار
+            </label>
 
-        <input
-          id="bankOffer"
-          name="bankOffer"
-          type="number"
-          min="1"
-          step="1"
-          inputMode="decimal"
-          value={formData.bankOffer}
-          onChange={handleChange}
-          placeholder="مثال: 1200000"
-          required
-        />
-      </fieldset>
+            <select
+              id="floors"
+              name="floors"
+              value={formData.floors}
+              onChange={handleChange}
+              required
+            >
+              <option value="1">
+                دور واحد
+              </option>
 
-      <section aria-live="polite">
-        <h2>الحساب التقديري</h2>
+              <option value="2">
+                دوران
+              </option>
 
-        <dl>
+              <option value="3">
+                ثلاثة أدوار
+              </option>
+            </select>
+          </div>
+
+          <div className="customer-application-field">
+            <label htmlFor="bankOffer">
+              الحد الأعلى لعرض البنك
+            </label>
+
+            <input
+              id="bankOffer"
+              name="bankOffer"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="decimal"
+              value={formData.bankOffer}
+              onChange={handleChange}
+              placeholder="مثال: 1200000"
+              required
+            />
+
+            <p className="customer-application-field-help">
+              بالريال السعودي
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="customer-application-card customer-calculation-card">
+        <div className="customer-application-card-heading">
+          <span aria-hidden="true">🧮</span>
+
+          <div>
+            <p>النتيجة التقديرية</p>
+            <h2>حساب المشروع</h2>
+          </div>
+        </div>
+
+        <dl className="customer-application-data-grid">
           <div>
             <dt>
               المساحة المحتسبة لكل دور
@@ -350,7 +412,7 @@ function CustomerApplicationForm({ onReview }) {
             </dd>
           </div>
 
-          <div>
+          <div className="customer-application-featured-data">
             <dt>
               إجمالي تكلفة المشروع
             </dt>
@@ -378,7 +440,7 @@ function CustomerApplicationForm({ onReview }) {
 
           <div>
             <dt>
-              دفعة العميل الأساسية 12٪
+              الدفعة الأساسية 12٪
             </dt>
 
             <dd>
@@ -401,44 +463,54 @@ function CustomerApplicationForm({ onReview }) {
             </dd>
           </div>
 
-          <div>
+          <div className="customer-application-featured-data">
             <dt>
               إجمالي الدفعة المطلوبة
             </dt>
 
             <dd>
-              <strong>
-                {formatSaudiRiyal(
-                  calculation
-                    .totalCustomerPayment
-                )}
-              </strong>
+              {formatSaudiRiyal(
+                calculation
+                  .totalCustomerPayment
+              )}
             </dd>
           </div>
         </dl>
 
-        <strong>
-          {calculation.eligibilityLabel}
-        </strong>
+        <div className="customer-application-eligibility">
+          <span>نتيجة الأهلية</span>
+
+          <strong>
+            {calculation.eligibilityLabel}
+          </strong>
+        </div>
       </section>
 
       {requiresApproval && (
-        <section aria-live="polite">
-          <h2>
-            إقرار الدفعة المقدمة
-          </h2>
+        <section className="customer-application-card customer-approval-card">
+          <div className="customer-application-card-heading">
+            <span aria-hidden="true">✅</span>
 
-          <p>
+            <div>
+              <p>إقرار مطلوب</p>
+              <h2>
+                الموافقة على الدفعة
+                المقدمة
+              </h2>
+            </div>
+          </div>
+
+          <p className="customer-application-lead">
             تجاوزت تكلفة المشروع 80٪ من
             عرض البنك، ولذلك أضيف فرق
             التجاوز إلى دفعة العميل
             الأساسية البالغة 12٪.
           </p>
 
-          <dl>
+          <dl className="customer-application-data-grid">
             <div>
               <dt>
-                دفعة العميل الأساسية 12٪
+                الدفعة الأساسية 12٪
               </dt>
 
               <dd>
@@ -451,7 +523,7 @@ function CustomerApplicationForm({ onReview }) {
 
             <div>
               <dt>
-                فرق التجاوز عن حد 80٪
+                فرق التجاوز
               </dt>
 
               <dd>
@@ -461,23 +533,21 @@ function CustomerApplicationForm({ onReview }) {
               </dd>
             </div>
 
-            <div>
+            <div className="customer-application-featured-data">
               <dt>
                 إجمالي الدفعة المقدمة
               </dt>
 
               <dd>
-                <strong>
-                  {formatSaudiRiyal(
-                    calculation
-                      .totalCustomerPayment
-                  )}
-                </strong>
+                {formatSaudiRiyal(
+                  calculation
+                    .totalCustomerPayment
+                )}
               </dd>
             </div>
           </dl>
 
-          <label htmlFor="acceptedExtraPayment">
+          <label className="customer-application-checkbox">
             <input
               id="acceptedExtraPayment"
               name="acceptedExtraPayment"
@@ -492,24 +562,25 @@ function CustomerApplicationForm({ onReview }) {
               }
             />
 
-            أقر بموافقتي على دفع إجمالي
-            الدفعة المقدمة الموضحة أعلاه
-            عند قبول طلبي.
+            <span>
+              أقر بموافقتي على دفع إجمالي
+              الدفعة المقدمة الموضحة أعلاه
+              عند قبول طلبي.
+            </span>
           </label>
 
           {acceptedExtraPayment && (
-            <p>
-              <strong>
-                تم تسجيل موافقتك على
-                الدفعة المقدمة.
-              </strong>
-            </p>
+            <div className="customer-application-alert is-success">
+              تم تسجيل موافقتك على الدفعة
+              المقدمة.
+            </div>
           )}
         </section>
       )}
 
       <button
         type="submit"
+        className="customer-application-primary-button customer-application-submit-button"
         disabled={submitDisabled}
       >
         مراجعة الطلب
