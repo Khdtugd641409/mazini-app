@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import HomePage from "./pages/HomePage.jsx";
 import CustomerApplicationPage from "./pages/CustomerApplicationPage.jsx";
+import CustomerServiceApplicationPage from "./pages/CustomerServiceApplicationPage.jsx";
 import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
 import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
 import CustomerProjectPage from "./pages/CustomerProjectPage.jsx";
@@ -57,6 +58,9 @@ function getInitialPageFromPath() {
 
     "/customer/application":
       "customer-application",
+
+    "/customer/service-application":
+      "customer-service-application",
 
     "/customer/account-login":
       "customer-account-login",
@@ -376,9 +380,16 @@ function App() {
     );
   };
 
+  const openCustomerServiceApplication =
+    () => {
+      setCurrentPage(
+        "customer-service-application"
+      );
+    };
+
   const openCustomerAccountLogin = () => {
     /*
-     * صفحة المشروعات تتحقق من الجلسة:
+     * صفحة المشاريع تتحقق من الجلسة:
      * إذا كانت موجودة تعرض المشاريع،
      * وإن لم تكن موجودة تعيد العميل
      * إلى صفحة البريد والرمز.
@@ -804,6 +815,17 @@ function App() {
 
   if (
     currentPage ===
+    "customer-service-application"
+  ) {
+    return (
+      <CustomerServiceApplicationPage
+        onBack={openHomePage}
+      />
+    );
+  }
+
+  if (
+    currentPage ===
     "admin-login"
   ) {
     return (
@@ -1003,6 +1025,9 @@ function App() {
     <HomePage
       onOpenCustomerApplication={
         openCustomerApplication
+      }
+      onOpenCustomerServiceApplication={
+        openCustomerServiceApplication
       }
       onOpenCustomerAccountLogin={
         openCustomerAccountLogin
