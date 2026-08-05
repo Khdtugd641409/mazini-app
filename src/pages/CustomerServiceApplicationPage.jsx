@@ -20,6 +20,7 @@ const INITIAL_FORM_DATA = {
   landArea: "",
   projectTitle: "",
   floors: "",
+  stageSelection: "",
   stageId: "",
   customStageName: "",
   customStageDescription: "",
@@ -41,7 +42,6 @@ export default function CustomerServiceApplicationPage({
     useState([]);
 
   const [step, setStep] = useState("form");
-
   const [otp, setOtp] = useState("");
 
   const [createdProject, setCreatedProject] =
@@ -104,35 +104,23 @@ export default function CustomerServiceApplicationPage({
   }
 
   function handleStageChange(value) {
-    setFormData((currentFormData) => ({
-      ...currentFormData,
+    setFormData((currentFormData) => {
+      if (value === "other") {
+        return {
+          ...currentFormData,
+          stageSelection: "other",
+          stageId: "",
+        };
+      }
 
-      stageId:
-        value === "other"
-          ? ""
-          : value,
-
-      customStageName:
-        value === "other"
-          ? currentFormData.customStageName
-          : "",
-
-      customStageDescription:
-        value === "other"
-          ? currentFormData
-              .customStageDescription
-          : "",
-    }));
-  }
-
-  function isOtherStageSelected() {
-    return (
-      !formData.stageId &&
-      (
-        formData.customStageName ||
-        formData.customStageDescription
-      )
-    );
+      return {
+        ...currentFormData,
+        stageSelection: value,
+        stageId: value,
+        customStageName: "",
+        customStageDescription: "",
+      };
+    });
   }
 
   function validateBeforeSendingCode() {
@@ -150,12 +138,18 @@ export default function CustomerServiceApplicationPage({
       );
     }
 
+    if (!formData.stageSelection) {
+      throw new Error(
+        "اختر المرحلة الحالية."
+      );
+    }
+
     if (
-      !formData.stageId &&
+      formData.stageSelection === "other" &&
       !formData.customStageName.trim()
     ) {
       throw new Error(
-        "اختر المرحلة الحالية أو أضف مرحلة أخرى."
+        "اكتب اسم المرحلة الأخرى."
       );
     }
   }
@@ -219,6 +213,9 @@ export default function CustomerServiceApplicationPage({
         otp
       );
 
+      const isCustomStage =
+        formData.stageSelection === "other";
+
       const project =
         await createCustomerServiceProject({
           customerName:
@@ -239,19 +236,18 @@ export default function CustomerServiceApplicationPage({
           floors:
             formData.floors,
 
-          stageId:
-            formData.stageId || null,
+          stageId: isCustomStage
+            ? null
+            : formData.stageId,
 
-          customStageName:
-            formData.stageId
-              ? ""
-              : formData.customStageName,
+          customStageName: isCustomStage
+            ? formData.customStageName
+            : "",
 
           customStageDescription:
-            formData.stageId
-              ? ""
-              : formData
-                  .customStageDescription,
+            isCustomStage
+              ? formData.customStageDescription
+              : "",
         });
 
       setCreatedProject(project);
@@ -308,12 +304,6 @@ export default function CustomerServiceApplicationPage({
       `/customer/project/${createdProject.id}`;
   }
 
-  const selectedStageValue =
-    formData.stageId ||
-    (isOtherStageSelected()
-      ? "other"
-      : "");
-
   if (
     step === "success" &&
     createdProject
@@ -343,6 +333,7 @@ export default function CustomerServiceApplicationPage({
           <dl className="service-application-summary">
             <div>
               <dt>رقم المشروع</dt>
+
               <dd dir="ltr">
                 {createdProject.projectNumber}
               </dd>
@@ -350,6 +341,7 @@ export default function CustomerServiceApplicationPage({
 
             <div>
               <dt>المرحلة الحالية</dt>
+
               <dd>
                 {
                   createdProject.currentStageName
@@ -407,6 +399,7 @@ export default function CustomerServiceApplicationPage({
 
             <div>
               <p>منصة نايف المزيني</p>
+
               <strong>
                 للبناء الذاتي وإدارة المشاريع
               </strong>
@@ -491,10 +484,7 @@ export default function CustomerServiceApplicationPage({
                       updateField(
                         "mobileNumber",
                         event.target.value
-                          .replace(
-                            /\D/g,
-                            ""
-                          )
+                          .replace(/\D/g, "")
                           .slice(0, 10)
                       )
                     }
@@ -638,7 +628,9 @@ export default function CustomerServiceApplicationPage({
                   </span>
 
                   <select
-                    value={selectedStageValue}
+                    value={
+                      formData.stageSelection
+                    }
                     onChange={(event) =>
                       handleStageChange(
                         event.target.value
@@ -673,7 +665,7 @@ export default function CustomerServiceApplicationPage({
                   </select>
                 </label>
 
-                {selectedStageValue ===
+                {formData.stageSelection ===
                   "other" && (
                   <>
                     <label>
