@@ -3,6 +3,7 @@ import "./HomePage.css";
 
 function HomePage({
   onOpenCustomerApplication,
+  onOpenCustomerServiceApplication,
   onOpenCustomerAccountLogin,
   onOpenCustomerAccess,
   onOpenAdmin,
@@ -23,8 +24,31 @@ function HomePage({
 
   const handleOpenCustomerApplication = () => {
     closeLoginMenu();
-    onOpenCustomerApplication();
+
+    if (
+      typeof onOpenCustomerApplication ===
+      "function"
+    ) {
+      onOpenCustomerApplication();
+    }
   };
+
+  const handleOpenCustomerServiceApplication =
+    () => {
+      closeLoginMenu();
+
+      if (
+        typeof onOpenCustomerServiceApplication ===
+        "function"
+      ) {
+        onOpenCustomerServiceApplication();
+        return;
+      }
+
+      window.alert(
+        "صفحة طلب الخدمة غير مرتبطة حتى الآن."
+      );
+    };
 
   const handleOpenCustomerAccount = () => {
     closeLoginMenu();
@@ -47,7 +71,10 @@ function HomePage({
 
   const handleOpenAdmin = () => {
     closeLoginMenu();
-    onOpenAdmin();
+
+    if (typeof onOpenAdmin === "function") {
+      onOpenAdmin();
+    }
   };
 
   const handleUnavailableSection = (
@@ -122,6 +149,7 @@ function HomePage({
                 }
               >
                 <span>حساب العميل</span>
+
                 <span aria-hidden="true">
                   👤
                 </span>
@@ -137,6 +165,7 @@ function HomePage({
                 }
               >
                 <span>مستثمر</span>
+
                 <span aria-hidden="true">
                   📈
                 </span>
@@ -152,6 +181,7 @@ function HomePage({
                 }
               >
                 <span>مشرف</span>
+
                 <span aria-hidden="true">
                   🏗️
                 </span>
@@ -164,6 +194,7 @@ function HomePage({
                 disabled={isCheckingAdmin}
               >
                 <span>إدارة منصة</span>
+
                 <span aria-hidden="true">
                   🛡️
                 </span>
@@ -186,22 +217,47 @@ function HomePage({
             </strong>
           </p>
 
-          <button
-            type="button"
-            className="application-button"
-            onClick={
-              handleOpenCustomerApplication
-            }
-          >
-            <span
-              className="application-icon"
-              aria-hidden="true"
+          <div className="home-primary-actions">
+            <button
+              type="button"
+              className="application-button"
+              onClick={
+                handleOpenCustomerApplication
+              }
             >
-              📝
-            </span>
+              <span
+                className="application-icon"
+                aria-hidden="true"
+              >
+                📝
+              </span>
 
-            <span>تقديم الطلب</span>
-          </button>
+              <span>تقديم الطلب</span>
+            </button>
+
+            <button
+              type="button"
+              className="service-request-button"
+              onClick={
+                handleOpenCustomerServiceApplication
+              }
+            >
+              <span
+                className="service-request-icon"
+                aria-hidden="true"
+              >
+                🏗️
+              </span>
+
+              <span>طلب خدمة</span>
+            </button>
+          </div>
+
+          <p className="service-request-description">
+            لديك مشروع قائم وتحتاج إلى مشرف
+            أو مورد؟ أنشئ مشروعك واطّلع على
+            مقدمي الخدمات المناسبين لمرحلتك.
+          </p>
         </div>
 
         <section
