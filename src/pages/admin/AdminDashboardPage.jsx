@@ -1,5 +1,7 @@
 import "./AdminDashboardPage.css";
+
 // Admin dashboard redesign deployed
+
 const ACTION_TYPE_LABELS = {
   new_customer_application:
     "طلبات عملاء جديدة",
@@ -31,6 +33,14 @@ const ACTION_TYPE_ICONS = {
 
 const SECTION_LABELS = {
   customers: "العملاء",
+
+  /*
+   * قسم مستقل لقائمة طلبات الأراضي،
+   * مع بقاء مساحة ملف العميل القديمة
+   * وعدم استبدالها أو حذفها.
+   */
+  lands: "طلبات الأراضي",
+
   supervisors: "مشرفو المشاريع",
   investors: "المستثمرون",
   contractors: "المقاولون",
@@ -41,6 +51,7 @@ const SECTION_LABELS = {
 
 const SECTION_ICONS = {
   customers: "👥",
+  lands: "📍",
   supervisors: "🏗️",
   investors: "📊",
   contractors: "🧱",
@@ -48,6 +59,16 @@ const SECTION_ICONS = {
   contracts: "📄",
   settings: "⚙️",
 };
+
+function hasSectionCount(
+  sectionCounts,
+  sectionKey
+) {
+  return Object.prototype.hasOwnProperty.call(
+    sectionCounts,
+    sectionKey
+  );
+}
 
 function AdminDashboardPage({
   adminProfile,
@@ -62,13 +83,17 @@ function AdminDashboardPage({
   const totalPendingActions =
     pendingActions.reduce(
       (total, action) =>
-        total + Number(action.count || 0),
+        total +
+        Number(action.count || 0),
       0
     );
 
-  const handleOpenAction = (actionType) => {
+  const handleOpenAction = (
+    actionType
+  ) => {
     if (
-      typeof onOpenAction !== "function"
+      typeof onOpenAction !==
+      "function"
     ) {
       return;
     }
@@ -76,9 +101,12 @@ function AdminDashboardPage({
     onOpenAction(actionType);
   };
 
-  const handleOpenSection = (sectionKey) => {
+  const handleOpenSection = (
+    sectionKey
+  ) => {
     if (
-      typeof onOpenSection !== "function"
+      typeof onOpenSection !==
+      "function"
     ) {
       return;
     }
@@ -88,7 +116,8 @@ function AdminDashboardPage({
 
   const handleSignOut = () => {
     if (
-      typeof onSignOut !== "function"
+      typeof onSignOut !==
+      "function"
     ) {
       return;
     }
@@ -131,7 +160,8 @@ function AdminDashboardPage({
             className="admin-dashboard-status"
             role="status"
           >
-            جاري تحميل بيانات لوحة الإدارة...
+            جاري تحميل بيانات لوحة
+            الإدارة...
           </p>
         )}
 
@@ -140,232 +170,276 @@ function AdminDashboardPage({
             className="admin-dashboard-status is-error"
             role="alert"
           >
-            <strong>{errorMessage}</strong>
+            <strong>
+              {errorMessage}
+            </strong>
           </p>
         )}
 
-        {!isLoading && !errorMessage && (
-          <>
-            <section
-              className="admin-dashboard-card"
-              aria-labelledby="pending-actions-title"
-            >
-              <header className="admin-dashboard-card-header">
-                <div>
-                  <h2 id="pending-actions-title">
-                    إجراءات تحتاج متابعة
-                  </h2>
+        {!isLoading &&
+          !errorMessage && (
+            <>
+              <section
+                className="admin-dashboard-card"
+                aria-labelledby="pending-actions-title"
+              >
+                <header className="admin-dashboard-card-header">
+                  <div>
+                    <h2 id="pending-actions-title">
+                      إجراءات تحتاج متابعة
+                    </h2>
 
-                  <p>
-                    الأعمال التي تتطلب قرارًا أو
-                    مراجعة من إدارة المنصة.
-                  </p>
-                </div>
+                    <p>
+                      الأعمال التي تتطلب
+                      قرارًا أو مراجعة من
+                      إدارة المنصة.
+                    </p>
+                  </div>
 
-                <span
-                  className="admin-dashboard-total-pending"
-                  aria-label={`إجمالي الإجراءات المعلقة ${totalPendingActions}`}
-                >
-                  {totalPendingActions}
-                </span>
-              </header>
+                  <span
+                    className="admin-dashboard-total-pending"
+                    aria-label={`إجمالي الإجراءات المعلقة ${totalPendingActions}`}
+                  >
+                    {totalPendingActions}
+                  </span>
+                </header>
 
-              {pendingActions.length === 0 ? (
-                <div className="admin-dashboard-empty">
-                  <h3>
-                    لا توجد إجراءات معلقة
-                  </h3>
+                {pendingActions.length ===
+                0 ? (
+                  <div className="admin-dashboard-empty">
+                    <h3>
+                      لا توجد إجراءات معلقة
+                    </h3>
 
-                  <p>
-                    جميع الأعمال الحالية تمت
-                    مراجعتها.
-                  </p>
-                </div>
-              ) : (
-                <div className="admin-action-grid">
-                  {pendingActions.map(
-                    (action) => {
-                      const actionLabel =
-                        ACTION_TYPE_LABELS[
-                          action.type
-                        ] ||
-                        action.label ||
-                        "إجراء مطلوب";
+                    <p>
+                      جميع الأعمال الحالية
+                      تمت مراجعتها.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="admin-action-grid">
+                    {pendingActions.map(
+                      (action) => {
+                        const actionLabel =
+                          ACTION_TYPE_LABELS[
+                            action.type
+                          ] ||
+                          action.label ||
+                          "إجراء مطلوب";
 
-                      const actionIcon =
-                        ACTION_TYPE_ICONS[
-                          action.type
-                        ] || "🔔";
+                        const actionIcon =
+                          ACTION_TYPE_ICONS[
+                            action.type
+                          ] || "🔔";
+
+                        return (
+                          <button
+                            key={
+                              action.type
+                            }
+                            type="button"
+                            className="admin-action-button"
+                            onClick={() =>
+                              handleOpenAction(
+                                action.type
+                              )
+                            }
+                          >
+                            <span>
+                              <span
+                                aria-hidden="true"
+                                style={{
+                                  display:
+                                    "block",
+
+                                  marginBottom:
+                                    "8px",
+
+                                  fontSize:
+                                    "28px",
+                                }}
+                              >
+                                {
+                                  actionIcon
+                                }
+                              </span>
+
+                              <span className="admin-action-label">
+                                {
+                                  actionLabel
+                                }
+                              </span>
+                            </span>
+
+                            <strong className="admin-action-count">
+                              {Number(
+                                action.count ||
+                                  0
+                              )}
+                            </strong>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+              </section>
+
+              <section
+                className="admin-dashboard-card"
+                aria-labelledby="platform-sections-title"
+              >
+                <h2 id="platform-sections-title">
+                  أقسام إدارة المنصة
+                </h2>
+
+                <div className="admin-section-grid">
+                  {Object.entries(
+                    SECTION_LABELS
+                  ).map(
+                    ([
+                      sectionKey,
+                      sectionLabel,
+                    ]) => {
+                      /*
+                       * لا نعرض عداد قسم الأراضي
+                       * إلا بعد أن يصل عداده
+                       * الحقيقي من قاعدة البيانات.
+                       */
+                      const showCount =
+                        sectionKey !==
+                          "settings" &&
+                        (
+                          sectionKey !==
+                            "lands" ||
+                          hasSectionCount(
+                            sectionCounts,
+                            "lands"
+                          )
+                        );
 
                       return (
                         <button
-                          key={action.type}
+                          key={
+                            sectionKey
+                          }
                           type="button"
-                          className="admin-action-button"
+                          className="admin-section-button"
                           onClick={() =>
-                            handleOpenAction(
-                              action.type
+                            handleOpenSection(
+                              sectionKey
                             )
                           }
                         >
-                          <span>
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                display: "block",
-                                marginBottom: "8px",
-                                fontSize: "28px",
-                              }}
-                            >
-                              {actionIcon}
-                            </span>
-
-                            <span className="admin-action-label">
-                              {actionLabel}
-                            </span>
+                          <span
+                            className="admin-section-icon"
+                            aria-hidden="true"
+                          >
+                            {SECTION_ICONS[
+                              sectionKey
+                            ] || "📁"}
                           </span>
 
-                          <strong className="admin-action-count">
-                            {Number(
-                              action.count || 0
-                            )}
-                          </strong>
+                          <span className="admin-section-label">
+                            {
+                              sectionLabel
+                            }
+                          </span>
+
+                          {showCount && (
+                            <strong className="admin-section-count">
+                              {Number(
+                                sectionCounts[
+                                  sectionKey
+                                ] || 0
+                              )}
+                            </strong>
+                          )}
                         </button>
                       );
                     }
                   )}
                 </div>
-              )}
-            </section>
+              </section>
 
-            <section
-              className="admin-dashboard-card"
-              aria-labelledby="platform-sections-title"
-            >
-              <h2 id="platform-sections-title">
-                أقسام إدارة المنصة
-              </h2>
+              <section
+                className="admin-dashboard-card"
+                aria-labelledby="dashboard-summary-title"
+              >
+                <header className="admin-dashboard-card-header">
+                  <div>
+                    <h2 id="dashboard-summary-title">
+                      ملخص التشغيل
+                    </h2>
 
-              <div className="admin-section-grid">
-                {Object.entries(
-                  SECTION_LABELS
-                ).map(
-                  ([
-                    sectionKey,
-                    sectionLabel,
-                  ]) => (
-                    <button
-                      key={sectionKey}
-                      type="button"
-                      className="admin-section-button"
-                      onClick={() =>
-                        handleOpenSection(
-                          sectionKey
-                        )
-                      }
-                    >
-                      <span
-                        className="admin-section-icon"
-                        aria-hidden="true"
-                      >
-                        {SECTION_ICONS[
-                          sectionKey
-                        ] || "📁"}
-                      </span>
+                    <p>
+                      نظرة سريعة على حالة
+                      ملفات العملاء
+                      والمشاريع.
+                    </p>
+                  </div>
+                </header>
 
-                      <span className="admin-section-label">
-                        {sectionLabel}
-                      </span>
+                <dl className="admin-summary-grid">
+                  <div className="admin-summary-item">
+                    <dt>
+                      طلبات العملاء الجديدة
+                    </dt>
 
-                      {sectionKey !==
-                        "settings" && (
-                        <strong className="admin-section-count">
-                          {Number(
-                            sectionCounts[
-                              sectionKey
-                            ] || 0
-                          )}
-                        </strong>
+                    <dd>
+                      {Number(
+                        sectionCounts
+                          .newCustomers ||
+                          0
                       )}
-                    </button>
-                  )
-                )}
-              </div>
-            </section>
+                    </dd>
+                  </div>
 
-            <section
-              className="admin-dashboard-card"
-              aria-labelledby="dashboard-summary-title"
-            >
-              <header className="admin-dashboard-card-header">
-                <div>
-                  <h2 id="dashboard-summary-title">
-                    ملخص التشغيل
-                  </h2>
+                  <div className="admin-summary-item is-highlight">
+                    <dt>
+                      العملاء المقبولون
+                    </dt>
 
-                  <p>
-                    نظرة سريعة على حالة ملفات
-                    العملاء والمشاريع.
-                  </p>
-                </div>
-              </header>
+                    <dd>
+                      {Number(
+                        sectionCounts
+                          .approvedCustomers ||
+                          0
+                      )}
+                    </dd>
+                  </div>
 
-              <dl className="admin-summary-grid">
-                <div className="admin-summary-item">
-                  <dt>
-                    طلبات العملاء الجديدة
-                  </dt>
+                  <div className="admin-summary-item">
+                    <dt>
+                      الملفات قيد التنفيذ
+                    </dt>
 
-                  <dd>
-                    {Number(
-                      sectionCounts
-                        .newCustomers || 0
-                    )}
-                  </dd>
-                </div>
+                    <dd>
+                      {Number(
+                        sectionCounts
+                          .activeProjects ||
+                          0
+                      )}
+                    </dd>
+                  </div>
 
-                <div className="admin-summary-item is-highlight">
-                  <dt>
-                    العملاء المقبولون
-                  </dt>
+                  <div className="admin-summary-item">
+                    <dt>
+                      الملفات المغلقة
+                    </dt>
 
-                  <dd>
-                    {Number(
-                      sectionCounts
-                        .approvedCustomers || 0
-                    )}
-                  </dd>
-                </div>
-
-                <div className="admin-summary-item">
-                  <dt>
-                    الملفات قيد التنفيذ
-                  </dt>
-
-                  <dd>
-                    {Number(
-                      sectionCounts
-                        .activeProjects || 0
-                    )}
-                  </dd>
-                </div>
-
-                <div className="admin-summary-item">
-                  <dt>
-                    الملفات المغلقة
-                  </dt>
-
-                  <dd>
-                    {Number(
-                      sectionCounts
-                        .closedFiles || 0
-                    )}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-          </>
-        )}
+                    <dd>
+                      {Number(
+                        sectionCounts
+                          .closedFiles ||
+                          0
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            </>
+          )}
       </div>
     </main>
   );
