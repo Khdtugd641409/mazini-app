@@ -449,3 +449,39 @@
     font-size: 21px;
   }
 }
+.customer-land-entry-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  margin-top: 18px;
+  padding: 0 24px;
+  color: #ffffff;
+  background: #0b3b32;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    0 12px 28px rgba(11, 59, 50, 0.2);
+}
+
+.customer-land-entry-button:hover {
+  background: #072e27;
+  transform: translateY(-1px);
+}
+
+.customer-land-entry-button:focus-visible {
+  outline: 3px solid
+    rgba(43, 123, 104, 0.25);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .customer-land-entry-button {
+    width: 100%;
+  }
+}
