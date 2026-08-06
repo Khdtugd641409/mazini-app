@@ -1,0 +1,623 @@
+.admin-land-workspace-page {
+  min-height: 100vh;
+  padding: 24px 16px 70px;
+  box-sizing: border-box;
+  direction: rtl;
+  color: #123d34;
+  background:
+    radial-gradient(
+      circle at 50% 10%,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 252, 245, 0.96) 44%,
+      rgba(242, 232, 211, 0.94) 100%
+    );
+}
+
+.admin-land-workspace-shell {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.admin-land-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.admin-land-workspace-eyebrow {
+  margin: 0 0 8px;
+  color: #a47417;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-land-workspace-header h1 {
+  margin: 0 0 9px;
+  font-size: clamp(27px, 4vw, 39px);
+}
+
+.admin-land-workspace-header p:last-child {
+  margin: 0;
+  color: #66766f;
+}
+
+.admin-land-workspace-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-land-workspace-standards-button,
+.admin-land-workspace-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 45px;
+  padding: 0 16px;
+  border-radius: 13px;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.admin-land-workspace-standards-button {
+  color: #76510e;
+  background: #fff8e8;
+  border: 1px solid #e4cc91;
+}
+
+.admin-land-workspace-standards-button:hover {
+  background: #fff2cf;
+}
+
+.admin-land-workspace-back-button {
+  color: #123d34;
+  background: #ffffff;
+  border: 1px solid rgba(18, 61, 52, 0.18);
+}
+
+.admin-land-workspace-back-button:disabled,
+.admin-land-workspace-standards-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-land-workspace-alert,
+.admin-land-workspace-decision-error {
+  margin-bottom: 18px;
+  padding: 14px 17px;
+  color: #98243b;
+  background: #fff1f3;
+  border: 1px solid #f1bcc6;
+  border-radius: 14px;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.admin-land-workspace-summary {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-land-workspace-summary > div {
+  display: grid;
+  gap: 8px;
+  padding: 17px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(18, 61, 52, 0.11);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 34px rgba(50, 42, 27, 0.07);
+}
+
+.admin-land-workspace-summary span {
+  color: #718079;
+  font-size: 13px;
+}
+
+.admin-land-workspace-summary strong {
+  color: #123d34;
+  overflow-wrap: anywhere;
+}
+
+.admin-land-workspace-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 31px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-land-workspace-status.is-under-review {
+  color: #8b6212;
+  background: #f8edd6;
+  border: 1px solid #dec58d;
+}
+
+.admin-land-workspace-status.is-needs-completion {
+  color: #935b11;
+  background: #fff2d8;
+  border: 1px solid #e7c984;
+}
+
+.admin-land-workspace-status.is-approved {
+  color: #176448;
+  background: #edf9f3;
+  border: 1px solid #a9dfc5;
+}
+
+.admin-land-workspace-status.is-rejected {
+  color: #98243b;
+  background: #fff1f3;
+  border: 1px solid #f1bcc6;
+}
+
+.admin-land-workspace-status.is-default {
+  color: #536963;
+  background: #eef2f0;
+  border: 1px solid #d7dfdb;
+}
+
+.admin-land-workspace-card {
+  margin-bottom: 18px;
+  padding: 26px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(18, 61, 52, 0.11);
+  border-radius: 22px;
+  box-shadow:
+    0 18px 50px rgba(50, 42, 27, 0.08);
+}
+
+.admin-land-workspace-card h2 {
+  margin: 0 0 19px;
+  color: #123d34;
+  font-size: 21px;
+}
+
+.admin-land-workspace-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 19px;
+  flex-wrap: wrap;
+}
+
+.admin-land-workspace-card-header h2 {
+  margin: 0;
+}
+
+.admin-land-workspace-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.admin-land-workspace-grid > div {
+  padding: 16px;
+  background: #f8faf9;
+  border: 1px solid #dde6e2;
+  border-radius: 14px;
+}
+
+.admin-land-workspace-grid > div.is-highlighted {
+  background: #f8f2df;
+  border-color: #dfcb91;
+}
+
+.admin-land-workspace-grid dt {
+  margin-bottom: 7px;
+  color: #718079;
+  font-size: 13px;
+}
+
+.admin-land-workspace-grid dd {
+  margin: 0;
+  color: #123d34;
+  font-weight: 900;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.admin-land-workspace-map-button,
+.admin-land-workspace-deed-button {
+  min-height: 43px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-land-workspace-map-button {
+  color: #123d34;
+  background: #edf8f3;
+  border: 1px solid #a9d6c5;
+}
+
+.admin-land-workspace-deed-button {
+  width: 100%;
+  margin-top: 17px;
+  color: #ffffff;
+  background: #123d34;
+  border: 0;
+}
+
+.admin-land-workspace-deed-button:hover {
+  background: #0d312a;
+}
+
+.admin-land-workspace-deed-button:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.admin-land-workspace-services {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-land-workspace-services article {
+  display: grid;
+  place-items: center;
+  min-height: 118px;
+  padding: 14px;
+  text-align: center;
+  border-radius: 15px;
+}
+
+.admin-land-workspace-services article > span {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.admin-land-workspace-services article strong {
+  color: #123d34;
+}
+
+.admin-land-workspace-services article small {
+  margin-top: 6px;
+  color: #718079;
+  line-height: 1.5;
+}
+
+.admin-land-workspace-services article.is-available {
+  background: #edf8f3;
+  border: 1px solid #b4decd;
+}
+
+.admin-land-workspace-services article.is-available > span {
+  color: #ffffff;
+  background: #23795f;
+}
+
+.admin-land-workspace-services article.is-unavailable {
+  background: #f6f7f7;
+  border: 1px solid #dce2df;
+}
+
+.admin-land-workspace-services article.is-unavailable > span {
+  color: #ffffff;
+  background: #87948f;
+}
+
+.admin-land-workspace-note {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fffaf0;
+  border: 1px solid #ead9ae;
+  border-radius: 14px;
+}
+
+.admin-land-workspace-note strong {
+  color: #76510e;
+}
+
+.admin-land-workspace-note p {
+  margin: 8px 0 0;
+  color: #6a624f;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.admin-land-workspace-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-land-workspace-timeline li {
+  position: relative;
+  padding: 0 28px 18px 0;
+}
+
+.admin-land-workspace-timeline li::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 5px;
+  width: 11px;
+  height: 11px;
+  background: #c3912f;
+  border: 3px solid #f7ecd3;
+  border-radius: 50%;
+}
+
+.admin-land-workspace-timeline li::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  right: 10px;
+  bottom: -4px;
+  width: 2px;
+  background: #e5d7b7;
+}
+
+.admin-land-workspace-timeline li:last-child::after {
+  display: none;
+}
+
+.admin-land-workspace-timeline article {
+  padding: 16px;
+  background: #f8faf9;
+  border: 1px solid #dde6e2;
+  border-radius: 14px;
+}
+
+.admin-land-workspace-timeline header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.admin-land-workspace-timeline h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.admin-land-workspace-timeline time {
+  color: #718079;
+  font-size: 13px;
+}
+
+.admin-land-workspace-timeline p {
+  margin: 10px 0 0;
+  color: #5f706a;
+  line-height: 1.8;
+}
+
+.admin-land-workspace-decision-card {
+  border-color: rgba(18, 61, 52, 0.2);
+}
+
+.admin-land-workspace-decision-buttons {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-land-workspace-decision-buttons button {
+  min-height: 50px;
+  border-radius: 13px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-land-workspace-decision-buttons button.is-approve {
+  color: #ffffff;
+  background: #20785d;
+  border: 0;
+}
+
+.admin-land-workspace-decision-buttons button.is-completion {
+  color: #76510e;
+  background: #fff5dc;
+  border: 1px solid #dfc176;
+}
+
+.admin-land-workspace-decision-buttons button.is-reject {
+  color: #ffffff;
+  background: #a83247;
+  border: 0;
+}
+
+.admin-land-workspace-decision-buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-land-workspace-decision-form {
+  margin-top: 18px;
+  padding: 20px;
+  background: #f8faf9;
+  border: 1px solid #dce5e1;
+  border-radius: 16px;
+}
+
+.admin-land-workspace-decision-form h3 {
+  margin: 0 0 16px;
+}
+
+.admin-land-workspace-decision-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-land-workspace-decision-form label > span {
+  color: #294f46;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.admin-land-workspace-decision-form textarea {
+  width: 100%;
+  min-height: 125px;
+  padding: 12px 13px;
+  box-sizing: border-box;
+  resize: vertical;
+  color: #173f36;
+  background: #ffffff;
+  border: 1px solid #ccd7d2;
+  border-radius: 12px;
+  font: inherit;
+  line-height: 1.7;
+  outline: none;
+}
+
+.admin-land-workspace-decision-form textarea:focus {
+  border-color: #2b7b68;
+  box-shadow:
+    0 0 0 3px rgba(43, 123, 104, 0.14);
+}
+
+.admin-land-workspace-decision-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.admin-land-workspace-decision-actions button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-land-workspace-decision-actions button.is-confirm {
+  color: #ffffff;
+  background: #123d34;
+  border: 0;
+}
+
+.admin-land-workspace-decision-actions button.is-cancel {
+  color: #123d34;
+  background: #ffffff;
+  border: 1px solid rgba(18, 61, 52, 0.2);
+}
+
+.admin-land-workspace-decision-closed {
+  padding: 17px;
+  color: #536963;
+  background: #f1f4f2;
+  border: 1px solid #d8e0dc;
+  border-radius: 14px;
+  line-height: 1.8;
+}
+
+.admin-land-workspace-state,
+.admin-land-workspace-error {
+  width: min(100%, 620px);
+  margin: 50px auto 0;
+  padding: 30px;
+  box-sizing: border-box;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid rgba(18, 61, 52, 0.12);
+  border-radius: 20px;
+}
+
+.admin-land-workspace-error {
+  border-color: #f1bcc6;
+}
+
+.admin-land-workspace-error h1 {
+  margin-top: 0;
+}
+
+.admin-land-workspace-error p {
+  color: #98243b;
+  line-height: 1.8;
+}
+
+.admin-land-workspace-error button {
+  width: 100%;
+  min-height: 45px;
+  margin-top: 10px;
+  color: #ffffff;
+  background: #123d34;
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 850px) {
+  .admin-land-workspace-summary,
+  .admin-land-workspace-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-land-workspace-services {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .admin-land-workspace-page {
+    padding: 18px 12px 50px;
+  }
+
+  .admin-land-workspace-header {
+    flex-direction: column;
+  }
+
+  .admin-land-workspace-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .admin-land-workspace-header-actions button {
+    width: 100%;
+  }
+
+  .admin-land-workspace-card {
+    padding: 20px 15px;
+    border-radius: 18px;
+  }
+
+  .admin-land-workspace-summary,
+  .admin-land-workspace-grid,
+  .admin-land-workspace-services,
+  .admin-land-workspace-decision-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-land-workspace-decision-actions {
+    flex-direction: column;
+  }
+
+  .admin-land-workspace-decision-actions button {
+    width: 100%;
+  }
+}
