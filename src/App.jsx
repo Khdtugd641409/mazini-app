@@ -6,6 +6,7 @@ import CustomerServiceApplicationPage from "./pages/CustomerServiceApplicationPa
 import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
 import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
 import CustomerProjectPage from "./pages/CustomerProjectPage.jsx";
+import CustomerLandSubmissionPage from "./pages/CustomerLandSubmissionPage.jsx";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
@@ -46,6 +47,18 @@ function getInitialPageFromPath() {
   const path =
     window.location.pathname.replace(/\/+$/, "") ||
     "/";
+
+  /*
+   * يجب فحص مسار تقديم الأرض قبل مسار المشروع العام،
+   * لأن كليهما يبدأ بـ /customer/project/
+   */
+  if (
+    /^\/customer\/project\/[^/]+\/land$/i.test(
+      path
+    )
+  ) {
+    return "customer-land-submission";
+  }
 
   if (
     /^\/customer\/project\/[^/]+$/i.test(path)
@@ -790,6 +803,15 @@ function App() {
   ) {
     return (
       <CustomerProjectsPage />
+    );
+  }
+
+  if (
+    currentPage ===
+    "customer-land-submission"
+  ) {
+    return (
+      <CustomerLandSubmissionPage />
     );
   }
 
