@@ -143,6 +143,21 @@ function AdminCustomerFilesPage({
     setSearchInput(filters.search || "");
   }, [filters.search]);
 
+  useEffect(() => {
+    const requestedStatus = new URLSearchParams(
+      window.location.search
+    ).get("status");
+
+    if (
+      requestedStatus &&
+      STATUS_TABS.some((tab) => tab.value === requestedStatus) &&
+      requestedStatus !== filters.status &&
+      typeof onStatusChange === "function"
+    ) {
+      onStatusChange(requestedStatus);
+    }
+  }, []);
+
   function handleSearchSubmit(event) {
     event.preventDefault();
     if (isLoading) return;
