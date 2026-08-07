@@ -1,8 +1,20 @@
 import { supabase } from "../lib/supabase.js";
 
+const LAND_FILE_STATUS_TO_SUBMISSION_STATUS = {
+  land_under_review: "under_review",
+  land_needs_completion: "needs_completion",
+  land_approved: "approved",
+  land_rejected: "rejected",
+};
+
 function getErrorMessage(error, fallbackMessage) {
   if (!error) return fallbackMessage;
-  const message = typeof error.message === "string" ? error.message : "";
+
+  const message =
+    typeof error.message === "string"
+      ? error.message
+      : "";
+
   if (
     message.includes("غير مصرح") ||
     message.includes("not authorized") ||
@@ -11,11 +23,13 @@ function getErrorMessage(error, fallbackMessage) {
   ) {
     return "انتهت الجلسة أو لا تملك صلاحية إدارة المنصة.";
   }
+
   return message || fallbackMessage;
 }
 
 function normalizeLandSubmission(submission) {
   if (!submission) return null;
+
   return {
     id: submission.id || "",
     customerFileId: submission.customer_file_id || "",
@@ -61,6 +75,7 @@ function normalizeLandSubmission(submission) {
 
 function normalizeLandCustomerFile(customerFile) {
   if (!customerFile) return null;
+
   return {
     id: customerFile.id || "",
     fileNumber: customerFile.file_number || "",
@@ -86,7 +101,13 @@ function normalizeLandCustomerFile(customerFile) {
 
 export async function getAdminDashboard() {
   const { data, error } = await supabase.rpc("admin_get_dashboard");
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل بيانات لوحة الإدارة."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل بيانات لوحة الإدارة.")
+    );
+  }
+
   return {
     pendingActions: Array.isArray(data?.pending_actions)
       ? data.pending_actions.filter((action) => Number(action.count || 0) > 0)
@@ -100,13 +121,59 @@ export async function getAdminDashboard() {
 
 export async function listAdminPendingTasks() {
   const { data, error } = await supabase.rpc("admin_list_pending_tasks");
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل الإجراءات المطلوبة."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل الإجراءات المطلوبة.")
+    );
+  }
+
   return Array.isArray(data) ? data : [];
 }
 
-export async function searchAdminCustomerFiles({ search = "", status = "all", sort = "newest", page = 1, pageSize = 25 } = {}) {
+export async function searchAdminCustomerFiles({
+  search = "",
+  status = "all",
+  sort = "newest",
+  page = 1,
+  pageSize = 25,
+} = {}) {
+  const landSubmissionStatus =
+    LAND_FILE_STATUS_TO_SUBMISSION_STATUS[status];
+
+  if (landSubmissionStatus) {
+    const result = await searchAdminLandSubmissions({
+      search,
+      status: landSubmissionStatus,
+      sort: sort === "oldest" ? "oldest" : "newest",
+      page,
+      pageSize,
+    });
+
+    return {
+      files: result.submissions.map((submission) => ({
+        id: submission.customerFileId,
+        file_number: submission.fileNumber,
+        customer_name: submission.customerName,
+        mobile_number: submission.mobileNumber,
+        email: submission.email,
+        status,
+        current_stage:
+          status === "land_approved"
+            ? "land_contract"
+            : "land_submission",
+        submitted_at: submission.submittedAt,
+        updated_at: submission.updatedAt || submission.reviewedAt || submission.submittedAt,
+        estimated_project_cost: null,
+        total_customer_payment: null,
+      })),
+      pagination: result.pagination,
+    };
+  }
+
   const safePage = Math.max(Number(page) || 1, 1);
   const safePageSize = Math.min(Math.max(Number(pageSize) || 25, 1), 100);
+
   const { data, error } = await supabase.rpc("admin_search_customer_files", {
     p_search: String(search || "").trim(),
     p_status: status || "all",
@@ -114,10 +181,17 @@ export async function searchAdminCustomerFiles({ search = "", status = "all", so
     p_page: safePage,
     p_page_size: safePageSize,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر البحث في ملفات العملاء."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر البحث في ملفات العملاء.")
+    );
+  }
+
   const rows = Array.isArray(data) ? data : [];
   const totalCount = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
   const totalPages = totalCount > 0 ? Math.ceil(totalCount / safePageSize) : 1;
+
   return {
     files: rows.map((row) => ({
       id: row.id,
@@ -149,56 +223,121 @@ export async function listAdminCustomerFiles() {
 }
 
 export async function getAdminCustomerFile(customerFileId) {
-  if (!customerFileId) throw new Error("معرّف ملف العميل غير موجود.");
+  if (!customerFileId) {
+    throw new Error("معرّف ملف العميل غير موجود.");
+  }
+
   const { data, error } = await supabase.rpc("admin_get_customer_file", {
     p_customer_file_id: customerFileId,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر فتح ملف العميل."));
-  if (!Array.isArray(data) || data.length === 0) throw new Error("ملف العميل غير موجود.");
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر فتح ملف العميل.")
+    );
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("ملف العميل غير موجود.");
+  }
+
   return data[0];
 }
 
 export async function listAdminCustomerFileNotes(customerFileId) {
-  if (!customerFileId) throw new Error("معرّف ملف العميل غير موجود.");
+  if (!customerFileId) {
+    throw new Error("معرّف ملف العميل غير موجود.");
+  }
+
   const { data, error } = await supabase.rpc("admin_list_customer_file_notes", {
     p_customer_file_id: customerFileId,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل ملاحظات ملف العميل."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل ملاحظات ملف العميل.")
+    );
+  }
+
   return Array.isArray(data) ? data : [];
 }
 
 export async function listAdminCustomerFileTimeline(customerFileId) {
-  if (!customerFileId) throw new Error("معرّف ملف العميل غير موجود.");
+  if (!customerFileId) {
+    throw new Error("معرّف ملف العميل غير موجود.");
+  }
+
   const { data, error } = await supabase.rpc("admin_list_customer_file_timeline", {
     p_customer_file_id: customerFileId,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل السجل الزمني لملف العميل."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل السجل الزمني لملف العميل.")
+    );
+  }
+
   return Array.isArray(data) ? data : [];
 }
 
-export async function decideCustomerApplication({ customerFileId, decision, note = "" }) {
-  if (!customerFileId) throw new Error("معرّف ملف العميل غير موجود.");
-  const allowedDecisions = ["approve", "needs_completion", "reject"];
-  if (!allowedDecisions.includes(decision)) throw new Error("قرار الإدارة غير صحيح.");
-  const normalizedNote = note.trim();
-  if ((decision === "needs_completion" || decision === "reject") && !normalizedNote) {
-    throw new Error(decision === "reject" ? "اكتب سبب رفض الطلب." : "اكتب البيانات المطلوب استكمالها.");
+export async function decideCustomerApplication({
+  customerFileId,
+  decision,
+  note = "",
+}) {
+  if (!customerFileId) {
+    throw new Error("معرّف ملف العميل غير موجود.");
   }
+
+  const allowedDecisions = ["approve", "needs_completion", "reject"];
+
+  if (!allowedDecisions.includes(decision)) {
+    throw new Error("قرار الإدارة غير صحيح.");
+  }
+
+  const normalizedNote = note.trim();
+
+  if (
+    (decision === "needs_completion" || decision === "reject") &&
+    !normalizedNote
+  ) {
+    throw new Error(
+      decision === "reject"
+        ? "اكتب سبب رفض الطلب."
+        : "اكتب البيانات المطلوب استكمالها."
+    );
+  }
+
   const { data, error } = await supabase.rpc("admin_decide_customer_application", {
     p_customer_file_id: customerFileId,
     p_decision: decision,
     p_note: normalizedNote || null,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر تنفيذ قرار الإدارة."));
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error("تم تنفيذ العملية، لكن لم تصل حالة الملف الجديدة.");
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تنفيذ قرار الإدارة.")
+    );
   }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(
+      "تم تنفيذ العملية، لكن لم تصل حالة الملف الجديدة."
+    );
+  }
+
   return data[0];
 }
 
 export async function getAdminLandSubmissionCounts() {
   const { data, error } = await supabase.rpc("admin_get_land_submission_counts");
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل عدادات طلبات الأراضي."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل عدادات طلبات الأراضي.")
+    );
+  }
+
   return {
     all: Number(data?.all) || 0,
     underReview: Number(data?.under_review) || 0,
@@ -209,9 +348,16 @@ export async function getAdminLandSubmissionCounts() {
   };
 }
 
-export async function searchAdminLandSubmissions({ search = "", status = "all", sort = "newest", page = 1, pageSize = 25 } = {}) {
+export async function searchAdminLandSubmissions({
+  search = "",
+  status = "all",
+  sort = "newest",
+  page = 1,
+  pageSize = 25,
+} = {}) {
   const safePage = Math.max(Number(page) || 1, 1);
   const safePageSize = Math.min(Math.max(Number(pageSize) || 25, 1), 100);
+
   const { data, error } = await supabase.rpc("admin_search_land_submissions", {
     p_search: String(search || "").trim(),
     p_status: status || "all",
@@ -219,9 +365,17 @@ export async function searchAdminLandSubmissions({ search = "", status = "all", 
     p_page: safePage,
     p_page_size: safePageSize,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر تحميل طلبات الأراضي."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تحميل طلبات الأراضي.")
+    );
+  }
+
   return {
-    submissions: Array.isArray(data?.submissions) ? data.submissions.map(normalizeLandSubmission) : [],
+    submissions: Array.isArray(data?.submissions)
+      ? data.submissions.map(normalizeLandSubmission)
+      : [],
     pagination: data?.pagination || {
       page: safePage,
       pageSize: safePageSize,
@@ -234,13 +388,26 @@ export async function searchAdminLandSubmissions({ search = "", status = "all", 
 }
 
 export async function getAdminLandSubmissionWorkspace(landSubmissionId) {
-  if (!landSubmissionId) throw new Error("معرّف طلب الأرض غير موجود.");
+  if (!landSubmissionId) {
+    throw new Error("معرّف طلب الأرض غير موجود.");
+  }
+
   const { data, error } = await supabase.rpc("admin_get_land_submission_workspace", {
     p_land_submission_id: landSubmissionId,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر فتح طلب الأرض."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر فتح طلب الأرض.")
+    );
+  }
+
   const landSubmission = normalizeLandSubmission(data?.landSubmission);
-  if (!landSubmission?.id) throw new Error("لم تصل بيانات طلب الأرض من قاعدة البيانات.");
+
+  if (!landSubmission?.id) {
+    throw new Error("لم تصل بيانات طلب الأرض من قاعدة البيانات.");
+  }
+
   return {
     landSubmission,
     customerFile: normalizeLandCustomerFile(data?.customerFile),
@@ -250,21 +417,40 @@ export async function getAdminLandSubmissionWorkspace(landSubmissionId) {
   };
 }
 
-export async function decideAdminLandSubmission({ landSubmissionId, decision, note = "" }) {
-  if (!landSubmissionId) throw new Error("معرّف طلب الأرض غير موجود.");
+export async function decideAdminLandSubmission({
+  landSubmissionId,
+  decision,
+  note = "",
+}) {
+  if (!landSubmissionId) {
+    throw new Error("معرّف طلب الأرض غير موجود.");
+  }
+
   if (!["approve", "request_completion", "reject"].includes(decision)) {
     throw new Error("قرار مراجعة الأرض غير صحيح.");
   }
+
   const normalizedNote = String(note || "").trim();
-  if ((decision === "request_completion" || decision === "reject") && !normalizedNote) {
+
+  if (
+    (decision === "request_completion" || decision === "reject") &&
+    !normalizedNote
+  ) {
     throw new Error("اكتب سبب طلب الاستكمال أو الرفض.");
   }
+
   const { data, error } = await supabase.rpc("admin_decide_land_submission", {
     p_land_submission_id: landSubmissionId,
     p_decision: decision,
     p_note: normalizedNote || null,
   });
-  if (error) throw new Error(getErrorMessage(error, "تعذر تنفيذ قرار مراجعة الأرض."));
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر تنفيذ قرار مراجعة الأرض.")
+    );
+  }
+
   return {
     landSubmission: normalizeLandSubmission(data?.landSubmission),
     customerFile: normalizeLandCustomerFile(data?.customerFile),
@@ -274,12 +460,35 @@ export async function decideAdminLandSubmission({ landSubmissionId, decision, no
   };
 }
 
-export async function createAdminLandDeedSignedUrl(storagePath, expiresInSeconds = 300) {
+export async function createAdminLandDeedSignedUrl(
+  storagePath,
+  expiresInSeconds = 300
+) {
   const path = String(storagePath || "").trim();
-  if (!path) throw new Error("مسار ملف الصك غير موجود.");
-  const expires = Number.isInteger(Number(expiresInSeconds)) ? Number(expiresInSeconds) : 300;
-  const { data, error } = await supabase.storage.from("land-deeds").createSignedUrl(path, expires);
-  if (error) throw new Error(getErrorMessage(error, "تعذر فتح ملف الصك."));
-  if (!data?.signedUrl) throw new Error("لم يصل رابط صالح لملف الصك.");
+
+  if (!path) {
+    throw new Error("مسار ملف الصك غير موجود.");
+  }
+
+  const numericExpires = Number(expiresInSeconds);
+  const expires =
+    Number.isInteger(numericExpires) && numericExpires >= 60 && numericExpires <= 3600
+      ? numericExpires
+      : 300;
+
+  const { data, error } = await supabase.storage
+    .from("land-deeds")
+    .createSignedUrl(path, expires);
+
+  if (error) {
+    throw new Error(
+      getErrorMessage(error, "تعذر فتح ملف الصك.")
+    );
+  }
+
+  if (!data?.signedUrl) {
+    throw new Error("لم يصل رابط صالح لملف الصك.");
+  }
+
   return data.signedUrl;
 }
