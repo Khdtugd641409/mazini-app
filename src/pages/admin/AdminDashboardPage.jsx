@@ -54,6 +54,11 @@ function AdminDashboardPage({
   );
 
   function handleOpenAction(actionType) {
+    if (actionType === "land_review") {
+      window.location.href = "/admin/customers?status=land_under_review";
+      return;
+    }
+
     if (typeof onOpenAction === "function") {
       onOpenAction(actionType);
     }
