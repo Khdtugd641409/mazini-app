@@ -14,6 +14,7 @@ import AdminCustomerFilesPage from "./pages/admin/AdminCustomerFilesPage.jsx";
 import AdminCustomerWorkspace from "./pages/admin/AdminCustomerWorkspace.jsx";
 
 import { supabase } from "./lib/supabase.js";
+import ConstructionStageRequests from "./components/ConstructionStageRequests.jsx";
 
 import {
   getCurrentAdmin,
@@ -577,6 +578,8 @@ function SupervisorPortal({ onBackHome }) {
           <section style={cardStyle}>
             <h2 style={{ margin: 0, fontWeight: 950 }}>{stageWorkspace.stage.mainStageName}</h2>
             <p style={{ marginTop: 6, fontSize: 18 }}>{stageWorkspace.stage.detailedStageName}</p>
+
+            <ConstructionStageRequests projectStageId={stageWorkspace.stage.id} />
 
             <div style={{ display: "grid", gap: 22 }}>
               <div>
