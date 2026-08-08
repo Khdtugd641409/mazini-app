@@ -109,6 +109,25 @@ function getArabicProjectSyncError(error) {
   return "تعذر ربط المشاريع المطابقة بالبريد الإلكتروني.";
 }
 
+function normalizeServiceProjectForAccount(project) {
+  return {
+    id: project.id,
+    file_number:
+      project.project_number || "",
+    project_type:
+      project.project_type || "services",
+    status: project.status || "active",
+    current_stage:
+      project.current_stage ||
+      "غير محددة",
+    submitted_at:
+      project.created_at || null,
+    updated_at:
+      project.updated_at ||
+      project.created_at || null,
+  };
+}
+
 export async function sendCustomerLoginCode(
   email
 ) {
@@ -266,17 +285,39 @@ export async function verifyCustomerLoginCode(
 }
 
 export async function getMyCustomerProjects() {
-  await syncMyCustomerProjects();
+  try {
+    await syncMyCustomerProjects();
+  } catch (error) {
+    console.warn(
+      "تعذر مزامنة مشاريع التمويل قبل عرض الحساب:",
+      error
+    );
+  }
 
-  const { data, error } =
-    await supabase.rpc(
+  const [
+    financedResult,
+    serviceResult,
+  ] = await Promise.all([
+    supabase.rpc(
       "customer_get_my_projects"
+    ),
+    supabase.rpc(
+      "customer_get_my_service_projects"
+    ),
+  ]);
+
+  if (
+    financedResult.error &&
+    serviceResult.error
+  ) {
+    console.error(
+      "getMyCustomerProjects financed:",
+      financedResult.error
     );
 
-  if (error) {
     console.error(
-      "getMyCustomerProjects:",
-      error
+      "getMyCustomerProjects services:",
+      serviceResult.error
     );
 
     throw new Error(
@@ -284,9 +325,59 @@ export async function getMyCustomerProjects() {
     );
   }
 
-  return Array.isArray(data)
-    ? data
+  if (financedResult.error) {
+    console.warn(
+      "تعذر تحميل مشاريع التمويل:",
+      financedResult.error
+    );
+  }
+
+  if (serviceResult.error) {
+    console.warn(
+      "تعذر تحميل مشاريع الخدمات:",
+      serviceResult.error
+    );
+  }
+
+  const financedProjects = Array.isArray(
+    financedResult.data
+  )
+    ? financedResult.data.map(
+        (project) => ({
+          ...project,
+          project_type:
+            project.project_type ||
+            "financed",
+        })
+      )
     : [];
+
+  const serviceProjects = Array.isArray(
+    serviceResult.data
+  )
+    ? serviceResult.data.map(
+        normalizeServiceProjectForAccount
+      )
+    : [];
+
+  return [
+    ...financedProjects,
+    ...serviceProjects,
+  ].sort((firstProject, secondProject) => {
+    const firstTime = new Date(
+      firstProject.updated_at ||
+        firstProject.submitted_at ||
+        0
+    ).getTime();
+
+    const secondTime = new Date(
+      secondProject.updated_at ||
+        secondProject.submitted_at ||
+        0
+    ).getTime();
+
+    return secondTime - firstTime;
+  });
 }
 
 export async function getCustomerSession() {

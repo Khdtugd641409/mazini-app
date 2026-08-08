@@ -6,67 +6,72 @@ function HomePage({
   onOpenCustomerServiceApplication,
   onOpenCustomerAccountLogin,
   onOpenCustomerAccess,
+  onOpenSupervisor,
   onOpenAdmin,
   isCheckingAdmin = false,
 }) {
-  const [isLoginMenuOpen, setIsLoginMenuOpen] =
-    useState(false);
+  const [isLoginMenuOpen, setIsLoginMenuOpen] = useState(false);
+  const [isSupervisorMenuOpen, setIsSupervisorMenuOpen] = useState(false);
 
   const toggleLoginMenu = () => {
-    setIsLoginMenuOpen(
-      (currentValue) => !currentValue
-    );
+    setIsLoginMenuOpen((currentValue) => {
+      const nextValue = !currentValue;
+      if (!nextValue) setIsSupervisorMenuOpen(false);
+      return nextValue;
+    });
   };
 
   const closeLoginMenu = () => {
     setIsLoginMenuOpen(false);
+    setIsSupervisorMenuOpen(false);
   };
 
   const handleOpenCustomerApplication = () => {
     closeLoginMenu();
 
-    if (
-      typeof onOpenCustomerApplication ===
-      "function"
-    ) {
+    if (typeof onOpenCustomerApplication === "function") {
       onOpenCustomerApplication();
     }
   };
 
-  const handleOpenCustomerServiceApplication =
-    () => {
-      closeLoginMenu();
+  const handleOpenCustomerServiceApplication = () => {
+    closeLoginMenu();
 
-      if (
-        typeof onOpenCustomerServiceApplication ===
-        "function"
-      ) {
-        onOpenCustomerServiceApplication();
-        return;
-      }
+    if (typeof onOpenCustomerServiceApplication === "function") {
+      onOpenCustomerServiceApplication();
+      return;
+    }
 
-      window.alert(
-        "صفحة طلب الخدمة غير مرتبطة حتى الآن."
-      );
-    };
+    window.alert("صفحة طلب الخدمة غير مرتبطة حتى الآن.");
+  };
 
   const handleOpenCustomerAccount = () => {
     closeLoginMenu();
 
-    if (
-      typeof onOpenCustomerAccountLogin ===
-      "function"
-    ) {
+    if (typeof onOpenCustomerAccountLogin === "function") {
       onOpenCustomerAccountLogin();
       return;
     }
 
-    if (
-      typeof onOpenCustomerAccess ===
-      "function"
-    ) {
+    if (typeof onOpenCustomerAccess === "function") {
       onOpenCustomerAccess();
     }
+  };
+
+  const handleOpenSupervisor = () => {
+    closeLoginMenu();
+
+    if (typeof onOpenSupervisor === "function") {
+      onOpenSupervisor();
+      return;
+    }
+
+    window.alert("تعذر فتح حساب المشرف حاليًا.");
+  };
+
+  const handleOpenSupervisorApplication = () => {
+    closeLoginMenu();
+    window.location.href = "/supervisor/application";
   };
 
   const handleOpenAdmin = () => {
@@ -77,33 +82,23 @@ function HomePage({
     }
   };
 
-  const handleUnavailableSection = (
-    sectionName
-  ) => {
+  const handleUnavailableSection = (sectionName) => {
     closeLoginMenu();
 
-    window.alert(
-      `دخول ${sectionName} سيُفعّل عند اكتمال مرحلته في المنصة.`
-    );
+    window.alert(`دخول ${sectionName} سيُفعّل عند اكتمال مرحلته في المنصة.`);
   };
 
   return (
     <main className="home-page">
       <header className="home-header">
         <div className="home-brand">
-          <div
-            className="home-brand-mark"
-            aria-hidden="true"
-          >
+          <div className="home-brand-mark" aria-hidden="true">
             NM
           </div>
 
           <div className="home-brand-text">
             <h1>منصة نايف المزيني</h1>
-
-            <p>
-              للبناء الذاتي وإدارة المشاريع
-            </p>
+            <p>للبناء الذاتي وإدارة المشاريع</p>
           </div>
         </div>
 
@@ -116,19 +111,9 @@ function HomePage({
             aria-controls="home-login-dropdown"
           >
             <span aria-hidden="true">◉</span>
-
-            <span>
-              {isCheckingAdmin
-                ? "جاري التحقق..."
-                : "دخول"}
-            </span>
-
+            <span>{isCheckingAdmin ? "جاري التحقق..." : "دخول"}</span>
             <span
-              className={`login-menu-arrow ${
-                isLoginMenuOpen
-                  ? "is-open"
-                  : ""
-              }`}
+              className={`login-menu-arrow ${isLoginMenuOpen ? "is-open" : ""}`}
               aria-hidden="true"
             >
               ▼
@@ -136,56 +121,63 @@ function HomePage({
           </button>
 
           {isLoginMenuOpen && (
-            <div
-              id="home-login-dropdown"
-              className="login-dropdown"
-              role="menu"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={
-                  handleOpenCustomerAccount
-                }
-              >
+            <div id="home-login-dropdown" className="login-dropdown" role="menu">
+              <button type="button" role="menuitem" onClick={handleOpenCustomerAccount}>
                 <span>حساب العميل</span>
-
-                <span aria-hidden="true">
-                  👤
-                </span>
+                <span aria-hidden="true">👤</span>
               </button>
 
               <button
                 type="button"
                 role="menuitem"
-                onClick={() =>
-                  handleUnavailableSection(
-                    "المستثمر"
-                  )
-                }
+                onClick={() => handleUnavailableSection("المستثمر")}
               >
                 <span>مستثمر</span>
-
-                <span aria-hidden="true">
-                  📈
-                </span>
+                <span aria-hidden="true">📈</span>
               </button>
 
               <button
                 type="button"
                 role="menuitem"
-                onClick={() =>
-                  handleUnavailableSection(
-                    "مشرف المشروع"
-                  )
-                }
+                onClick={() => setIsSupervisorMenuOpen((current) => !current)}
+                aria-expanded={isSupervisorMenuOpen}
               >
                 <span>مشرف</span>
-
-                <span aria-hidden="true">
-                  🏗️
-                </span>
+                <span aria-hidden="true">🏗️</span>
               </button>
+
+              {isSupervisorMenuOpen && (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    padding: "10px 12px 12px",
+                    background: "rgba(23,63,54,0.04)",
+                    borderRadius: 12,
+                    margin: "0 8px 6px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleOpenSupervisor}
+                    style={{ minHeight: 44 }}
+                  >
+                    <span>تسجيل الدخول</span>
+                    <span aria-hidden="true">🔐</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleOpenSupervisorApplication}
+                    style={{ minHeight: 44 }}
+                  >
+                    <span>إنشاء حساب</span>
+                    <span aria-hidden="true">📝</span>
+                  </button>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -194,10 +186,7 @@ function HomePage({
                 disabled={isCheckingAdmin}
               >
                 <span>إدارة منصة</span>
-
-                <span aria-hidden="true">
-                  🛡️
-                </span>
+                <span aria-hidden="true">🛡️</span>
               </button>
             </div>
           )}
@@ -206,71 +195,43 @@ function HomePage({
 
       <section className="home-hero">
         <div className="hero-content">
-          <h2 className="hero-title">
-            ابني منزلك
-          </h2>
+          <h2 className="hero-title">ابني منزلك</h2>
 
           <p className="hero-description">
             حسب تصميمك واختيارك وإشرافك،
-            <strong>
-              ثم تقدم للبنك ليشتريه لك
-            </strong>
+            <strong>ثم تقدم للبنك ليشتريه لك</strong>
           </p>
 
           <div className="home-primary-actions">
             <button
               type="button"
               className="application-button"
-              onClick={
-                handleOpenCustomerApplication
-              }
+              onClick={handleOpenCustomerApplication}
             >
-              <span
-                className="application-icon"
-                aria-hidden="true"
-              >
-                📝
-              </span>
-
+              <span className="application-icon" aria-hidden="true">📝</span>
               <span>تقديم الطلب</span>
             </button>
 
             <button
               type="button"
               className="service-request-button"
-              onClick={
-                handleOpenCustomerServiceApplication
-              }
+              onClick={handleOpenCustomerServiceApplication}
             >
-              <span
-                className="service-request-icon"
-                aria-hidden="true"
-              >
-                🏗️
-              </span>
-
+              <span className="service-request-icon" aria-hidden="true">🏗️</span>
               <span>طلب خدمة</span>
             </button>
           </div>
 
           <p className="service-request-description">
-            لديك مشروع قائم وتحتاج إلى مشرف
-            أو مورد؟ أنشئ مشروعك واطّلع على
-            مقدمي الخدمات المناسبين لمرحلتك.
+            لديك مشروع قائم وتحتاج إلى مشرف أو مورد؟ أنشئ مشروعك واطّلع على مقدمي الخدمات المناسبين لمرحلتك.
           </p>
         </div>
 
-        <section
-          className="build-animation"
-          aria-label="مراحل بناء المنزل"
-        >
+        <section className="build-animation" aria-label="مراحل بناء المنزل">
           <div className="build-stage">
             <div className="build-ground" />
 
-            <div
-              className="house-animation"
-              aria-hidden="true"
-            >
+            <div className="house-animation" aria-hidden="true">
               <div className="house-foundation" />
 
               <div className="house-columns">
@@ -281,92 +242,42 @@ function HomePage({
               </div>
 
               <div className="house-walls" />
-
               <div className="house-roof" />
-
               <div className="house-finish" />
             </div>
           </div>
 
-          <div
-            className="build-progress"
-            aria-hidden="true"
-          >
+          <div className="build-progress" aria-hidden="true">
             <div className="build-progress-bar" />
           </div>
 
-          <p className="build-caption">
-            يتم بناء منزلك أمامك خطوة بخطوة...
-          </p>
+          <p className="build-caption">يتم بناء منزلك أمامك خطوة بخطوة...</p>
         </section>
       </section>
 
-      <section
-        className="home-features"
-        aria-label="مزايا المنصة"
-      >
+      <section className="home-features" aria-label="مزايا المنصة">
         <article className="feature-card">
-          <span
-            className="feature-icon"
-            aria-hidden="true"
-          >
-            🛡️
-          </span>
-
+          <span className="feature-icon" aria-hidden="true">🛡️</span>
           <h2>إشراف احترافي</h2>
-
-          <p>
-            متابعة مراحل المشروع وتوثيق
-            التقدم حتى اكتمال المنزل.
-          </p>
+          <p>متابعة مراحل المشروع وتوثيق التقدم حتى اكتمال المنزل.</p>
         </article>
 
         <article className="feature-card">
-          <span
-            className="feature-icon"
-            aria-hidden="true"
-          >
-            ✍️
-          </span>
-
+          <span className="feature-icon" aria-hidden="true">✍️</span>
           <h2>تصميم حسب رغبتك</h2>
-
-          <p>
-            تختار التصميم والمقاول والمواد
-            بما يناسب احتياجاتك.
-          </p>
+          <p>تختار التصميم والمقاول والمواد بما يناسب احتياجاتك.</p>
         </article>
 
         <article className="feature-card">
-          <span
-            className="feature-icon"
-            aria-hidden="true"
-          >
-            🏦
-          </span>
-
+          <span className="feature-icon" aria-hidden="true">🏦</span>
           <h2>تمويل بنكي</h2>
-
-          <p>
-            بعد اكتمال المرحلة المناسبة،
-            يتقدم العميل للبنك لشراء العقار.
-          </p>
+          <p>بعد اكتمال المرحلة المناسبة، يتقدم العميل للبنك لشراء العقار.</p>
         </article>
 
         <article className="feature-card">
-          <span
-            className="feature-icon"
-            aria-hidden="true"
-          >
-            🤝
-          </span>
-
+          <span className="feature-icon" aria-hidden="true">🤝</span>
           <h2>وضوح وشفافية</h2>
-
-          <p>
-            عرض التكاليف والدفعة والحالة
-            والمرحلة الحالية داخل ملف العميل.
-          </p>
+          <p>عرض التكاليف والدفعة والحالة والمرحلة الحالية داخل ملف العميل.</p>
         </article>
       </section>
     </main>
