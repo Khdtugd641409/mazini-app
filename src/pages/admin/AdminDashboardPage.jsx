@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
 import { supabase } from "../../lib/supabase.js";
-
 import "./AdminDashboardPage.css";
 
 const ACTION_TYPE_LABELS = {
@@ -48,7 +46,6 @@ const ALLOWED_STANDARD_FILE_TYPES = [
   "image/png",
   "image/webp",
 ];
-
 const MAX_STANDARD_FILE_SIZE = 20 * 1024 * 1024;
 
 function sanitizeFileName(fileName) {
@@ -61,8 +58,53 @@ function sanitizeFileName(fileName) {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 80) || "standard";
-
   return extension ? `${base}.${extension}` : base;
+}
+
+function formatDate(value) {
+  if (!value) return "غير متوفر";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "غير متوفر";
+  return new Intl.DateTimeFormat("ar-SA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function StageStandards({ title, items = [] }) {
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      {items.length === 0 ? (
+        <p style={{ margin: 0 }}>لا توجد معايير.</p>
+      ) : (
+        items.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              padding: "10px 12px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 10,
+            }}
+          >
+            <input type="checkbox" checked={Boolean(item.checked)} readOnly disabled />
+            <div>
+              <strong>{item.text}</strong>
+              {item.required && <small style={{ display: "block" }}>إلزامي</small>}
+              {item.checkedAt && (
+                <small style={{ display: "block" }}>
+                  تم الاعتماد: {formatDate(item.checkedAt)}
+                </small>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
 
 function AdminDashboardPage({
@@ -99,6 +141,9 @@ function AdminDashboardPage({
   const [supervisorsMessage, setSupervisorsMessage] = useState("");
   const [supervisorsError, setSupervisorsError] = useState("");
 
+  const [adminStageWorkspace, setAdminStageWorkspace] = useState(null);
+  const [adminStageLoading, setAdminStageLoading] = useState(false);
+
   const totalPendingActions = pendingActions.reduce(
     (total, action) => total + Number(action.count || 0),
     0
@@ -114,88 +159,11 @@ function AdminDashboardPage({
     [supervisorCandidates]
   );
 
-  useEffect(() => {
-    if (!adminProfile) return;
-
-    let active = true;
-
-    async function loadInitialData() {
-      try {
-        setStandardsLoading(true);
-        setSupervisorsLoading(true);
-        setStandardsError("");
-        setSupervisorsError("");
-
-        const [standardsResult, candidatesResult, assignmentsResult] = await Promise.all([
-          supabase.rpc("admin_get_construction_standards_workspace"),
-          supabase.rpc("admin_list_supervisor_candidates"),
-          supabase.rpc("admin_list_supervisor_assignment_options"),
-        ]);
-
-        if (standardsResult.error) throw standardsResult.error;
-        if (candidatesResult.error) throw candidatesResult.error;
-        if (assignmentsResult.error) throw assignmentsResult.error;
-        if (!active) return;
-
-        const stages = Array.isArray(standardsResult.data) ? standardsResult.data : [];
-        setStandardStages(stages);
-        setSelectedStageId((current) =>
-          current && stages.some((stage) => stage.id === current)
-            ? current
-            : stages[0]?.id || ""
-        );
-
-        const candidates = Array.isArray(candidatesResult.data)
-          ? candidatesResult.data
-          : [];
-        setSupervisorCandidates(candidates);
-
-        const supervisors = Array.isArray(assignmentsResult.data?.supervisors)
-          ? assignmentsResult.data.supervisors
-          : [];
-        const projects = Array.isArray(assignmentsResult.data?.projects)
-          ? assignmentsResult.data.projects
-          : [];
-        setActiveSupervisors(supervisors);
-        setSupervisorProjects(projects);
-        setSelectedSupervisorId((current) =>
-          current && supervisors.some((item) => item.userId === current)
-            ? current
-            : supervisors[0]?.userId || ""
-        );
-        setSelectedSupervisorProjectId((current) =>
-          current && projects.some((item) => item.projectId === current)
-            ? current
-            : projects[0]?.projectId || ""
-        );
-      } catch (error) {
-        if (active) {
-          const message = error?.message || "تعذر تحميل بيانات لوحة الإدارة.";
-          setStandardsError(message);
-          setSupervisorsError(message);
-        }
-      } finally {
-        if (active) {
-          setStandardsLoading(false);
-          setSupervisorsLoading(false);
-        }
-      }
-    }
-
-    loadInitialData();
-
-    return () => {
-      active = false;
-    };
-  }, [adminProfile]);
-
-  async function reloadStandards(keepMessage = true) {
+  async function reloadStandards() {
     const { data, error } = await supabase.rpc(
       "admin_get_construction_standards_workspace"
     );
-
     if (error) throw error;
-
     const stages = Array.isArray(data) ? data : [];
     setStandardStages(stages);
     setSelectedStageId((current) =>
@@ -203,8 +171,6 @@ function AdminDashboardPage({
         ? current
         : stages[0]?.id || ""
     );
-
-    if (!keepMessage) setStandardsMessage("");
   }
 
   async function reloadSupervisors() {
@@ -212,7 +178,6 @@ function AdminDashboardPage({
       supabase.rpc("admin_list_supervisor_candidates"),
       supabase.rpc("admin_list_supervisor_assignment_options"),
     ]);
-
     if (candidatesResult.error) throw candidatesResult.error;
     if (assignmentsResult.error) throw assignmentsResult.error;
 
@@ -229,11 +194,6 @@ function AdminDashboardPage({
     setSupervisorCandidates(candidates);
     setActiveSupervisors(supervisors);
     setSupervisorProjects(projects);
-    setSelectedCandidateId((current) =>
-      current && candidates.some((item) => item.userId === current && !item.isSupervisor)
-        ? current
-        : ""
-    );
     setSelectedSupervisorId((current) =>
       current && supervisors.some((item) => item.userId === current)
         ? current
@@ -246,21 +206,49 @@ function AdminDashboardPage({
     );
   }
 
+  useEffect(() => {
+    if (!adminProfile) return;
+    let active = true;
+
+    async function loadInitialData() {
+      try {
+        setStandardsLoading(true);
+        setSupervisorsLoading(true);
+        setStandardsError("");
+        setSupervisorsError("");
+        await Promise.all([reloadStandards(), reloadSupervisors()]);
+      } catch (error) {
+        if (active) {
+          const message = error?.message || "تعذر تحميل بيانات مراحل البناء.";
+          setStandardsError(message);
+          setSupervisorsError(message);
+        }
+      } finally {
+        if (active) {
+          setStandardsLoading(false);
+          setSupervisorsLoading(false);
+        }
+      }
+    }
+
+    loadInitialData();
+    return () => {
+      active = false;
+    };
+  }, [adminProfile]);
+
   async function handleAddStandardItem(event) {
     event.preventDefault();
     if (!selectedStageId || standardsSaving) return;
-
     const text = newStandardText.trim();
     if (text.length < 2) {
       setStandardsError("اكتب معيارًا واضحًا قبل الإضافة.");
       return;
     }
-
     try {
       setStandardsSaving(true);
       setStandardsError("");
       setStandardsMessage("");
-
       const { error } = await supabase.rpc(
         "admin_add_general_construction_standard_item",
         {
@@ -269,9 +257,7 @@ function AdminDashboardPage({
           p_is_required: newStandardRequired,
         }
       );
-
       if (error) throw error;
-
       setNewStandardText("");
       setNewStandardRequired(true);
       setStandardsMessage("تمت إضافة المعيار العام.");
@@ -285,19 +271,14 @@ function AdminDashboardPage({
 
   async function handleDeleteStandardItem(itemId) {
     if (!itemId || standardsSaving) return;
-
     try {
       setStandardsSaving(true);
       setStandardsError("");
-      setStandardsMessage("");
-
       const { error } = await supabase.rpc(
         "admin_delete_general_construction_standard_item",
         { p_standard_item_id: itemId }
       );
-
       if (error) throw error;
-
       setStandardsMessage("تم حذف المعيار العام.");
       await reloadStandards();
     } catch (error) {
@@ -309,30 +290,25 @@ function AdminDashboardPage({
 
   async function handleUploadStandardDocument() {
     if (!selectedStageId || !standardFile || standardsSaving) return;
-
     if (!ALLOWED_STANDARD_FILE_TYPES.includes(standardFile.type)) {
       setStandardsError("الملف يجب أن يكون PDF أو JPG أو PNG أو WEBP.");
       return;
     }
-
     if (standardFile.size <= 0 || standardFile.size > MAX_STANDARD_FILE_SIZE) {
       setStandardsError("حجم ملف المعايير يجب ألا يتجاوز 20 ميجابايت.");
       return;
     }
 
     let storagePath = "";
-
     try {
       setStandardsSaving(true);
       setStandardsError("");
       setStandardsMessage("");
-
       const safeName = sanitizeFileName(standardFile.name);
       const uniquePart =
         typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
       storagePath = `general/${selectedStageId}/${uniquePart}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -342,7 +318,6 @@ function AdminDashboardPage({
           upsert: false,
           contentType: standardFile.type,
         });
-
       if (uploadError) throw uploadError;
 
       const { error: registerError } = await supabase.rpc(
@@ -355,19 +330,14 @@ function AdminDashboardPage({
           p_size_bytes: standardFile.size,
         }
       );
-
       if (registerError) throw registerError;
-
       setStandardFile(null);
       setStandardsMessage("تم رفع ملف المعايير العامة.");
       await reloadStandards();
     } catch (error) {
       if (storagePath) {
-        await supabase.storage
-          .from("construction-standards")
-          .remove([storagePath]);
+        await supabase.storage.from("construction-standards").remove([storagePath]);
       }
-
       setStandardsError(error?.message || "تعذر رفع ملف المعايير.");
     } finally {
       setStandardsSaving(false);
@@ -377,14 +347,11 @@ function AdminDashboardPage({
   async function handleOpenStandardDocument(document) {
     try {
       setStandardsError("");
-
       const { data, error } = await supabase.storage
         .from(document.storageBucket || "construction-standards")
         .createSignedUrl(document.storagePath, 300);
-
       if (error) throw error;
       if (!data?.signedUrl) throw new Error("تعذر إنشاء رابط الملف.");
-
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       setStandardsError(error?.message || "تعذر فتح ملف المعايير.");
@@ -404,26 +371,20 @@ function AdminDashboardPage({
   async function handleActivateSupervisor(event) {
     event.preventDefault();
     if (!selectedCandidateId || supervisorsSaving) return;
-
     if (supervisorFullName.trim().length < 3) {
       setSupervisorsError("اكتب اسم المشرف قبل الاعتماد.");
       return;
     }
-
     try {
       setSupervisorsSaving(true);
       setSupervisorsError("");
-      setSupervisorsMessage("");
-
       const { error } = await supabase.rpc("admin_activate_supervisor_account", {
         p_user_id: selectedCandidateId,
         p_full_name: supervisorFullName.trim(),
         p_organization_name: supervisorOrganization.trim() || null,
         p_mobile_number: supervisorMobile.trim() || null,
       });
-
       if (error) throw error;
-
       setSelectedCandidateId("");
       setSupervisorFullName("");
       setSupervisorOrganization("");
@@ -440,19 +401,14 @@ function AdminDashboardPage({
   async function handleAssignSupervisor(event) {
     event.preventDefault();
     if (!selectedSupervisorId || !selectedSupervisorProjectId || supervisorsSaving) return;
-
     try {
       setSupervisorsSaving(true);
       setSupervisorsError("");
-      setSupervisorsMessage("");
-
       const { error } = await supabase.rpc("admin_assign_supervisor_to_project", {
         p_project_id: selectedSupervisorProjectId,
         p_supervisor_user_id: selectedSupervisorId,
       });
-
       if (error) throw error;
-
       setSupervisorsMessage("تم تعيين المشرف على المشروع.");
       await reloadSupervisors();
     } catch (error) {
@@ -462,15 +418,54 @@ function AdminDashboardPage({
     }
   }
 
+  async function handleViewProjectStage(projectId) {
+    if (!projectId || adminStageLoading) return;
+    try {
+      setAdminStageLoading(true);
+      setSupervisorsError("");
+      const { data, error } = await supabase.rpc(
+        "admin_get_construction_stage_workspace",
+        { p_project_id: projectId }
+      );
+      if (error) throw error;
+      if (!data?.stage) {
+        setAdminStageWorkspace(null);
+        setSupervisorsMessage("لا توجد مرحلة بناء مهيأة لهذا المشروع بعد.");
+        return;
+      }
+
+      const photos = Array.isArray(data.photos) ? data.photos : [];
+      const photosWithUrls = await Promise.all(
+        photos.map(async (photo) => {
+          if (!photo?.storagePath) return photo;
+          const { data: signedData } = await supabase.storage
+            .from(photo.storageBucket || "construction-stage-photos")
+            .createSignedUrl(photo.storagePath, 300);
+          return { ...photo, signedUrl: signedData?.signedUrl || null };
+        })
+      );
+
+      setAdminStageWorkspace({ ...data, photos: photosWithUrls });
+      setSupervisorsMessage("");
+      requestAnimationFrame(() => {
+        document.getElementById("admin-stage-viewer")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    } catch (error) {
+      setSupervisorsError(error?.message || "تعذر عرض مرحلة المشروع.");
+    } finally {
+      setAdminStageLoading(false);
+    }
+  }
+
   function handleOpenAction(actionType) {
     if (actionType === "land_review") {
       window.location.href = "/admin/customers?status=land_under_review";
       return;
     }
-
-    if (typeof onOpenAction === "function") {
-      onOpenAction(actionType);
-    }
+    if (typeof onOpenAction === "function") onOpenAction(actionType);
   }
 
   function handleOpenSection(sectionKey) {
@@ -481,16 +476,7 @@ function AdminDashboardPage({
       });
       return;
     }
-
-    if (typeof onOpenSection === "function") {
-      onOpenSection(sectionKey);
-    }
-  }
-
-  function handleSignOut() {
-    if (typeof onSignOut === "function") {
-      onSignOut();
-    }
+    if (typeof onOpenSection === "function") onOpenSection(sectionKey);
   }
 
   return (
@@ -504,47 +490,28 @@ function AdminDashboardPage({
               مرحبًا <strong>{adminProfile?.full_name || "مدير المنصة"}</strong>
             </p>
           </div>
-
           <button
             type="button"
             className="admin-dashboard-signout"
-            onClick={handleSignOut}
+            onClick={() => typeof onSignOut === "function" && onSignOut()}
             disabled={isLoading}
           >
             تسجيل الخروج
           </button>
         </header>
 
-        {isLoading && (
-          <p className="admin-dashboard-status" role="status">
-            جاري تحميل بيانات لوحة الإدارة...
-          </p>
-        )}
-
-        {errorMessage && (
-          <p className="admin-dashboard-status is-error" role="alert">
-            <strong>{errorMessage}</strong>
-          </p>
-        )}
+        {isLoading && <p className="admin-dashboard-status">جاري تحميل بيانات لوحة الإدارة...</p>}
+        {errorMessage && <p className="admin-dashboard-status is-error"><strong>{errorMessage}</strong></p>}
 
         {!isLoading && !errorMessage && (
           <>
-            <section className="admin-dashboard-card" aria-labelledby="pending-actions-title">
+            <section className="admin-dashboard-card">
               <header className="admin-dashboard-card-header">
                 <div>
-                  <h2 id="pending-actions-title">إجراءات تحتاج متابعة</h2>
-                  <p>
-                    كل إجراء يفتح ملف العميل أو قائمة العملاء في المرحلة ذات الصلة؛
-                    لا توجد مسارات تشغيل موازية للعميل.
-                  </p>
+                  <h2>إجراءات تحتاج متابعة</h2>
+                  <p>كل إجراء يفتح ملف العميل أو القائمة المرتبطة به.</p>
                 </div>
-
-                <span
-                  className="admin-dashboard-total-pending"
-                  aria-label={`إجمالي الإجراءات المعلقة ${totalPendingActions}`}
-                >
-                  {totalPendingActions}
-                </span>
+                <span className="admin-dashboard-total-pending">{totalPendingActions}</span>
               </header>
 
               {pendingActions.length === 0 ? (
@@ -554,67 +521,51 @@ function AdminDashboardPage({
                 </div>
               ) : (
                 <div className="admin-action-grid">
-                  {pendingActions.map((action) => {
-                    const actionLabel =
-                      ACTION_TYPE_LABELS[action.type] || action.label || "إجراء مطلوب";
-                    const actionIcon = ACTION_TYPE_ICONS[action.type] || "🔔";
-
-                    return (
-                      <button
-                        key={action.type}
-                        type="button"
-                        className="admin-action-button"
-                        onClick={() => handleOpenAction(action.type)}
-                      >
-                        <span>
-                          <span aria-hidden="true" style={{ display: "block", marginBottom: "8px", fontSize: "28px" }}>
-                            {actionIcon}
-                          </span>
-                          <span className="admin-action-label">{actionLabel}</span>
+                  {pendingActions.map((action) => (
+                    <button
+                      key={action.type}
+                      type="button"
+                      className="admin-action-button"
+                      onClick={() => handleOpenAction(action.type)}
+                    >
+                      <span>
+                        <span style={{ display: "block", marginBottom: 8, fontSize: 28 }}>
+                          {ACTION_TYPE_ICONS[action.type] || "🔔"}
                         </span>
-                        <strong className="admin-action-count">{Number(action.count || 0)}</strong>
-                      </button>
-                    );
-                  })}
+                        <span className="admin-action-label">
+                          {ACTION_TYPE_LABELS[action.type] || action.label || "إجراء مطلوب"}
+                        </span>
+                      </span>
+                      <strong className="admin-action-count">{Number(action.count || 0)}</strong>
+                    </button>
+                  ))}
                 </div>
               )}
             </section>
 
-            <section className="admin-dashboard-card" aria-labelledby="construction-standards-title">
+            <section className="admin-dashboard-card">
               <header className="admin-dashboard-card-header">
                 <div>
-                  <h2 id="construction-standards-title">المعايير العامة لمراحل البناء</h2>
-                  <p>
-                    هذه المعايير تضعها إدارة المنصة وتظهر في كل مشروع يمر بالمرحلة نفسها.
-                  </p>
+                  <h2>المعايير العامة لمراحل البناء</h2>
+                  <p>تضعها الإدارة وتظهر لكل مشروع يمر بالمرحلة نفسها.</p>
                 </div>
               </header>
 
-              {standardsError && (
-                <p className="admin-dashboard-status is-error" role="alert">
-                  <strong>{standardsError}</strong>
-                </p>
-              )}
-
-              {standardsMessage && (
-                <p className="admin-dashboard-status" role="status">
-                  <strong>{standardsMessage}</strong>
-                </p>
-              )}
+              {standardsError && <p className="admin-dashboard-status is-error"><strong>{standardsError}</strong></p>}
+              {standardsMessage && <p className="admin-dashboard-status"><strong>{standardsMessage}</strong></p>}
 
               {standardsLoading ? (
                 <p>جاري تحميل مراحل البناء...</p>
               ) : standardStages.length === 0 ? (
                 <p>لا توجد مراحل بناء متاحة.</p>
               ) : (
-                <div style={{ display: "grid", gap: "18px" }}>
-                  <label style={{ display: "grid", gap: "8px" }}>
+                <div style={{ display: "grid", gap: 18 }}>
+                  <label style={{ display: "grid", gap: 8 }}>
                     <strong>المرحلة التفصيلية</strong>
                     <select
                       value={selectedStageId}
                       onChange={(event) => setSelectedStageId(event.target.value)}
                       disabled={standardsSaving}
-                      style={{ minHeight: "46px", padding: "0 12px", borderRadius: "10px", border: "1px solid #d1d5db", font: "inherit" }}
                     >
                       {standardStages.map((stage) => (
                         <option key={stage.id} value={stage.id}>
@@ -627,59 +578,45 @@ function AdminDashboardPage({
                   {selectedStage && (
                     <>
                       <div>
-                        <strong style={{ display: "block", fontSize: "20px", marginBottom: "4px" }}>
+                        <strong style={{ display: "block", fontSize: 20 }}>
                           {selectedStage.mainStageName}
                         </strong>
                         <span>{selectedStage.detailedStageName}</span>
                       </div>
 
-                      <form onSubmit={handleAddStandardItem} style={{ display: "grid", gap: "10px" }}>
-                        <label style={{ display: "grid", gap: "8px" }}>
-                          <strong>إضافة معيار عام</strong>
-                          <textarea
-                            rows="3"
-                            value={newStandardText}
-                            onChange={(event) => setNewStandardText(event.target.value)}
-                            disabled={standardsSaving}
-                            placeholder="مثال: التأكد من مطابقة الأبعاد والاشتراطات للكود المعتمد."
-                            style={{ padding: "12px", borderRadius: "10px", border: "1px solid #d1d5db", font: "inherit", resize: "vertical" }}
-                          />
-                        </label>
-
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <form onSubmit={handleAddStandardItem} style={{ display: "grid", gap: 10 }}>
+                        <textarea
+                          rows="3"
+                          value={newStandardText}
+                          onChange={(event) => setNewStandardText(event.target.value)}
+                          disabled={standardsSaving}
+                          placeholder="أضف معيارًا عامًا لهذه المرحلة"
+                        />
+                        <label>
                           <input
                             type="checkbox"
                             checked={newStandardRequired}
                             onChange={(event) => setNewStandardRequired(event.target.checked)}
-                            disabled={standardsSaving}
-                          />
-                          معيار إلزامي لإكمال المرحلة
+                          />{" "}
+                          معيار إلزامي
                         </label>
-
-                        <button type="submit" className="admin-dashboard-signout" disabled={standardsSaving || !newStandardText.trim()}>
+                        <button type="submit" disabled={standardsSaving || !newStandardText.trim()}>
                           إضافة المعيار
                         </button>
                       </form>
 
-                      <div>
-                        <strong style={{ display: "block", marginBottom: "10px" }}>بنود المعايير العامة</strong>
-                        {selectedStage.items?.length ? (
-                          <div style={{ display: "grid", gap: "8px" }}>
-                            {selectedStage.items.map((item) => (
-                              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "11px 12px", border: "1px solid #e5e7eb", borderRadius: "10px" }}>
-                                <span>☐ {item.text}{item.required ? " — إلزامي" : ""}</span>
-                                <button type="button" onClick={() => handleDeleteStandardItem(item.id)} disabled={standardsSaving} style={{ border: "1px solid #ef4444", color: "#b91c1c", background: "#fff", borderRadius: "8px", padding: "7px 10px", cursor: "pointer" }}>
-                                  حذف
-                                </button>
-                              </div>
-                            ))}
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {(selectedStage.items || []).map((item) => (
+                          <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <span>☐ {item.text}{item.required ? " — إلزامي" : ""}</span>
+                            <button type="button" onClick={() => handleDeleteStandardItem(item.id)} disabled={standardsSaving}>
+                              حذف
+                            </button>
                           </div>
-                        ) : (
-                          <p>لم تضف الإدارة معايير لهذه المرحلة بعد.</p>
-                        )}
+                        ))}
                       </div>
 
-                      <div style={{ display: "grid", gap: "10px" }}>
+                      <div style={{ display: "grid", gap: 8 }}>
                         <strong>ملف المعايير العامة</strong>
                         <input
                           type="file"
@@ -687,31 +624,14 @@ function AdminDashboardPage({
                           onChange={(event) => setStandardFile(event.target.files?.[0] || null)}
                           disabled={standardsSaving}
                         />
-                        <button
-                          type="button"
-                          className="admin-dashboard-signout"
-                          onClick={handleUploadStandardDocument}
-                          disabled={standardsSaving || !standardFile}
-                        >
+                        <button type="button" onClick={handleUploadStandardDocument} disabled={standardsSaving || !standardFile}>
                           رفع الملف
                         </button>
-
-                        {selectedStage.documents?.length ? (
-                          <div style={{ display: "grid", gap: "8px" }}>
-                            {selectedStage.documents.map((document) => (
-                              <button
-                                key={document.id}
-                                type="button"
-                                onClick={() => handleOpenStandardDocument(document)}
-                                style={{ textAlign: "right", padding: "11px 12px", border: "1px solid #d1d5db", borderRadius: "10px", background: "#fff", cursor: "pointer", font: "inherit" }}
-                              >
-                                📄 {document.originalName}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <p>لا يوجد ملف معايير مرفوع لهذه المرحلة.</p>
-                        )}
+                        {(selectedStage.documents || []).map((document) => (
+                          <button key={document.id} type="button" onClick={() => handleOpenStandardDocument(document)}>
+                            📄 {document.originalName}
+                          </button>
+                        ))}
                       </div>
                     </>
                   )}
@@ -719,146 +639,82 @@ function AdminDashboardPage({
               )}
             </section>
 
-            <section id="admin-supervisors" className="admin-dashboard-card" aria-labelledby="admin-supervisors-title">
+            <section id="admin-supervisors" className="admin-dashboard-card">
               <header className="admin-dashboard-card-header">
                 <div>
-                  <h2 id="admin-supervisors-title">مشرفو المشاريع</h2>
-                  <p>اعتماد حسابات المشرفين وتعيين كل مشرف على المشروع الذي يتولاه.</p>
+                  <h2>مشرفو المشاريع</h2>
+                  <p>اعتماد حسابات المشرفين وتعيينهم على المشاريع.</p>
                 </div>
               </header>
 
-              {supervisorsError && (
-                <p className="admin-dashboard-status is-error" role="alert">
-                  <strong>{supervisorsError}</strong>
-                </p>
-              )}
-              {supervisorsMessage && (
-                <p className="admin-dashboard-status" role="status">
-                  <strong>{supervisorsMessage}</strong>
-                </p>
-              )}
+              {supervisorsError && <p className="admin-dashboard-status is-error"><strong>{supervisorsError}</strong></p>}
+              {supervisorsMessage && <p className="admin-dashboard-status"><strong>{supervisorsMessage}</strong></p>}
 
               {supervisorsLoading ? (
                 <p>جاري تحميل حسابات المشرفين...</p>
               ) : (
-                <div style={{ display: "grid", gap: "24px" }}>
-                  <form onSubmit={handleActivateSupervisor} style={{ display: "grid", gap: "12px" }}>
+                <div style={{ display: "grid", gap: 24 }}>
+                  <form onSubmit={handleActivateSupervisor} style={{ display: "grid", gap: 10 }}>
                     <h3 style={{ margin: 0 }}>اعتماد حساب مشرف</h3>
                     {pendingSupervisorCandidates.length === 0 ? (
-                      <p>لا توجد حسابات جديدة بانتظار الاعتماد. يجب أن يسجل المشرف دخوله ببريده أولًا.</p>
+                      <p>لا توجد حسابات جديدة. يسجل المشرف دخوله ببريده أولًا.</p>
                     ) : (
                       <>
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>الحساب</strong>
-                          <select
-                            value={selectedCandidateId}
-                            onChange={(event) => handleCandidateChange(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          >
-                            <option value="">اختر الحساب</option>
-                            {pendingSupervisorCandidates.map((candidate) => (
-                              <option key={candidate.userId} value={candidate.userId}>
-                                {candidate.email}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>اسم المشرف</strong>
-                          <input
-                            value={supervisorFullName}
-                            onChange={(event) => setSupervisorFullName(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          />
-                        </label>
-
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>المكتب / المؤسسة</strong>
-                          <input
-                            value={supervisorOrganization}
-                            onChange={(event) => setSupervisorOrganization(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          />
-                        </label>
-
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>الجوال</strong>
-                          <input
-                            value={supervisorMobile}
-                            onChange={(event) => setSupervisorMobile(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          />
-                        </label>
-
-                        <button type="submit" className="admin-dashboard-signout" disabled={supervisorsSaving || !selectedCandidateId}>
-                          اعتماد المشرف
-                        </button>
+                        <select value={selectedCandidateId} onChange={(event) => handleCandidateChange(event.target.value)}>
+                          <option value="">اختر الحساب</option>
+                          {pendingSupervisorCandidates.map((candidate) => (
+                            <option key={candidate.userId} value={candidate.userId}>{candidate.email}</option>
+                          ))}
+                        </select>
+                        <input placeholder="اسم المشرف" value={supervisorFullName} onChange={(event) => setSupervisorFullName(event.target.value)} />
+                        <input placeholder="المكتب / المؤسسة" value={supervisorOrganization} onChange={(event) => setSupervisorOrganization(event.target.value)} />
+                        <input placeholder="الجوال" value={supervisorMobile} onChange={(event) => setSupervisorMobile(event.target.value)} />
+                        <button type="submit" disabled={supervisorsSaving || !selectedCandidateId}>اعتماد المشرف</button>
                       </>
                     )}
                   </form>
 
-                  <form onSubmit={handleAssignSupervisor} style={{ display: "grid", gap: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                  <form onSubmit={handleAssignSupervisor} style={{ display: "grid", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
                     <h3 style={{ margin: 0 }}>تعيين مشرف على مشروع</h3>
-
                     {activeSupervisors.length === 0 ? (
                       <p>لا يوجد مشرف نشط بعد.</p>
                     ) : supervisorProjects.length === 0 ? (
-                      <p>لا توجد مشاريع متاحة للتعيين.</p>
+                      <p>لا توجد مشاريع متاحة.</p>
                     ) : (
                       <>
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>المشرف</strong>
-                          <select
-                            value={selectedSupervisorId}
-                            onChange={(event) => setSelectedSupervisorId(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          >
-                            {activeSupervisors.map((supervisor) => (
-                              <option key={supervisor.userId} value={supervisor.userId}>
-                                {supervisor.fullName} — {supervisor.email || "بدون بريد"}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label style={{ display: "grid", gap: "7px" }}>
-                          <strong>المشروع</strong>
-                          <select
-                            value={selectedSupervisorProjectId}
-                            onChange={(event) => setSelectedSupervisorProjectId(event.target.value)}
-                            disabled={supervisorsSaving}
-                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
-                          >
-                            {supervisorProjects.map((project) => (
-                              <option key={project.projectId} value={project.projectId}>
-                                {project.projectNumber || project.projectId} — {project.customerName || "عميل"}
-                                {project.supervisorName ? ` — الحالي: ${project.supervisorName}` : ""}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <button type="submit" className="admin-dashboard-signout" disabled={supervisorsSaving || !selectedSupervisorId || !selectedSupervisorProjectId}>
-                          تعيين المشرف
-                        </button>
+                        <select value={selectedSupervisorId} onChange={(event) => setSelectedSupervisorId(event.target.value)}>
+                          {activeSupervisors.map((supervisor) => (
+                            <option key={supervisor.userId} value={supervisor.userId}>
+                              {supervisor.fullName} — {supervisor.email || "بدون بريد"}
+                            </option>
+                          ))}
+                        </select>
+                        <select value={selectedSupervisorProjectId} onChange={(event) => setSelectedSupervisorProjectId(event.target.value)}>
+                          {supervisorProjects.map((project) => (
+                            <option key={project.projectId} value={project.projectId}>
+                              {project.projectNumber || project.projectId} — {project.customerName || "عميل"}
+                              {project.supervisorName ? ` — الحالي: ${project.supervisorName}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <button type="submit" disabled={supervisorsSaving}>تعيين المشرف</button>
                       </>
                     )}
                   </form>
 
-                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
                     <h3 style={{ marginTop: 0 }}>المشاريع والتعيينات الحالية</h3>
-                    <div style={{ display: "grid", gap: "8px" }}>
+                    <div style={{ display: "grid", gap: 8 }}>
                       {supervisorProjects.map((project) => (
-                        <div key={project.projectId} style={{ padding: "12px", border: "1px solid #e5e7eb", borderRadius: "10px" }}>
+                        <div key={project.projectId} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10 }}>
                           <strong>{project.projectNumber || project.projectId}</strong>
                           <div>{project.customerName || "غير متوفر"}</div>
-                          <small>{project.supervisorName ? `المشرف: ${project.supervisorName}` : "لم يعيّن مشرف"}</small>
+                          <small style={{ display: "block", marginBottom: 8 }}>
+                            {project.supervisorName ? `المشرف: ${project.supervisorName}` : "لم يعيّن مشرف"}
+                          </small>
+                          <button type="button" onClick={() => handleViewProjectStage(project.projectId)} disabled={adminStageLoading}>
+                            عرض المرحلة
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -867,60 +723,62 @@ function AdminDashboardPage({
               )}
             </section>
 
-            <section className="admin-dashboard-card" aria-labelledby="platform-sections-title">
-              <h2 id="platform-sections-title">أقسام إدارة المنصة</h2>
+            {adminStageWorkspace?.stage && (
+              <section id="admin-stage-viewer" className="admin-dashboard-card">
+                <header style={{ borderBottom: "1px solid #e5e7eb", paddingBottom: 12, marginBottom: 18 }}>
+                  <h2 style={{ margin: 0, fontWeight: 950 }}>{adminStageWorkspace.stage.mainStageName}</h2>
+                  <p style={{ margin: "6px 0 0", fontSize: 18 }}>{adminStageWorkspace.stage.detailedStageName}</p>
+                </header>
 
+                <div style={{ display: "grid", gap: 22 }}>
+                  <div>
+                    <h3>صور المرحلة</h3>
+                    {(adminStageWorkspace.photos || []).length === 0 ? (
+                      <p>لا توجد صور بعد.</p>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+                        {adminStageWorkspace.photos.map((photo) => (
+                          <figure key={photo.id} style={{ margin: 0, border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden" }}>
+                            {photo.signedUrl ? (
+                              <img src={photo.signedUrl} alt={photo.caption || "صورة المرحلة"} style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", display: "block" }} />
+                            ) : (
+                              <div style={{ padding: 20 }}>📷 {photo.originalName}</div>
+                            )}
+                            {photo.caption && <figcaption style={{ padding: 9 }}>{photo.caption}</figcaption>}
+                          </figure>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <StageStandards title="المعايير الخاصة بالمشروع" items={adminStageWorkspace.projectStandards || []} />
+                  <StageStandards title="المعايير العامة" items={adminStageWorkspace.generalStandards || []} />
+                </div>
+              </section>
+            )}
+
+            <section className="admin-dashboard-card">
+              <h2>أقسام إدارة المنصة</h2>
               <div className="admin-section-grid">
-                {Object.entries(SECTION_LABELS).map(([sectionKey, sectionLabel]) => {
-                  const showCount = sectionKey !== "settings";
-
-                  return (
-                    <button
-                      key={sectionKey}
-                      type="button"
-                      className="admin-section-button"
-                      onClick={() => handleOpenSection(sectionKey)}
-                    >
-                      <span className="admin-section-icon" aria-hidden="true">
-                        {SECTION_ICONS[sectionKey] || "📁"}
-                      </span>
-                      <span className="admin-section-label">{sectionLabel}</span>
-                      {showCount && (
-                        <strong className="admin-section-count">
-                          {Number(sectionCounts[sectionKey] || 0)}
-                        </strong>
-                      )}
-                    </button>
-                  );
-                })}
+                {Object.entries(SECTION_LABELS).map(([sectionKey, sectionLabel]) => (
+                  <button key={sectionKey} type="button" className="admin-section-button" onClick={() => handleOpenSection(sectionKey)}>
+                    <span className="admin-section-icon">{SECTION_ICONS[sectionKey] || "📁"}</span>
+                    <span className="admin-section-label">{sectionLabel}</span>
+                    {sectionKey !== "settings" && (
+                      <strong className="admin-section-count">{Number(sectionCounts[sectionKey] || 0)}</strong>
+                    )}
+                  </button>
+                ))}
               </div>
             </section>
 
-            <section className="admin-dashboard-card" aria-labelledby="dashboard-summary-title">
-              <header className="admin-dashboard-card-header">
-                <div>
-                  <h2 id="dashboard-summary-title">ملخص التشغيل</h2>
-                  <p>نظرة سريعة على حالة ملفات العملاء والمشاريع.</p>
-                </div>
-              </header>
-
+            <section className="admin-dashboard-card">
+              <h2>ملخص التشغيل</h2>
               <dl className="admin-summary-grid">
-                <div className="admin-summary-item">
-                  <dt>طلبات العملاء الجديدة</dt>
-                  <dd>{Number(sectionCounts.newCustomers || 0)}</dd>
-                </div>
-                <div className="admin-summary-item is-highlight">
-                  <dt>العملاء المقبولون</dt>
-                  <dd>{Number(sectionCounts.approvedCustomers || 0)}</dd>
-                </div>
-                <div className="admin-summary-item">
-                  <dt>الملفات قيد التنفيذ</dt>
-                  <dd>{Number(sectionCounts.activeProjects || 0)}</dd>
-                </div>
-                <div className="admin-summary-item">
-                  <dt>الملفات المغلقة</dt>
-                  <dd>{Number(sectionCounts.closedFiles || 0)}</dd>
-                </div>
+                <div className="admin-summary-item"><dt>طلبات العملاء الجديدة</dt><dd>{Number(sectionCounts.newCustomers || 0)}</dd></div>
+                <div className="admin-summary-item is-highlight"><dt>العملاء المقبولون</dt><dd>{Number(sectionCounts.approvedCustomers || 0)}</dd></div>
+                <div className="admin-summary-item"><dt>الملفات قيد التنفيذ</dt><dd>{Number(sectionCounts.activeProjects || 0)}</dd></div>
+                <div className="admin-summary-item"><dt>الملفات المغلقة</dt><dd>{Number(sectionCounts.closedFiles || 0)}</dd></div>
               </dl>
             </section>
           </>
