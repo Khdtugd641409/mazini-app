@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { supabase } from "../lib/supabase.js";
+import ConstructionStageRequests from "../components/ConstructionStageRequests.jsx";
 
 import {
   formatPercentage,
@@ -781,6 +782,8 @@ function ConstructionStageCard({ workspace }) {
             {message}
           </p>
         )}
+
+        <ConstructionStageRequests projectStageId={stage.id} />
 
         <div>
           <h3
