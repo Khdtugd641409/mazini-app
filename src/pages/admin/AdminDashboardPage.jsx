@@ -85,6 +85,20 @@ function AdminDashboardPage({
   const [standardsMessage, setStandardsMessage] = useState("");
   const [standardsError, setStandardsError] = useState("");
 
+  const [supervisorCandidates, setSupervisorCandidates] = useState([]);
+  const [activeSupervisors, setActiveSupervisors] = useState([]);
+  const [supervisorProjects, setSupervisorProjects] = useState([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [supervisorFullName, setSupervisorFullName] = useState("");
+  const [supervisorOrganization, setSupervisorOrganization] = useState("");
+  const [supervisorMobile, setSupervisorMobile] = useState("");
+  const [selectedSupervisorId, setSelectedSupervisorId] = useState("");
+  const [selectedSupervisorProjectId, setSelectedSupervisorProjectId] = useState("");
+  const [supervisorsLoading, setSupervisorsLoading] = useState(false);
+  const [supervisorsSaving, setSupervisorsSaving] = useState(false);
+  const [supervisorsMessage, setSupervisorsMessage] = useState("");
+  const [supervisorsError, setSupervisorsError] = useState("");
+
   const totalPendingActions = pendingActions.reduce(
     (total, action) => total + Number(action.count || 0),
     0
@@ -95,42 +109,80 @@ function AdminDashboardPage({
     [standardStages, selectedStageId]
   );
 
+  const pendingSupervisorCandidates = useMemo(
+    () => supervisorCandidates.filter((candidate) => !candidate.isSupervisor),
+    [supervisorCandidates]
+  );
+
   useEffect(() => {
     if (!adminProfile) return;
 
     let active = true;
 
-    async function loadStandards() {
+    async function loadInitialData() {
       try {
         setStandardsLoading(true);
+        setSupervisorsLoading(true);
         setStandardsError("");
+        setSupervisorsError("");
 
-        const { data, error } = await supabase.rpc(
-          "admin_get_construction_standards_workspace"
-        );
+        const [standardsResult, candidatesResult, assignmentsResult] = await Promise.all([
+          supabase.rpc("admin_get_construction_standards_workspace"),
+          supabase.rpc("admin_list_supervisor_candidates"),
+          supabase.rpc("admin_list_supervisor_assignment_options"),
+        ]);
 
-        if (error) throw error;
+        if (standardsResult.error) throw standardsResult.error;
+        if (candidatesResult.error) throw candidatesResult.error;
+        if (assignmentsResult.error) throw assignmentsResult.error;
         if (!active) return;
 
-        const stages = Array.isArray(data) ? data : [];
+        const stages = Array.isArray(standardsResult.data) ? standardsResult.data : [];
         setStandardStages(stages);
         setSelectedStageId((current) =>
           current && stages.some((stage) => stage.id === current)
             ? current
             : stages[0]?.id || ""
         );
+
+        const candidates = Array.isArray(candidatesResult.data)
+          ? candidatesResult.data
+          : [];
+        setSupervisorCandidates(candidates);
+
+        const supervisors = Array.isArray(assignmentsResult.data?.supervisors)
+          ? assignmentsResult.data.supervisors
+          : [];
+        const projects = Array.isArray(assignmentsResult.data?.projects)
+          ? assignmentsResult.data.projects
+          : [];
+        setActiveSupervisors(supervisors);
+        setSupervisorProjects(projects);
+        setSelectedSupervisorId((current) =>
+          current && supervisors.some((item) => item.userId === current)
+            ? current
+            : supervisors[0]?.userId || ""
+        );
+        setSelectedSupervisorProjectId((current) =>
+          current && projects.some((item) => item.projectId === current)
+            ? current
+            : projects[0]?.projectId || ""
+        );
       } catch (error) {
         if (active) {
-          setStandardsError(
-            error?.message || "تعذر تحميل معايير مراحل البناء."
-          );
+          const message = error?.message || "تعذر تحميل بيانات لوحة الإدارة.";
+          setStandardsError(message);
+          setSupervisorsError(message);
         }
       } finally {
-        if (active) setStandardsLoading(false);
+        if (active) {
+          setStandardsLoading(false);
+          setSupervisorsLoading(false);
+        }
       }
     }
 
-    loadStandards();
+    loadInitialData();
 
     return () => {
       active = false;
@@ -155,9 +207,47 @@ function AdminDashboardPage({
     if (!keepMessage) setStandardsMessage("");
   }
 
+  async function reloadSupervisors() {
+    const [candidatesResult, assignmentsResult] = await Promise.all([
+      supabase.rpc("admin_list_supervisor_candidates"),
+      supabase.rpc("admin_list_supervisor_assignment_options"),
+    ]);
+
+    if (candidatesResult.error) throw candidatesResult.error;
+    if (assignmentsResult.error) throw assignmentsResult.error;
+
+    const candidates = Array.isArray(candidatesResult.data)
+      ? candidatesResult.data
+      : [];
+    const supervisors = Array.isArray(assignmentsResult.data?.supervisors)
+      ? assignmentsResult.data.supervisors
+      : [];
+    const projects = Array.isArray(assignmentsResult.data?.projects)
+      ? assignmentsResult.data.projects
+      : [];
+
+    setSupervisorCandidates(candidates);
+    setActiveSupervisors(supervisors);
+    setSupervisorProjects(projects);
+    setSelectedCandidateId((current) =>
+      current && candidates.some((item) => item.userId === current && !item.isSupervisor)
+        ? current
+        : ""
+    );
+    setSelectedSupervisorId((current) =>
+      current && supervisors.some((item) => item.userId === current)
+        ? current
+        : supervisors[0]?.userId || ""
+    );
+    setSelectedSupervisorProjectId((current) =>
+      current && projects.some((item) => item.projectId === current)
+        ? current
+        : projects[0]?.projectId || ""
+    );
+  }
+
   async function handleAddStandardItem(event) {
     event.preventDefault();
-
     if (!selectedStageId || standardsSaving) return;
 
     const text = newStandardText.trim();
@@ -301,6 +391,77 @@ function AdminDashboardPage({
     }
   }
 
+  function handleCandidateChange(userId) {
+    setSelectedCandidateId(userId);
+    const candidate = supervisorCandidates.find((item) => item.userId === userId);
+    setSupervisorFullName(candidate?.fullName || "");
+    setSupervisorOrganization(candidate?.organizationName || "");
+    setSupervisorMobile(candidate?.mobileNumber || "");
+    setSupervisorsError("");
+    setSupervisorsMessage("");
+  }
+
+  async function handleActivateSupervisor(event) {
+    event.preventDefault();
+    if (!selectedCandidateId || supervisorsSaving) return;
+
+    if (supervisorFullName.trim().length < 3) {
+      setSupervisorsError("اكتب اسم المشرف قبل الاعتماد.");
+      return;
+    }
+
+    try {
+      setSupervisorsSaving(true);
+      setSupervisorsError("");
+      setSupervisorsMessage("");
+
+      const { error } = await supabase.rpc("admin_activate_supervisor_account", {
+        p_user_id: selectedCandidateId,
+        p_full_name: supervisorFullName.trim(),
+        p_organization_name: supervisorOrganization.trim() || null,
+        p_mobile_number: supervisorMobile.trim() || null,
+      });
+
+      if (error) throw error;
+
+      setSelectedCandidateId("");
+      setSupervisorFullName("");
+      setSupervisorOrganization("");
+      setSupervisorMobile("");
+      setSupervisorsMessage("تم اعتماد الحساب كمشرف نشط.");
+      await reloadSupervisors();
+    } catch (error) {
+      setSupervisorsError(error?.message || "تعذر اعتماد المشرف.");
+    } finally {
+      setSupervisorsSaving(false);
+    }
+  }
+
+  async function handleAssignSupervisor(event) {
+    event.preventDefault();
+    if (!selectedSupervisorId || !selectedSupervisorProjectId || supervisorsSaving) return;
+
+    try {
+      setSupervisorsSaving(true);
+      setSupervisorsError("");
+      setSupervisorsMessage("");
+
+      const { error } = await supabase.rpc("admin_assign_supervisor_to_project", {
+        p_project_id: selectedSupervisorProjectId,
+        p_supervisor_user_id: selectedSupervisorId,
+      });
+
+      if (error) throw error;
+
+      setSupervisorsMessage("تم تعيين المشرف على المشروع.");
+      await reloadSupervisors();
+    } catch (error) {
+      setSupervisorsError(error?.message || "تعذر تعيين المشرف على المشروع.");
+    } finally {
+      setSupervisorsSaving(false);
+    }
+  }
+
   function handleOpenAction(actionType) {
     if (actionType === "land_review") {
       window.location.href = "/admin/customers?status=land_under_review";
@@ -313,6 +474,14 @@ function AdminDashboardPage({
   }
 
   function handleOpenSection(sectionKey) {
+    if (sectionKey === "supervisors") {
+      document.getElementById("admin-supervisors")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
     if (typeof onOpenSection === "function") {
       onOpenSection(sectionKey);
     }
@@ -332,8 +501,7 @@ function AdminDashboardPage({
             <p>إدارة منصة نايف المزيني</p>
             <h1>لوحة الإدارة</h1>
             <p className="admin-dashboard-welcome">
-              مرحبًا{" "}
-              <strong>{adminProfile?.full_name || "مدير المنصة"}</strong>
+              مرحبًا <strong>{adminProfile?.full_name || "مدير المنصة"}</strong>
             </p>
           </div>
 
@@ -547,6 +715,154 @@ function AdminDashboardPage({
                       </div>
                     </>
                   )}
+                </div>
+              )}
+            </section>
+
+            <section id="admin-supervisors" className="admin-dashboard-card" aria-labelledby="admin-supervisors-title">
+              <header className="admin-dashboard-card-header">
+                <div>
+                  <h2 id="admin-supervisors-title">مشرفو المشاريع</h2>
+                  <p>اعتماد حسابات المشرفين وتعيين كل مشرف على المشروع الذي يتولاه.</p>
+                </div>
+              </header>
+
+              {supervisorsError && (
+                <p className="admin-dashboard-status is-error" role="alert">
+                  <strong>{supervisorsError}</strong>
+                </p>
+              )}
+              {supervisorsMessage && (
+                <p className="admin-dashboard-status" role="status">
+                  <strong>{supervisorsMessage}</strong>
+                </p>
+              )}
+
+              {supervisorsLoading ? (
+                <p>جاري تحميل حسابات المشرفين...</p>
+              ) : (
+                <div style={{ display: "grid", gap: "24px" }}>
+                  <form onSubmit={handleActivateSupervisor} style={{ display: "grid", gap: "12px" }}>
+                    <h3 style={{ margin: 0 }}>اعتماد حساب مشرف</h3>
+                    {pendingSupervisorCandidates.length === 0 ? (
+                      <p>لا توجد حسابات جديدة بانتظار الاعتماد. يجب أن يسجل المشرف دخوله ببريده أولًا.</p>
+                    ) : (
+                      <>
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>الحساب</strong>
+                          <select
+                            value={selectedCandidateId}
+                            onChange={(event) => handleCandidateChange(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          >
+                            <option value="">اختر الحساب</option>
+                            {pendingSupervisorCandidates.map((candidate) => (
+                              <option key={candidate.userId} value={candidate.userId}>
+                                {candidate.email}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>اسم المشرف</strong>
+                          <input
+                            value={supervisorFullName}
+                            onChange={(event) => setSupervisorFullName(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>المكتب / المؤسسة</strong>
+                          <input
+                            value={supervisorOrganization}
+                            onChange={(event) => setSupervisorOrganization(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>الجوال</strong>
+                          <input
+                            value={supervisorMobile}
+                            onChange={(event) => setSupervisorMobile(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          />
+                        </label>
+
+                        <button type="submit" className="admin-dashboard-signout" disabled={supervisorsSaving || !selectedCandidateId}>
+                          اعتماد المشرف
+                        </button>
+                      </>
+                    )}
+                  </form>
+
+                  <form onSubmit={handleAssignSupervisor} style={{ display: "grid", gap: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                    <h3 style={{ margin: 0 }}>تعيين مشرف على مشروع</h3>
+
+                    {activeSupervisors.length === 0 ? (
+                      <p>لا يوجد مشرف نشط بعد.</p>
+                    ) : supervisorProjects.length === 0 ? (
+                      <p>لا توجد مشاريع متاحة للتعيين.</p>
+                    ) : (
+                      <>
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>المشرف</strong>
+                          <select
+                            value={selectedSupervisorId}
+                            onChange={(event) => setSelectedSupervisorId(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          >
+                            {activeSupervisors.map((supervisor) => (
+                              <option key={supervisor.userId} value={supervisor.userId}>
+                                {supervisor.fullName} — {supervisor.email || "بدون بريد"}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label style={{ display: "grid", gap: "7px" }}>
+                          <strong>المشروع</strong>
+                          <select
+                            value={selectedSupervisorProjectId}
+                            onChange={(event) => setSelectedSupervisorProjectId(event.target.value)}
+                            disabled={supervisorsSaving}
+                            style={{ minHeight: 46, padding: "0 12px", border: "1px solid #d1d5db", borderRadius: 10, font: "inherit" }}
+                          >
+                            {supervisorProjects.map((project) => (
+                              <option key={project.projectId} value={project.projectId}>
+                                {project.projectNumber || project.projectId} — {project.customerName || "عميل"}
+                                {project.supervisorName ? ` — الحالي: ${project.supervisorName}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <button type="submit" className="admin-dashboard-signout" disabled={supervisorsSaving || !selectedSupervisorId || !selectedSupervisorProjectId}>
+                          تعيين المشرف
+                        </button>
+                      </>
+                    )}
+                  </form>
+
+                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "20px" }}>
+                    <h3 style={{ marginTop: 0 }}>المشاريع والتعيينات الحالية</h3>
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      {supervisorProjects.map((project) => (
+                        <div key={project.projectId} style={{ padding: "12px", border: "1px solid #e5e7eb", borderRadius: "10px" }}>
+                          <strong>{project.projectNumber || project.projectId}</strong>
+                          <div>{project.customerName || "غير متوفر"}</div>
+                          <small>{project.supervisorName ? `المشرف: ${project.supervisorName}` : "لم يعيّن مشرف"}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </section>
