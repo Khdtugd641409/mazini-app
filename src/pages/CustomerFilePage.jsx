@@ -187,6 +187,10 @@ function canSubmitLand(customerFile) {
     return false;
   }
 
+  if (customerFile.project_type === "services") {
+    return false;
+  }
+
   return (
     LAND_SUBMISSION_ALLOWED_STATUSES.includes(
       customerFile.status
@@ -204,6 +208,15 @@ function getCurrentAction(customerFile) {
         "لا يوجد إجراء محدد",
       description:
         "تعذر تحديد الإجراء المطلوب للملف.",
+    };
+  }
+
+  if (customerFile.project_type === "services") {
+    return {
+      title: customerFile.current_stage ||
+        "متابعة مرحلة البناء",
+      description:
+        "تابع المرحلة الحالية والصور ومعايير الاستلام الخاصة بالمشروع والمعايير العامة.",
     };
   }
 
@@ -405,6 +418,264 @@ function getCurrentAction(customerFile) {
   };
 }
 
+function StandardList({
+  title,
+  items = [],
+  emptyMessage,
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gap: "12px",
+      }}
+    >
+      <h3
+        style={{
+          margin: 0,
+          fontSize: "18px",
+        }}
+      >
+        {title}
+      </h3>
+
+      {items.length === 0 ? (
+        <p
+          className="customer-file-notice"
+          style={{ margin: 0 }}
+        >
+          {emptyMessage}
+        </p>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gap: "10px",
+          }}
+        >
+          {items.map((item) => (
+            <label
+              key={item.id}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "12px",
+                padding: "14px 16px",
+                background: item.checked
+                  ? "#edf7f2"
+                  : "#faf9f5",
+                border: item.checked
+                  ? "1px solid #b9dfcf"
+                  : "1px solid #e1e5e1",
+                borderRadius: "14px",
+                lineHeight: "1.7",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(item.checked)}
+                readOnly
+                disabled
+                aria-label={`حالة استلام المعيار: ${item.text}`}
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  marginTop: "3px",
+                  accentColor: "#0b3b32",
+                }}
+              />
+
+              <span style={{ flex: 1 }}>
+                <strong>{item.text}</strong>
+
+                {item.checkedAt && (
+                  <small
+                    style={{
+                      display: "block",
+                      marginTop: "5px",
+                      color: "#718079",
+                    }}
+                  >
+                    تم اعتماد الاستلام: {formatDate(item.checkedAt)}
+                  </small>
+                )}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConstructionStageCard({ workspace }) {
+  const stage = workspace?.stage || null;
+
+  if (!stage) {
+    return null;
+  }
+
+  const photos = Array.isArray(workspace?.photos)
+    ? workspace.photos
+    : [];
+
+  const projectStandards = Array.isArray(
+    workspace?.projectStandards
+  )
+    ? workspace.projectStandards
+    : [];
+
+  const generalStandards = Array.isArray(
+    workspace?.generalStandards
+  )
+    ? workspace.generalStandards
+    : [];
+
+  return (
+    <section
+      className="customer-file-card"
+      aria-labelledby="construction-stage-title"
+    >
+      <header
+        style={{
+          marginBottom: "22px",
+          paddingBottom: "16px",
+          borderBottom: "1px solid #e1e5e1",
+        }}
+      >
+        <h2
+          id="construction-stage-title"
+          style={{
+            marginBottom: "7px",
+            fontWeight: 950,
+          }}
+        >
+          {stage.mainStageName}
+        </h2>
+
+        <p
+          style={{
+            margin: 0,
+            color: "#52665f",
+            fontSize: "18px",
+            lineHeight: "1.7",
+          }}
+        >
+          {stage.detailedStageName}
+        </p>
+      </header>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "24px",
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              marginTop: 0,
+              marginBottom: "12px",
+              fontSize: "18px",
+            }}
+          >
+            صور المرحلة
+          </h3>
+
+          {photos.length === 0 ? (
+            <p
+              className="customer-file-notice"
+              style={{ margin: 0 }}
+            >
+              لم يرفع المشرف صورًا لهذه المرحلة حتى الآن.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {photos.map((photo) => (
+                <figure
+                  key={photo.id}
+                  style={{
+                    margin: 0,
+                    overflow: "hidden",
+                    background: "#faf9f5",
+                    border: "1px solid #e1e5e1",
+                    borderRadius: "16px",
+                  }}
+                >
+                  {photo.signedUrl ? (
+                    <img
+                      src={photo.signedUrl}
+                      alt={photo.caption || photo.originalName || "صورة المرحلة"}
+                      loading="lazy"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        aspectRatio: "4 / 3",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        minHeight: "150px",
+                        padding: "18px",
+                        textAlign: "center",
+                        color: "#718079",
+                      }}
+                    >
+                      📷 {photo.originalName || "صورة المرحلة"}
+                    </div>
+                  )}
+
+                  {photo.caption && (
+                    <figcaption
+                      style={{
+                        padding: "10px 12px",
+                        color: "#52665f",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {photo.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <StandardList
+          title="المعايير الخاصة بالمشروع"
+          items={projectStandards}
+          emptyMessage="لم يرفع العميل معايير خاصة بهذه المرحلة حتى الآن."
+        />
+
+        <StandardList
+          title="المعايير العامة"
+          items={generalStandards}
+          emptyMessage="لم تضف الإدارة معايير عامة لهذه المرحلة حتى الآن."
+        />
+
+        <p
+          className="customer-file-notice"
+          style={{ margin: 0 }}
+        >
+          مربعات الاستلام للعرض في حساب العميل. الاعتماد الفني ووضع ✓ يتم بواسطة المشرف ويُسجل معه وقت الاعتماد وهوية من اعتمده.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function CustomerFilePage({
   customerFile,
   timeline = [],
@@ -432,6 +703,13 @@ function CustomerFilePage({
     );
   }
 
+  const isServiceProject =
+    customerFile.project_type === "services";
+
+  const constructionWorkspace =
+    customerFile.construction_stage_workspace ||
+    null;
+
   const statusLabel =
     STATUS_LABELS[
       customerFile.status
@@ -439,12 +717,14 @@ function CustomerFilePage({
     customerFile.status ||
     "غير محددة";
 
-  const stageLabel =
-    STAGE_LABELS[
-      customerFile.current_stage
-    ] ||
-    customerFile.current_stage ||
-    "غير محددة";
+  const stageLabel = isServiceProject
+    ? customerFile.current_stage ||
+      "غير محددة"
+    : STAGE_LABELS[
+        customerFile.current_stage
+      ] ||
+      customerFile.current_stage ||
+      "غير محددة";
 
   const statusClass =
     getStatusClass(
@@ -479,7 +759,9 @@ function CustomerFilePage({
             </p>
 
             <h1>
-              ملف العميل{" "}
+              {isServiceProject
+                ? "المشروع "
+                : "ملف العميل "}
               <span className="customer-file-number">
                 {customerFile.file_number}
               </span>
@@ -542,17 +824,21 @@ function CustomerFilePage({
           )}
         </section>
 
+        <ConstructionStageCard
+          workspace={constructionWorkspace}
+        />
+
         <section
           className="customer-file-card"
           aria-labelledby="customer-file-summary-title"
         >
           <h2 id="customer-file-summary-title">
-            حالة الملف
+            حالة {isServiceProject ? "المشروع" : "الملف"}
           </h2>
 
           <dl className="customer-file-grid">
             <div className="customer-file-data-item">
-              <dt>رقم الملف</dt>
+              <dt>{isServiceProject ? "رقم المشروع" : "رقم الملف"}</dt>
 
               <dd>
                 {customerFile.file_number}
@@ -579,41 +865,45 @@ function CustomerFilePage({
               <dd>{stageLabel}</dd>
             </div>
 
-            <div className="customer-file-data-item">
-              <dt>
-                تاريخ التقديم
-              </dt>
+            {!isServiceProject && (
+              <>
+                <div className="customer-file-data-item">
+                  <dt>
+                    تاريخ التقديم
+                  </dt>
 
-              <dd>
-                {formatDate(
-                  customerFile.submitted_at
-                )}
-              </dd>
-            </div>
+                  <dd>
+                    {formatDate(
+                      customerFile.submitted_at
+                    )}
+                  </dd>
+                </div>
 
-            <div className="customer-file-data-item">
-              <dt>
-                تاريخ القبول
-              </dt>
+                <div className="customer-file-data-item">
+                  <dt>
+                    تاريخ القبول
+                  </dt>
 
-              <dd>
-                {formatDate(
-                  customerFile.approved_at
-                )}
-              </dd>
-            </div>
+                  <dd>
+                    {formatDate(
+                      customerFile.approved_at
+                    )}
+                  </dd>
+                </div>
 
-            <div className="customer-file-data-item">
-              <dt>
-                تاريخ الرفض
-              </dt>
+                <div className="customer-file-data-item">
+                  <dt>
+                    تاريخ الرفض
+                  </dt>
 
-              <dd>
-                {formatDate(
-                  customerFile.rejected_at
-                )}
-              </dd>
-            </div>
+                  <dd>
+                    {formatDate(
+                      customerFile.rejected_at
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
           </dl>
         </section>
 
@@ -622,7 +912,9 @@ function CustomerFilePage({
           aria-labelledby="customer-project-title"
         >
           <h2 id="customer-project-title">
-            بيانات المشروع والتمويل
+            {isServiceProject
+              ? "بيانات المشروع"
+              : "بيانات المشروع والتمويل"}
           </h2>
 
           <dl className="customer-file-grid">
@@ -637,17 +929,6 @@ function CustomerFilePage({
             </div>
 
             <div className="customer-file-data-item">
-              <dt>قيمة الأرض</dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile
-                    .estimated_land_price
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
               <dt>عدد الأدوار</dt>
 
               <dd>
@@ -656,246 +937,289 @@ function CustomerFilePage({
               </dd>
             </div>
 
-            <div className="customer-file-data-item">
-              <dt>عرض البنك</dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile.bank_offer
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                المساحة المحتسبة لكل دور
-              </dt>
-
-              <dd>
-                {formatSquareMeters(
-                  customerFile
-                    .building_area_per_floor
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                إجمالي مسطح البناء
-              </dt>
-
-              <dd>
-                {formatSquareMeters(
-                  customerFile
-                    .total_building_area
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                سعر متر البناء
-              </dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile.meter_rate
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                تكلفة البناء التقديرية
-              </dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile
-                    .estimated_construction_cost
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                إجمالي تكلفة المشروع
-              </dt>
-
-              <dd className="customer-file-financial-value">
-                {formatSaudiRiyal(
-                  customerFile
-                    .estimated_project_cost
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                نسبة التكلفة إلى عرض البنك
-              </dt>
-
-              <dd>
-                {formatPercentage(
-                  customerFile
-                    .financing_ratio
-                )}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <section
-          className="customer-file-card"
-          aria-labelledby="customer-payment-title"
-        >
-          <h2 id="customer-payment-title">
-            الدفعة المطلوبة
-          </h2>
-
-          <dl className="customer-file-grid">
-            <div className="customer-file-data-item">
-              <dt>
-                الدفعة الأساسية 12٪
-              </dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile
-                    .base_customer_payment
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                فرق التجاوز عن حد 80٪
-              </dt>
-
-              <dd>
-                {formatSaudiRiyal(
-                  customerFile.excess_amount
-                )}
-              </dd>
-            </div>
-
-            <div className="customer-file-data-item">
-              <dt>
-                إجمالي الدفعة المطلوبة
-              </dt>
-
-              <dd className="customer-file-financial-value">
-                {formatSaudiRiyal(
-                  customerFile
-                    .total_customer_payment
-                )}
-              </dd>
-            </div>
-          </dl>
-
-          {customerFile
-            .requires_extra_payment_approval && (
-            <p className="customer-file-notice">
-              موافقتك على الدفعة
-              الإضافية:{" "}
-              <strong>
-                {customerFile
-                  .extra_payment_approved
-                  ? "تمت الموافقة"
-                  : "لم تتم الموافقة"}
-              </strong>
-            </p>
-          )}
-        </section>
-
-        <section
-          className="customer-file-card"
-          aria-labelledby="customer-stages-title"
-        >
-          <h2 id="customer-stages-title">
-            مراحل الملف
-          </h2>
-
-          <ol className="customer-file-stages">
-            {PROJECT_STAGES.map(
-              (stage) => (
-                <li key={stage}>
-                  {stage}
-                </li>
-              )
+            {isServiceProject && customerFile.project_title && (
+              <div className="customer-file-data-item">
+                <dt>مسمى المشروع</dt>
+                <dd>{customerFile.project_title}</dd>
+              </div>
             )}
-          </ol>
 
-          <p className="customer-file-current-stage">
-            المرحلة الحالية:{" "}
-            <strong>
-              {stageLabel}
-            </strong>
-          </p>
+            {isServiceProject && customerFile.property_location_url && (
+              <div className="customer-file-data-item">
+                <dt>موقع العقار</dt>
+                <dd>
+                  <a
+                    href={customerFile.property_location_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    فتح الموقع
+                  </a>
+                </dd>
+              </div>
+            )}
+
+            {!isServiceProject && (
+              <>
+                <div className="customer-file-data-item">
+                  <dt>قيمة الأرض</dt>
+
+                  <dd>
+                    {formatSaudiRiyal(
+                      customerFile
+                        .estimated_land_price
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>عرض البنك</dt>
+
+                  <dd>
+                    {formatSaudiRiyal(
+                      customerFile.bank_offer
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    المساحة المحتسبة لكل دور
+                  </dt>
+
+                  <dd>
+                    {formatSquareMeters(
+                      customerFile
+                        .building_area_per_floor
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    إجمالي مسطح البناء
+                  </dt>
+
+                  <dd>
+                    {formatSquareMeters(
+                      customerFile
+                        .total_building_area
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    سعر متر البناء
+                  </dt>
+
+                  <dd>
+                    {formatSaudiRiyal(
+                      customerFile.meter_rate
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    تكلفة البناء التقديرية
+                  </dt>
+
+                  <dd>
+                    {formatSaudiRiyal(
+                      customerFile
+                        .estimated_construction_cost
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    إجمالي تكلفة المشروع
+                  </dt>
+
+                  <dd className="customer-file-financial-value">
+                    {formatSaudiRiyal(
+                      customerFile
+                        .estimated_project_cost
+                    )}
+                  </dd>
+                </div>
+
+                <div className="customer-file-data-item">
+                  <dt>
+                    نسبة التكلفة إلى عرض البنك
+                  </dt>
+
+                  <dd>
+                    {formatPercentage(
+                      customerFile
+                        .financing_ratio
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
         </section>
 
-        <section
-          className="customer-file-card"
-          aria-labelledby="customer-timeline-title"
-        >
-          <h2 id="customer-timeline-title">
-            السجل الزمني
-          </h2>
+        {!isServiceProject && (
+          <section
+            className="customer-file-card"
+            aria-labelledby="customer-payment-title"
+          >
+            <h2 id="customer-payment-title">
+              الدفعة المطلوبة
+            </h2>
 
-          {timeline.length === 0 ? (
-            <p>
-              لا توجد أحداث مسجلة في الملف
-              حتى الآن.
-            </p>
-          ) : (
-            <ol className="customer-file-timeline">
-              {timeline.map(
-                (eventItem) => {
-                  const eventLabel =
-                    EVENT_TYPE_LABELS[
-                      eventItem.event_type
-                    ] ||
-                    eventItem.event_type ||
-                    "حدث";
+            <dl className="customer-file-grid">
+              <div className="customer-file-data-item">
+                <dt>
+                  الدفعة الأساسية 12٪
+                </dt>
 
-                  return (
-                    <li
-                      key={eventItem.id}
-                      className="customer-file-timeline-item"
-                    >
-                      <article className="customer-file-timeline-article">
-                        <header className="customer-file-timeline-header">
-                          <h3>
-                            {eventItem.title ||
-                              eventLabel}
-                          </h3>
+                <dd>
+                  {formatSaudiRiyal(
+                    customerFile
+                      .base_customer_payment
+                  )}
+                </dd>
+              </div>
 
-                          <time
-                            dateTime={
-                              eventItem.created_at
-                            }
-                          >
-                            {formatDate(
-                              eventItem.created_at
-                            )}
-                          </time>
-                        </header>
+              <div className="customer-file-data-item">
+                <dt>
+                  فرق التجاوز عن حد 80٪
+                </dt>
 
-                        {eventItem.description && (
-                          <p className="customer-file-timeline-description">
-                            {
-                              eventItem.description
-                            }
-                          </p>
-                        )}
-                      </article>
-                    </li>
-                  );
-                }
+                <dd>
+                  {formatSaudiRiyal(
+                    customerFile.excess_amount
+                  )}
+                </dd>
+              </div>
+
+              <div className="customer-file-data-item">
+                <dt>
+                  إجمالي الدفعة المطلوبة
+                </dt>
+
+                <dd className="customer-file-financial-value">
+                  {formatSaudiRiyal(
+                    customerFile
+                      .total_customer_payment
+                  )}
+                </dd>
+              </div>
+            </dl>
+
+            {customerFile
+              .requires_extra_payment_approval && (
+              <p className="customer-file-notice">
+                موافقتك على الدفعة
+                الإضافية:{" "}
+                <strong>
+                  {customerFile
+                    .extra_payment_approved
+                    ? "تمت الموافقة"
+                    : "لم تتم الموافقة"}
+                </strong>
+              </p>
+            )}
+          </section>
+        )}
+
+        {!isServiceProject && (
+          <section
+            className="customer-file-card"
+            aria-labelledby="customer-stages-title"
+          >
+            <h2 id="customer-stages-title">
+              مراحل الملف
+            </h2>
+
+            <ol className="customer-file-stages">
+              {PROJECT_STAGES.map(
+                (stage) => (
+                  <li key={stage}>
+                    {stage}
+                  </li>
+                )
               )}
             </ol>
-          )}
-        </section>
+
+            <p className="customer-file-current-stage">
+              المرحلة الحالية:{" "}
+              <strong>
+                {stageLabel}
+              </strong>
+            </p>
+          </section>
+        )}
+
+        {!isServiceProject && (
+          <section
+            className="customer-file-card"
+            aria-labelledby="customer-timeline-title"
+          >
+            <h2 id="customer-timeline-title">
+              السجل الزمني
+            </h2>
+
+            {timeline.length === 0 ? (
+              <p>
+                لا توجد أحداث مسجلة في الملف
+                حتى الآن.
+              </p>
+            ) : (
+              <ol className="customer-file-timeline">
+                {timeline.map(
+                  (eventItem) => {
+                    const eventLabel =
+                      EVENT_TYPE_LABELS[
+                        eventItem.event_type
+                      ] ||
+                      eventItem.event_type ||
+                      "حدث";
+
+                    return (
+                      <li
+                        key={eventItem.id}
+                        className="customer-file-timeline-item"
+                      >
+                        <article className="customer-file-timeline-article">
+                          <header className="customer-file-timeline-header">
+                            <h3>
+                              {eventItem.title ||
+                                eventLabel}
+                            </h3>
+
+                            <time
+                              dateTime={
+                                eventItem.created_at
+                              }
+                            >
+                              {formatDate(
+                                eventItem.created_at
+                              )}
+                            </time>
+                          </header>
+
+                          {eventItem.description && (
+                            <p className="customer-file-timeline-description">
+                              {
+                                eventItem.description
+                              }
+                            </p>
+                          )}
+                        </article>
+                      </li>
+                    );
+                  }
+                )}
+              </ol>
+            )}
+          </section>
+        )}
 
         <section
           className="customer-file-card"
@@ -930,7 +1254,7 @@ function CustomerFilePage({
 
                 <strong dir="ltr">
                   {customerFile.email ||
-                    "البريد المسجل في الطلب"}
+                    "البريد المسجل في الحساب"}
                 </strong>
               </div>
             </div>
