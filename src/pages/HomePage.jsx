@@ -6,6 +6,7 @@ function HomePage({
   onOpenCustomerServiceApplication,
   onOpenCustomerAccountLogin,
   onOpenCustomerAccess,
+  onOpenSupervisor,
   onOpenAdmin,
   isCheckingAdmin = false,
 }) {
@@ -67,6 +68,19 @@ function HomePage({
     ) {
       onOpenCustomerAccess();
     }
+  };
+
+  const handleOpenSupervisor = () => {
+    closeLoginMenu();
+
+    if (typeof onOpenSupervisor === "function") {
+      onOpenSupervisor();
+      return;
+    }
+
+    window.alert(
+      "تعذر فتح حساب المشرف حاليًا."
+    );
   };
 
   const handleOpenAdmin = () => {
@@ -174,11 +188,7 @@ function HomePage({
               <button
                 type="button"
                 role="menuitem"
-                onClick={() =>
-                  handleUnavailableSection(
-                    "مشرف المشروع"
-                  )
-                }
+                onClick={handleOpenSupervisor}
               >
                 <span>مشرف</span>
 
