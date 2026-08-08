@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import SupervisorApplicationPage from "./pages/SupervisorApplicationPage.jsx";
+import SupervisorServicesPage from "./pages/SupervisorServicesPage.jsx";
 import AdminSupervisorApplicationsPage from "./pages/admin/AdminSupervisorApplicationsPage.jsx";
 import { supabase } from "./lib/supabase.js";
 import "./index.css";
@@ -78,6 +79,29 @@ function SupervisorSessionGuard({ children }) {
   return children;
 }
 
+function FloatingShortcut({ href, children, bottom = 18 }) {
+  return (
+    <a
+      href={href}
+      style={{
+        position: "fixed",
+        left: 18,
+        bottom,
+        zIndex: 2000,
+        background: "#173f36",
+        color: "#fff",
+        textDecoration: "none",
+        padding: "11px 15px",
+        borderRadius: 999,
+        boxShadow: "0 8px 24px rgba(0,0,0,.18)",
+        fontWeight: 800,
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
 let rootContent;
 
 if (normalizedPath === "/supervisor/application") {
@@ -93,6 +117,12 @@ if (normalizedPath === "/supervisor/application") {
   );
 } else if (normalizedPath === "/admin/supervisor-applications") {
   rootContent = <AdminSupervisorApplicationsPage />;
+} else if (normalizedPath === "/supervisor/services") {
+  rootContent = (
+    <SupervisorSessionGuard>
+      <SupervisorServicesPage />
+    </SupervisorSessionGuard>
+  );
 } else if (
   normalizedPath === "/supervisor" ||
   normalizedPath === "/supervisor/dashboard"
@@ -100,7 +130,17 @@ if (normalizedPath === "/supervisor/application") {
   rootContent = (
     <SupervisorSessionGuard>
       <App />
+      <FloatingShortcut href="/supervisor/services">خدماتي</FloatingShortcut>
     </SupervisorSessionGuard>
+  );
+} else if (normalizedPath === "/admin/dashboard") {
+  rootContent = (
+    <>
+      <App />
+      <FloatingShortcut href="/admin/supervisor-applications">
+        طلبات تسجيل المشرفين
+      </FloatingShortcut>
+    </>
   );
 } else {
   rootContent = <App />;
