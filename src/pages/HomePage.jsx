@@ -83,6 +83,11 @@ function HomePage({
     );
   };
 
+  const handleOpenSupervisorApplication = () => {
+    closeLoginMenu();
+    window.location.href = "/supervisor/application";
+  };
+
   const handleOpenAdmin = () => {
     closeLoginMenu();
 
@@ -190,10 +195,22 @@ function HomePage({
                 role="menuitem"
                 onClick={handleOpenSupervisor}
               >
-                <span>مشرف</span>
+                <span>دخول المشرف</span>
 
                 <span aria-hidden="true">
                   🏗️
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleOpenSupervisorApplication}
+              >
+                <span>التسجيل كمشرف</span>
+
+                <span aria-hidden="true">
+                  📝
                 </span>
               </button>
 
