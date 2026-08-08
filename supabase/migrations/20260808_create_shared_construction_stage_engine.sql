@@ -208,7 +208,15 @@ create table if not exists public.project_construction_stage_reminders (
 create index if not exists construction_reminder_supervisor_idx
   on public.project_construction_stage_reminders(supervisor_user_id, reminder_at);
 
--- 8. مستودعات خاصة غير عامة
+-- 8. RLS: لا قراءة مباشرة للجداول الجديدة. الوصول عبر RPC تتحقق من الصلاحية.
+alter table public.project_construction_stages enable row level security;
+alter table public.project_construction_stage_photos enable row level security;
+alter table public.construction_standard_documents enable row level security;
+alter table public.construction_standard_items enable row level security;
+alter table public.project_construction_item_checks enable row level security;
+alter table public.project_construction_stage_reminders enable row level security;
+
+-- 9. مستودعات خاصة غير عامة
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'construction-stage-photos',
@@ -235,7 +243,7 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
--- 9. دالة موحدة لإنشاء مرحلة رسمية داخل أي مشروع يملكه العميل.
+-- 10. دالة موحدة لإنشاء مرحلة رسمية داخل أي مشروع يملكه العميل.
 -- إنشاء مرحلة غير موجودة محفوظ للمشرف، ولا نفتحه للعميل قبل ربط حساب المشرف الحقيقي.
 create or replace function public.customer_ensure_construction_stage(
   p_financed_customer_file_id uuid default null,
@@ -322,7 +330,201 @@ begin
 end;
 $$;
 
--- 10. تحديث updated_at
+-- 11. مساحة عمل المرحلة المشتركة للعميل.
+-- ترجع نفس الشكل لعميل التمويل وعميل الخدمات.
+create or replace function public.customer_get_construction_stage_workspace(
+  p_project_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, auth, storage
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  project_kind text;
+  financed_file_id uuid;
+  service_project_id uuid;
+  service_stage_id uuid;
+  project_stage_id uuid;
+  stage_row public.project_construction_stages%rowtype;
+  result jsonb;
+begin
+  if current_user_id is null then
+    raise exception 'AUTHENTICATION_REQUIRED';
+  end if;
+
+  if public.customer_owns_financed_file(p_project_id) then
+    project_kind := 'financed';
+    financed_file_id := p_project_id;
+
+    select pcs.id
+    into project_stage_id
+    from public.project_construction_stages pcs
+    where pcs.financed_customer_file_id = financed_file_id
+      and pcs.status <> 'cancelled'
+    order by
+      case pcs.status
+        when 'in_progress' then 1
+        when 'planned' then 2
+        when 'completed' then 3
+        else 4
+      end,
+      pcs.created_at desc
+    limit 1;
+  else
+    select csp.id, csp.current_stage_id
+    into service_project_id, service_stage_id
+    from public.customer_service_projects csp
+    where csp.id = p_project_id
+      and csp.customer_user_id = current_user_id;
+
+    if service_project_id is null then
+      raise exception 'PROJECT_NOT_FOUND_OR_FORBIDDEN';
+    end if;
+
+    project_kind := 'services';
+
+    if service_stage_id is not null then
+      project_stage_id := public.customer_ensure_construction_stage(
+        null,
+        service_project_id,
+        service_stage_id
+      );
+    else
+      select pcs.id
+      into project_stage_id
+      from public.project_construction_stages pcs
+      where pcs.service_project_id = service_project_id
+        and pcs.status <> 'cancelled'
+      order by pcs.created_at desc
+      limit 1;
+    end if;
+  end if;
+
+  if project_stage_id is null then
+    return jsonb_build_object(
+      'projectType', project_kind,
+      'stage', null,
+      'photos', '[]'::jsonb,
+      'projectStandards', '[]'::jsonb,
+      'generalStandards', '[]'::jsonb,
+      'documents', '[]'::jsonb
+    );
+  end if;
+
+  select * into stage_row
+  from public.project_construction_stages pcs
+  where pcs.id = project_stage_id;
+
+  select jsonb_build_object(
+    'projectType', project_kind,
+    'stage', jsonb_build_object(
+      'id', stage_row.id,
+      'buildingStageId', stage_row.building_stage_id,
+      'mainStageName', stage_row.main_stage_name,
+      'detailedStageName', stage_row.detailed_stage_name,
+      'isCustom', stage_row.is_custom,
+      'status', stage_row.status,
+      'plannedFor', stage_row.planned_for,
+      'startedAt', stage_row.started_at,
+      'completedAt', stage_row.completed_at
+    ),
+    'photos', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', p.id,
+          'storageBucket', p.storage_bucket,
+          'storagePath', p.storage_path,
+          'originalName', p.original_name,
+          'caption', p.caption,
+          'createdAt', p.created_at
+        )
+        order by p.created_at asc
+      )
+      from public.project_construction_stage_photos p
+      where p.project_stage_id = stage_row.id
+    ), '[]'::jsonb),
+    'projectStandards', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', i.id,
+          'text', i.item_text,
+          'order', i.item_order,
+          'required', i.is_required,
+          'checked', coalesce(c.is_checked, false),
+          'checkedAt', c.checked_at,
+          'checkedByUserId', c.checked_by_user_id,
+          'checkNote', c.note
+        )
+        order by i.item_order asc, i.created_at asc
+      )
+      from public.construction_standard_items i
+      left join public.project_construction_item_checks c
+        on c.project_stage_id = stage_row.id
+       and c.standard_item_id = i.id
+      where i.standard_scope = 'project'
+        and i.project_stage_id = stage_row.id
+    ), '[]'::jsonb),
+    'generalStandards', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', i.id,
+          'text', i.item_text,
+          'order', i.item_order,
+          'required', i.is_required,
+          'checked', coalesce(c.is_checked, false),
+          'checkedAt', c.checked_at,
+          'checkedByUserId', c.checked_by_user_id,
+          'checkNote', c.note
+        )
+        order by i.item_order asc, i.created_at asc
+      )
+      from public.construction_standard_items i
+      left join public.project_construction_item_checks c
+        on c.project_stage_id = stage_row.id
+       and c.standard_item_id = i.id
+      where i.standard_scope = 'general'
+        and stage_row.building_stage_id is not null
+        and i.building_stage_id = stage_row.building_stage_id
+    ), '[]'::jsonb),
+    'documents', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', d.id,
+          'scope', d.standard_scope,
+          'storageBucket', d.storage_bucket,
+          'storagePath', d.storage_path,
+          'originalName', d.original_name,
+          'contentType', d.content_type,
+          'sizeBytes', d.size_bytes,
+          'createdAt', d.created_at
+        )
+        order by d.created_at desc
+      )
+      from public.construction_standard_documents d
+      where
+        (d.standard_scope = 'project' and d.project_stage_id = stage_row.id)
+        or
+        (
+          d.standard_scope = 'general'
+          and stage_row.building_stage_id is not null
+          and d.building_stage_id = stage_row.building_stage_id
+        )
+    ), '[]'::jsonb)
+  ) into result;
+
+  return result;
+end;
+$$;
+
+revoke all on function public.customer_ensure_construction_stage(uuid, uuid, uuid) from public;
+grant execute on function public.customer_ensure_construction_stage(uuid, uuid, uuid) to authenticated;
+
+revoke all on function public.customer_get_construction_stage_workspace(uuid) from public;
+grant execute on function public.customer_get_construction_stage_workspace(uuid) to authenticated;
+
+-- 12. تحديث updated_at
 create or replace function public.set_shared_construction_updated_at()
 returns trigger
 language plpgsql
