@@ -529,46 +529,223 @@ async function removeUploadedDeed(
   }
 }
 
+async function loadConstructionStageWorkspace(
+  projectId
+) {
+  const { data, error } = await supabase.rpc(
+    "customer_get_construction_stage_workspace",
+    {
+      p_project_id: projectId,
+    }
+  );
+
+  if (error) {
+    console.warn(
+      "customer_get_construction_stage_workspace:",
+      error
+    );
+
+    return null;
+  }
+
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const photos = Array.isArray(data.photos)
+    ? data.photos
+    : [];
+
+  const photosWithUrls = await Promise.all(
+    photos.map(async (photo) => {
+      if (!photo?.storagePath) {
+        return photo;
+      }
+
+      const bucket =
+        photo.storageBucket ||
+        "construction-stage-photos";
+
+      const { data: signedData, error: signedError } =
+        await supabase.storage
+          .from(bucket)
+          .createSignedUrl(
+            photo.storagePath,
+            300
+          );
+
+      if (signedError) {
+        console.warn(
+          "create construction photo signed url:",
+          signedError
+        );
+
+        return photo;
+      }
+
+      return {
+        ...photo,
+        signedUrl:
+          signedData?.signedUrl || null,
+      };
+    })
+  );
+
+  return {
+    ...data,
+    photos: photosWithUrls,
+    projectStandards: Array.isArray(
+      data.projectStandards
+    )
+      ? data.projectStandards
+      : [],
+    generalStandards: Array.isArray(
+      data.generalStandards
+    )
+      ? data.generalStandards
+      : [],
+    documents: Array.isArray(data.documents)
+      ? data.documents
+      : [],
+  };
+}
+
+function normalizeServiceProjectForWorkspace(
+  project
+) {
+  return {
+    id: project.id,
+    file_number:
+      project.project_number || "",
+    project_type: "services",
+    status: project.status || "active",
+    current_stage:
+      project.current_stage ||
+      "غير محددة",
+    current_stage_id:
+      project.current_stage_id || null,
+    project_title:
+      project.project_title || "",
+    land_area: Number(project.land_area),
+    floors: Number(project.floors),
+    property_location_url:
+      project.property_location_url || "",
+    submitted_at: project.created_at || null,
+    approved_at: project.created_at || null,
+    rejected_at: null,
+    updated_at:
+      project.updated_at ||
+      project.created_at || null,
+    email: "",
+  };
+}
+
 export async function getMyCustomerProjectWorkspace(
   customerFileId
 ) {
   const normalizedProjectId =
     normalizeProjectId(customerFileId);
 
-  const { data, error } =
-    await supabase.rpc(
-      "customer_get_my_project_workspace",
-      {
-        p_customer_file_id:
-          normalizedProjectId,
+  let customerFile = null;
+  let timeline = [];
+  let financedWorkspaceError = null;
+
+  const {
+    data: financedData,
+    error: financedError,
+  } = await supabase.rpc(
+    "customer_get_my_project_workspace",
+    {
+      p_customer_file_id:
+        normalizedProjectId,
+    }
+  );
+
+  if (!financedError && financedData?.customerFile) {
+    customerFile = {
+      ...financedData.customerFile,
+      project_type:
+        financedData.customerFile.project_type ||
+        "financed",
+    };
+
+    timeline = Array.isArray(
+      financedData.timeline
+    )
+      ? financedData.timeline
+      : [];
+  } else {
+    financedWorkspaceError = financedError;
+
+    const {
+      data: serviceProjects,
+      error: serviceProjectsError,
+    } = await supabase.rpc(
+      "customer_get_my_service_projects"
+    );
+
+    if (serviceProjectsError) {
+      console.error(
+        "customer_get_my_service_projects:",
+        serviceProjectsError
+      );
+
+      throw new Error(
+        getWorkspaceErrorMessage(
+          financedWorkspaceError ||
+            serviceProjectsError
+        )
+      );
+    }
+
+    const serviceProject = Array.isArray(
+      serviceProjects
+    )
+      ? serviceProjects.find(
+          (project) =>
+            project?.id === normalizedProjectId
+        )
+      : null;
+
+    if (!serviceProject) {
+      if (financedWorkspaceError) {
+        console.error(
+          "getMyCustomerProjectWorkspace:",
+          financedWorkspaceError
+        );
       }
-    );
 
-  if (error) {
-    console.error(
-      "getMyCustomerProjectWorkspace:",
-      error
-    );
+      throw new Error(
+        getWorkspaceErrorMessage(
+          financedWorkspaceError
+        )
+      );
+    }
 
-    throw new Error(
-      getWorkspaceErrorMessage(error)
-    );
+    customerFile =
+      normalizeServiceProjectForWorkspace(
+        serviceProject
+      );
+
+    timeline = [];
   }
-
-  const customerFile =
-    data?.customerFile || null;
-
-  const timeline = Array.isArray(
-    data?.timeline
-  )
-    ? data.timeline
-    : [];
 
   if (!customerFile) {
     throw new Error(
       "لم تصل بيانات المشروع من قاعدة البيانات."
     );
   }
+
+  const constructionStageWorkspace =
+    await loadConstructionStageWorkspace(
+      normalizedProjectId
+    );
+
+  customerFile = {
+    ...customerFile,
+    construction_stage_workspace:
+      constructionStageWorkspace,
+  };
 
   return {
     customerFile,
