@@ -235,13 +235,12 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
--- 9. دالة موحدة لإنشاء أول نسخة مرحلة داخل أي مشروع
+-- 9. دالة موحدة لإنشاء مرحلة رسمية داخل أي مشروع يملكه العميل.
+-- إنشاء مرحلة غير موجودة محفوظ للمشرف، ولا نفتحه للعميل قبل ربط حساب المشرف الحقيقي.
 create or replace function public.customer_ensure_construction_stage(
   p_financed_customer_file_id uuid default null,
   p_service_project_id uuid default null,
-  p_building_stage_id uuid default null,
-  p_custom_main_stage_name text default null,
-  p_custom_detailed_stage_name text default null
+  p_building_stage_id uuid default null
 )
 returns uuid
 language plpgsql
@@ -279,55 +278,45 @@ begin
     end if;
   end if;
 
-  if p_building_stage_id is not null then
-    select * into selected_stage
-    from public.building_stages bs
-    where bs.id = p_building_stage_id
-      and bs.is_active = true;
+  select * into selected_stage
+  from public.building_stages bs
+  where bs.id = p_building_stage_id
+    and bs.is_active = true;
 
-    if not found then
-      raise exception 'INVALID_BUILDING_STAGE';
-    end if;
-
-    insert into public.project_construction_stages (
-      financed_customer_file_id,
-      service_project_id,
-      building_stage_id,
-      main_stage_name,
-      detailed_stage_name,
-      is_custom
-    ) values (
-      p_financed_customer_file_id,
-      p_service_project_id,
-      selected_stage.id,
-      selected_stage.main_stage_name,
-      selected_stage.stage_name,
-      false
-    ) returning id into created_id;
-  else
-    if length(trim(coalesce(p_custom_main_stage_name,''))) < 2
-      or length(trim(coalesce(p_custom_detailed_stage_name,''))) < 2 then
-      raise exception 'CUSTOM_STAGE_NAME_REQUIRED';
-    end if;
-
-    -- لاحقًا يقيد هذا المسار للمشرف عند اكتمال حسابات المشرفين.
-    -- الآن يبنى الحقل والصلاحية بشكل قابل للربط دون اختراع نظام مشرف موازٍ.
-    insert into public.project_construction_stages (
-      financed_customer_file_id,
-      service_project_id,
-      main_stage_name,
-      detailed_stage_name,
-      is_custom,
-      custom_created_by_user_id
-    ) values (
-      p_financed_customer_file_id,
-      p_service_project_id,
-      trim(p_custom_main_stage_name),
-      trim(p_custom_detailed_stage_name),
-      true,
-      current_user_id
-    ) returning id into created_id;
+  if not found then
+    raise exception 'INVALID_BUILDING_STAGE';
   end if;
+
+  select pcs.id into created_id
+  from public.project_construction_stages pcs
+  where pcs.building_stage_id = selected_stage.id
+    and (
+      (p_financed_customer_file_id is not null and pcs.financed_customer_file_id = p_financed_customer_file_id)
+      or
+      (p_service_project_id is not null and pcs.service_project_id = p_service_project_id)
+    )
+  order by pcs.created_at desc
+  limit 1;
+
+  if created_id is not null then
+    return created_id;
+  end if;
+
+  insert into public.project_construction_stages (
+    financed_customer_file_id,
+    service_project_id,
+    building_stage_id,
+    main_stage_name,
+    detailed_stage_name,
+    is_custom
+  ) values (
+    p_financed_customer_file_id,
+    p_service_project_id,
+    selected_stage.id,
+    selected_stage.main_stage_name,
+    selected_stage.stage_name,
+    false
+  ) returning id into created_id;
 
   return created_id;
 end;
@@ -344,29 +333,24 @@ begin
 end;
 $$;
 
-foreach_table:
-do $$
-begin
-  -- project_construction_stages
-  drop trigger if exists shared_construction_stage_updated_at on public.project_construction_stages;
-  create trigger shared_construction_stage_updated_at
-    before update on public.project_construction_stages
-    for each row execute function public.set_shared_construction_updated_at();
+drop trigger if exists shared_construction_stage_updated_at on public.project_construction_stages;
+create trigger shared_construction_stage_updated_at
+  before update on public.project_construction_stages
+  for each row execute function public.set_shared_construction_updated_at();
 
-  drop trigger if exists shared_construction_item_updated_at on public.construction_standard_items;
-  create trigger shared_construction_item_updated_at
-    before update on public.construction_standard_items
-    for each row execute function public.set_shared_construction_updated_at();
+drop trigger if exists shared_construction_item_updated_at on public.construction_standard_items;
+create trigger shared_construction_item_updated_at
+  before update on public.construction_standard_items
+  for each row execute function public.set_shared_construction_updated_at();
 
-  drop trigger if exists shared_construction_check_updated_at on public.project_construction_item_checks;
-  create trigger shared_construction_check_updated_at
-    before update on public.project_construction_item_checks
-    for each row execute function public.set_shared_construction_updated_at();
+drop trigger if exists shared_construction_check_updated_at on public.project_construction_item_checks;
+create trigger shared_construction_check_updated_at
+  before update on public.project_construction_item_checks
+  for each row execute function public.set_shared_construction_updated_at();
 
-  drop trigger if exists shared_construction_reminder_updated_at on public.project_construction_stage_reminders;
-  create trigger shared_construction_reminder_updated_at
-    before update on public.project_construction_stage_reminders
-    for each row execute function public.set_shared_construction_updated_at();
-end $$;
+drop trigger if exists shared_construction_reminder_updated_at on public.project_construction_stage_reminders;
+create trigger shared_construction_reminder_updated_at
+  before update on public.project_construction_stage_reminders
+  for each row execute function public.set_shared_construction_updated_at();
 
 commit;
