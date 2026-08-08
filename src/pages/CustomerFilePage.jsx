@@ -1,3 +1,7 @@
+import { useState } from "react";
+
+import { supabase } from "../lib/supabase.js";
+
 import {
   formatPercentage,
   formatSaudiRiyal,
@@ -120,6 +124,15 @@ const LAND_SUBMISSION_ALLOWED_STAGES = [
   "land_submission",
 ];
 
+const ALLOWED_STANDARD_FILE_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
+const MAX_STANDARD_FILE_SIZE = 20 * 1024 * 1024;
+
 function formatDate(value) {
   if (!value) {
     return "غير متوفر";
@@ -138,6 +151,20 @@ function formatDate(value) {
       timeStyle: "short",
     }
   ).format(date);
+}
+
+function sanitizeFileName(fileName) {
+  const original = String(fileName || "standard").trim();
+  const extensionMatch = original.match(/\.([a-z0-9]+)$/i);
+  const extension = extensionMatch?.[1]?.toLowerCase() || "";
+  const base = original
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80) || "standard";
+
+  return extension ? `${base}.${extension}` : base;
 }
 
 function getStatusClass(status) {
@@ -422,6 +449,7 @@ function StandardList({
   title,
   items = [],
   emptyMessage,
+  onDelete,
 }) {
   return (
     <div
@@ -454,7 +482,7 @@ function StandardList({
           }}
         >
           {items.map((item) => (
-            <label
+            <div
               key={item.id}
               style={{
                 display: "flex",
@@ -500,7 +528,24 @@ function StandardList({
                   </small>
                 )}
               </span>
-            </label>
+
+              {typeof onDelete === "function" && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(item.id)}
+                  style={{
+                    padding: "6px 9px",
+                    border: "1px solid #dc2626",
+                    borderRadius: "8px",
+                    background: "#fff",
+                    color: "#b91c1c",
+                    cursor: "pointer",
+                  }}
+                >
+                  حذف
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -509,6 +554,12 @@ function StandardList({
 }
 
 function ConstructionStageCard({ workspace }) {
+  const [newStandardText, setNewStandardText] = useState("");
+  const [standardFile, setStandardFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   const stage = workspace?.stage || null;
 
   if (!stage) {
@@ -530,6 +581,154 @@ function ConstructionStageCard({ workspace }) {
   )
     ? workspace.generalStandards
     : [];
+
+  const documents = Array.isArray(workspace?.documents)
+    ? workspace.documents
+    : [];
+
+  const projectDocuments = documents.filter(
+    (document) => document.scope === "project"
+  );
+
+  const generalDocuments = documents.filter(
+    (document) => document.scope === "general"
+  );
+
+  async function handleAddProjectStandard(event) {
+    event.preventDefault();
+    const text = newStandardText.trim();
+
+    if (saving || text.length < 2) return;
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setMessage("");
+
+      const { error } = await supabase.rpc(
+        "customer_add_project_construction_standard_item",
+        {
+          p_project_stage_id: stage.id,
+          p_item_text: text,
+          p_is_required: true,
+        }
+      );
+
+      if (error) throw error;
+
+      setMessage("تمت إضافة معيار المشروع.");
+      setNewStandardText("");
+      window.location.reload();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر إضافة معيار المشروع.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteProjectStandard(itemId) {
+    if (saving || !itemId) return;
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+
+      const { error } = await supabase.rpc(
+        "customer_delete_project_construction_standard_item",
+        { p_standard_item_id: itemId }
+      );
+
+      if (error) throw error;
+      window.location.reload();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر حذف معيار المشروع.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUploadProjectStandardDocument() {
+    if (saving || !standardFile) return;
+
+    if (!ALLOWED_STANDARD_FILE_TYPES.includes(standardFile.type)) {
+      setErrorMessage("الملف يجب أن يكون PDF أو JPG أو PNG أو WEBP.");
+      return;
+    }
+
+    if (standardFile.size <= 0 || standardFile.size > MAX_STANDARD_FILE_SIZE) {
+      setErrorMessage("حجم ملف المعايير يجب ألا يتجاوز 20 ميجابايت.");
+      return;
+    }
+
+    let storagePath = "";
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setMessage("");
+
+      const safeName = sanitizeFileName(standardFile.name);
+      const uniquePart =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      storagePath = `project/${stage.id}/${uniquePart}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("construction-standards")
+        .upload(storagePath, standardFile, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: standardFile.type,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error: registerError } = await supabase.rpc(
+        "customer_register_project_construction_standard_document",
+        {
+          p_project_stage_id: stage.id,
+          p_storage_path: storagePath,
+          p_original_name: standardFile.name,
+          p_content_type: standardFile.type,
+          p_size_bytes: standardFile.size,
+        }
+      );
+
+      if (registerError) throw registerError;
+
+      setMessage("تم رفع ملف معايير المشروع.");
+      setStandardFile(null);
+      window.location.reload();
+    } catch (error) {
+      if (storagePath) {
+        await supabase.storage
+          .from("construction-standards")
+          .remove([storagePath]);
+      }
+
+      setErrorMessage(error?.message || "تعذر رفع ملف معايير المشروع.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleOpenDocument(document) {
+    try {
+      setErrorMessage("");
+      const { data, error } = await supabase.storage
+        .from(document.storageBucket || "construction-standards")
+        .createSignedUrl(document.storagePath, 300);
+
+      if (error) throw error;
+      if (!data?.signedUrl) throw new Error("تعذر إنشاء رابط الملف.");
+
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر فتح ملف المعايير.");
+    }
+  }
 
   return (
     <section
@@ -571,6 +770,18 @@ function ConstructionStageCard({ workspace }) {
           gap: "24px",
         }}
       >
+        {errorMessage && (
+          <p className="customer-file-notice" style={{ margin: 0, color: "#991b1b" }}>
+            {errorMessage}
+          </p>
+        )}
+
+        {message && (
+          <p className="customer-file-notice" style={{ margin: 0 }}>
+            {message}
+          </p>
+        )}
+
         <div>
           <h3
             style={{
@@ -653,17 +864,92 @@ function ConstructionStageCard({ workspace }) {
           )}
         </div>
 
+        <div style={{ display: "grid", gap: "12px" }}>
+          <h3 style={{ margin: 0, fontSize: "18px" }}>
+            إضافة معايير خاصة بالمشروع
+          </h3>
+
+          <form onSubmit={handleAddProjectStandard} style={{ display: "grid", gap: "10px" }}>
+            <textarea
+              rows="3"
+              value={newStandardText}
+              onChange={(event) => setNewStandardText(event.target.value)}
+              disabled={saving}
+              placeholder="اكتب المقاس أو المواصفة أو الشرط الخاص بهذا المشروع."
+              style={{ padding: "12px", borderRadius: "10px", border: "1px solid #d1d5db", font: "inherit", resize: "vertical" }}
+            />
+            <button
+              type="submit"
+              className="customer-land-entry-button"
+              disabled={saving || !newStandardText.trim()}
+            >
+              إضافة المعيار
+            </button>
+          </form>
+
+          <div style={{ display: "grid", gap: "8px" }}>
+            <strong>ملف معايير المشروع</strong>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+              onChange={(event) => setStandardFile(event.target.files?.[0] || null)}
+              disabled={saving}
+            />
+            <button
+              type="button"
+              className="customer-land-entry-button"
+              onClick={handleUploadProjectStandardDocument}
+              disabled={saving || !standardFile}
+            >
+              رفع الملف
+            </button>
+          </div>
+        </div>
+
         <StandardList
           title="المعايير الخاصة بالمشروع"
           items={projectStandards}
           emptyMessage="لم يرفع العميل معايير خاصة بهذه المرحلة حتى الآن."
+          onDelete={handleDeleteProjectStandard}
         />
+
+        {projectDocuments.length > 0 && (
+          <div style={{ display: "grid", gap: "8px" }}>
+            <h3 style={{ margin: 0, fontSize: "18px" }}>ملفات معايير المشروع</h3>
+            {projectDocuments.map((document) => (
+              <button
+                key={document.id}
+                type="button"
+                onClick={() => handleOpenDocument(document)}
+                style={{ textAlign: "right", padding: "11px 12px", border: "1px solid #d1d5db", borderRadius: "10px", background: "#fff", cursor: "pointer", font: "inherit" }}
+              >
+                📄 {document.originalName}
+              </button>
+            ))}
+          </div>
+        )}
 
         <StandardList
           title="المعايير العامة"
           items={generalStandards}
           emptyMessage="لم تضف الإدارة معايير عامة لهذه المرحلة حتى الآن."
         />
+
+        {generalDocuments.length > 0 && (
+          <div style={{ display: "grid", gap: "8px" }}>
+            <h3 style={{ margin: 0, fontSize: "18px" }}>ملف المعايير العامة</h3>
+            {generalDocuments.map((document) => (
+              <button
+                key={document.id}
+                type="button"
+                onClick={() => handleOpenDocument(document)}
+                style={{ textAlign: "right", padding: "11px 12px", border: "1px solid #d1d5db", borderRadius: "10px", background: "#fff", cursor: "pointer", font: "inherit" }}
+              >
+                📄 {document.originalName}
+              </button>
+            ))}
+          </div>
+        )}
 
         <p
           className="customer-file-notice"
