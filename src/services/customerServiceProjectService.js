@@ -77,6 +77,14 @@ function validatePropertyLocationUrl(value) {
   return propertyLocationUrl;
 }
 
+function validateCity(value) {
+  const city = normalizeText(value);
+  if (city.length < 2 || city.length > 100) {
+    throw new Error("أدخل مدينة المشروع بصورة صحيحة.");
+  }
+  return city;
+}
+
 function validateLandArea(value) {
   const landArea = Number(value);
 
@@ -262,6 +270,14 @@ function getArabicServiceProjectError(
 
   if (
     message.includes(
+      "INVALID_PROJECT_CITY"
+    )
+  ) {
+    return "مدينة المشروع غير صحيحة.";
+  }
+
+  if (
+    message.includes(
       "INVALID_LAND_AREA"
     )
   ) {
@@ -375,6 +391,7 @@ export async function createCustomerServiceProject({
   customerName,
   mobileNumber,
   propertyLocationUrl,
+  city,
   landArea,
   projectTitle,
   floors,
@@ -392,6 +409,9 @@ export async function createCustomerServiceProject({
     validatePropertyLocationUrl(
       propertyLocationUrl
     );
+
+  const validatedCity =
+    validateCity(city);
 
   const validatedLandArea =
     validateLandArea(landArea);
@@ -421,6 +441,9 @@ export async function createCustomerServiceProject({
 
         p_property_location_url:
           validatedPropertyLocationUrl,
+
+        p_city:
+          validatedCity,
 
         p_land_area:
           validatedLandArea,

@@ -103,23 +103,36 @@ function SupervisorPortal({ onBackHome }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [availableProjects, setAvailableProjects] = useState([]);
+  const [myOffers, setMyOffers] = useState([]);
+  const [offerPrices, setOfferPrices] = useState({});
+  const [offerNotes, setOfferNotes] = useState({});
 
   async function loadSupervisorDashboard() {
-    const { data, error } = await supabase.rpc("supervisor_get_dashboard");
+    const [dashboardResult, availableResult, offersResult] = await Promise.all([
+      supabase.rpc("supervisor_get_dashboard"),
+      supabase.rpc("supervisor_list_available_projects"),
+      supabase.rpc("supervisor_list_my_project_offers"),
+    ]);
 
-    if (error) {
-      const message = String(error.message || "");
+    if (dashboardResult.error) {
+      const message = String(dashboardResult.error.message || "");
       if (message.includes("SUPERVISOR_AUTHORIZATION_REQUIRED")) {
         setAuthStep("not-approved");
         return false;
       }
-      throw error;
+      throw dashboardResult.error;
     }
+    if (availableResult.error) throw availableResult.error;
+    if (offersResult.error) throw offersResult.error;
 
+    const data = dashboardResult.data;
     setDashboard({
       projects: Array.isArray(data?.projects) ? data.projects : [],
       reminders: Array.isArray(data?.reminders) ? data.reminders : [],
     });
+    setAvailableProjects(Array.isArray(availableResult.data) ? availableResult.data : []);
+    setMyOffers(Array.isArray(offersResult.data) ? offersResult.data : []);
     setAuthStep("dashboard");
     return true;
   }
@@ -441,6 +454,35 @@ function SupervisorPortal({ onBackHome }) {
     }
   }
 
+  async function submitProjectOffer(project) {
+    const key = `${project.projectType}:${project.projectId}`;
+    const price = Number(offerPrices[key]);
+    if (!Number.isFinite(price) || price <= 0 || loading) {
+      setErrorMessage("أدخل سعرًا صحيحًا للعرض.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+      const { error } = await supabase.rpc("supervisor_submit_project_offer", {
+        p_project_type: project.projectType,
+        p_project_id: project.projectId,
+        p_offer_price: price,
+        p_offer_note: String(offerNotes[key] || "").trim() || null,
+      });
+      if (error) throw error;
+      setSuccessMessage("تم إرسال العرض إلى العميل.");
+      setOfferPrices((current) => ({ ...current, [key]: "" }));
+      setOfferNotes((current) => ({ ...current, [key]: "" }));
+      await loadSupervisorDashboard();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر إرسال العرض.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const shellStyle = {
     minHeight: "100vh",
     background: "#f5f3ee",
@@ -531,6 +573,54 @@ function SupervisorPortal({ onBackHome }) {
 
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}
         {successMessage && <div style={cardStyle}>{successMessage}</div>}
+
+        <section style={cardStyle}>
+          <h2 style={{ marginTop: 0 }}>مشاريع متاحة في منطقتك</h2>
+          <p>تظهر هنا المشاريع التي تقع في مدينتك أو ضمن مناطق خدمتك ولم يُفعّل لها مشرف بعد.</p>
+          {availableProjects.length === 0 ? (
+            <p>لا توجد مشاريع متاحة حاليًا في منطقتك.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {availableProjects.map((project) => {
+                const key = `${project.projectType}:${project.projectId}`;
+                return (
+                  <article key={key} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                    <strong style={{ display: "block" }}>{project.projectNumber || "مشروع"}</strong>
+                    <div>{project.city || ""}{project.district ? ` — ${project.district}` : ""}</div>
+                    <div>{project.projectTitle || ""} — {project.landArea || "-"} م² — {project.floors || "-"} دور</div>
+                    <small>المرحلة: {project.currentStage || "غير محددة"}</small>
+                    {project.locationUrl && <p><a href={project.locationUrl} target="_blank" rel="noreferrer">فتح موقع المشروع</a></p>}
+                    {project.myOfferStatus ? (
+                      <p><strong>تم إرسال عرضك:</strong> {Number(project.myOfferPrice || 0).toLocaleString("ar-SA")} ريال</p>
+                    ) : (
+                      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                        <input type="number" min="1" step="0.01" placeholder="سعر الإشراف بالريال" value={offerPrices[key] || ""} onChange={(e) => setOfferPrices((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                        <textarea rows="2" placeholder="ملاحظة العرض (اختياري)" value={offerNotes[key] || ""} onChange={(e) => setOfferNotes((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                        <button type="button" onClick={() => submitProjectOffer(project)} disabled={loading || !offerPrices[key]}>إرسال عرض</button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section style={cardStyle}>
+          <h2 style={{ marginTop: 0 }}>عروضي</h2>
+          {myOffers.length === 0 ? <p>لم ترسل عروضًا بعد.</p> : (
+            <div style={{ display: "grid", gap: 9 }}>
+              {myOffers.map((offer) => (
+                <article key={offer.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 12 }}>
+                  <strong>{offer.projectNumber || "مشروع"}</strong>
+                  <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
+                  <div>الحالة: {offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "customer_selected" ? "اختارك العميل — بانتظار اعتماد الإدارة" : offer.status === "fee_pending" ? "معتمد — بانتظار سداد رسوم المنصة" : offer.status === "active" ? "تم التفعيل" : offer.status === "admin_rejected" ? "لم تعتمد الإدارة العرض" : offer.status}</div>
+                  {offer.status === "fee_pending" && <p><strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />بعد السداد وتأكيد الإدارة تُفتح أدوات الإشراف على المشروع.</p>}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section style={cardStyle}>
           <h2 style={{ marginTop: 0 }}>جدول الأعمال</h2>

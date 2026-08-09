@@ -140,6 +140,7 @@ function AdminDashboardPage({
   const [supervisorsSaving, setSupervisorsSaving] = useState(false);
   const [supervisorsMessage, setSupervisorsMessage] = useState("");
   const [supervisorsError, setSupervisorsError] = useState("");
+  const [supervisorOfferReviews, setSupervisorOfferReviews] = useState([]);
 
   const [adminStageWorkspace, setAdminStageWorkspace] = useState(null);
   const [adminStageLoading, setAdminStageLoading] = useState(false);
@@ -174,12 +175,14 @@ function AdminDashboardPage({
   }
 
   async function reloadSupervisors() {
-    const [candidatesResult, assignmentsResult] = await Promise.all([
+    const [candidatesResult, assignmentsResult, offersResult] = await Promise.all([
       supabase.rpc("admin_list_supervisor_candidates"),
       supabase.rpc("admin_list_supervisor_assignment_options"),
+      supabase.rpc("admin_list_selected_supervisor_offers"),
     ]);
     if (candidatesResult.error) throw candidatesResult.error;
     if (assignmentsResult.error) throw assignmentsResult.error;
+    if (offersResult.error) throw offersResult.error;
 
     const candidates = Array.isArray(candidatesResult.data)
       ? candidatesResult.data
@@ -192,6 +195,7 @@ function AdminDashboardPage({
       : [];
 
     setSupervisorCandidates(candidates);
+    setSupervisorOfferReviews(Array.isArray(offersResult.data) ? offersResult.data : []);
     setActiveSupervisors(supervisors);
     setSupervisorProjects(projects);
     setSelectedSupervisorId((current) =>
@@ -416,6 +420,37 @@ function AdminDashboardPage({
     } finally {
       setSupervisorsSaving(false);
     }
+  }
+
+  async function handleDecideSupervisorOffer(offerId, approve) {
+    if (!offerId || supervisorsSaving) return;
+    const note = approve ? "" : (window.prompt("سبب عدم الاعتماد (اختياري):") || "");
+    try {
+      setSupervisorsSaving(true);
+      setSupervisorsError("");
+      const { error } = await supabase.rpc("admin_decide_supervisor_offer", {
+        p_offer_id: offerId, p_approve: Boolean(approve), p_note: note || null,
+      });
+      if (error) throw error;
+      setSupervisorsMessage(approve ? "تم اعتماد اختيار العميل، وأصبحت رسوم 2٪ مستحقة على المشرف." : "تم رفض اختيار المشرف ويمكن للعميل اختيار عرض آخر.");
+      await reloadSupervisors();
+    } catch (error) {
+      setSupervisorsError(error?.message || "تعذر تنفيذ قرار العرض.");
+    } finally { setSupervisorsSaving(false); }
+  }
+
+  async function handleConfirmSupervisorFee(offerId) {
+    if (!offerId || supervisorsSaving) return;
+    try {
+      setSupervisorsSaving(true);
+      setSupervisorsError("");
+      const { error } = await supabase.rpc("admin_confirm_supervisor_offer_fee_paid", { p_offer_id: offerId });
+      if (error) throw error;
+      setSupervisorsMessage("تم تأكيد سداد الرسوم وتفعيل المشرف على المشروع.");
+      await reloadSupervisors();
+    } catch (error) {
+      setSupervisorsError(error?.message || "تعذر تأكيد السداد.");
+    } finally { setSupervisorsSaving(false); }
   }
 
   async function handleViewProjectStage(projectId) {
@@ -643,7 +678,7 @@ function AdminDashboardPage({
               <header className="admin-dashboard-card-header">
                 <div>
                   <h2>مشرفو المشاريع</h2>
-                  <p>اعتماد حسابات المشرفين وتعيينهم على المشاريع.</p>
+                  <p>اعتماد حسابات المشرفين ومراجعة اختيارات العملاء وتأكيد رسوم المنصة.</p>
                 </div>
               </header>
 
@@ -674,33 +709,30 @@ function AdminDashboardPage({
                     )}
                   </form>
 
-                  <form onSubmit={handleAssignSupervisor} style={{ display: "grid", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
-                    <h3 style={{ margin: 0 }}>تعيين مشرف على مشروع</h3>
-                    {activeSupervisors.length === 0 ? (
-                      <p>لا يوجد مشرف نشط بعد.</p>
-                    ) : supervisorProjects.length === 0 ? (
-                      <p>لا توجد مشاريع متاحة.</p>
-                    ) : (
-                      <>
-                        <select value={selectedSupervisorId} onChange={(event) => setSelectedSupervisorId(event.target.value)}>
-                          {activeSupervisors.map((supervisor) => (
-                            <option key={supervisor.userId} value={supervisor.userId}>
-                              {supervisor.fullName} — {supervisor.email || "بدون بريد"}
-                            </option>
-                          ))}
-                        </select>
-                        <select value={selectedSupervisorProjectId} onChange={(event) => setSelectedSupervisorProjectId(event.target.value)}>
-                          {supervisorProjects.map((project) => (
-                            <option key={project.projectId} value={project.projectId}>
-                              {project.projectNumber || project.projectId} — {project.customerName || "عميل"}
-                              {project.supervisorName ? ` — الحالي: ${project.supervisorName}` : ""}
-                            </option>
-                          ))}
-                        </select>
-                        <button type="submit" disabled={supervisorsSaving}>تعيين المشرف</button>
-                      </>
-                    )}
-                  </form>
+                  <div style={{ display: "grid", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
+                    <h3 style={{ margin: 0 }}>اختيارات العملاء وعروض المشرفين</h3>
+                    {supervisorOfferReviews.filter((offer) => ["customer_selected","fee_pending"].includes(offer.status)).length === 0 ? (
+                      <p>لا توجد عروض بانتظار إجراء من الإدارة.</p>
+                    ) : supervisorOfferReviews.filter((offer) => ["customer_selected","fee_pending"].includes(offer.status)).map((offer) => (
+                      <article key={offer.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10 }}>
+                        <strong>{offer.projectNumber || "مشروع"}</strong>
+                        <div>العميل: {offer.customerName || "غير متوفر"}</div>
+                        <div>المشرف: {offer.supervisorName}{offer.organizationName ? ` — ${offer.organizationName}` : ""}</div>
+                        <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
+                        {offer.status === "customer_selected" ? (
+                          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                            <button type="button" onClick={() => handleDecideSupervisorOffer(offer.id, true)} disabled={supervisorsSaving}>اعتماد</button>
+                            <button type="button" onClick={() => handleDecideSupervisorOffer(offer.id, false)} disabled={supervisorsSaving}>رفض</button>
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: 8 }}>
+                            <strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong>
+                            <div><button type="button" onClick={() => handleConfirmSupervisorFee(offer.id)} disabled={supervisorsSaving}>تأكيد استلام الرسوم وتفعيل المشرف</button></div>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
 
                   <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
                     <h3 style={{ marginTop: 0 }}>المشاريع والتعيينات الحالية</h3>

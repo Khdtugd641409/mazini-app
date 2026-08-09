@@ -17,6 +17,7 @@ const INITIAL_FORM_DATA = {
   mobileNumber: "",
   email: "",
   propertyLocationUrl: "",
+  city: "",
   landArea: "",
   projectTitle: "",
   floors: "",
@@ -129,6 +130,7 @@ export default function CustomerServiceApplicationPage({
       !formData.mobileNumber.trim() ||
       !formData.email.trim() ||
       !formData.propertyLocationUrl.trim() ||
+      !formData.city.trim() ||
       !formData.landArea ||
       !formData.projectTitle ||
       !formData.floors
@@ -226,6 +228,9 @@ export default function CustomerServiceApplicationPage({
 
           propertyLocationUrl:
             formData.propertyLocationUrl,
+
+          city:
+            formData.city,
 
           landArea:
             formData.landArea,
@@ -540,6 +545,18 @@ export default function CustomerServiceApplicationPage({
                         event.target.value
                       )
                     }
+                    disabled={isSubmitting}
+                    required
+                  />
+                </label>
+
+                <label>
+                  <span>مدينة المشروع</span>
+                  <input
+                    type="text"
+                    placeholder="مثال: الرياض"
+                    value={formData.city}
+                    onChange={(event) => updateField("city", event.target.value)}
                     disabled={isSubmitting}
                     required
                   />

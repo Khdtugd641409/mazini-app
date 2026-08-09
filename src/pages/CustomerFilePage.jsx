@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { supabase } from "../lib/supabase.js";
 import ConstructionStageRequests from "../components/ConstructionStageRequests.jsx";
@@ -551,6 +551,73 @@ function StandardList({
         </div>
       )}
     </div>
+  );
+}
+
+function SupervisorOffersCard({ projectId }) {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function loadOffers() {
+    if (!projectId) return;
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      const { data, error } = await supabase.rpc("customer_get_supervisor_offers", { p_project_id: projectId });
+      if (error) throw error;
+      setOffers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر تحميل عروض المشرفين.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadOffers(); }, [projectId]);
+
+  async function selectOffer(offerId) {
+    if (!offerId || loading) return;
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      const { error } = await supabase.rpc("customer_select_supervisor_offer", { p_offer_id: offerId });
+      if (error) throw error;
+      await loadOffers();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر اختيار العرض.");
+      setLoading(false);
+    }
+  }
+
+  const selectedOffer = offers.find((offer) => ["customer_selected","fee_pending","active"].includes(offer.status));
+
+  return (
+    <section className="customer-file-card">
+      <h2>عروض المشرفين</h2>
+      {errorMessage && <p className="customer-file-notice" style={{ color: "#991b1b" }}>{errorMessage}</p>}
+      {selectedOffer?.status === "customer_selected" && <p className="customer-file-notice"><strong>تم اختيار المشرف. في انتظار قبول إدارة المنصة.</strong></p>}
+      {selectedOffer?.status === "fee_pending" && <p className="customer-file-notice"><strong>اعتمدت الإدارة اختيارك. بانتظار سداد المشرف رسوم المنصة لتفعيل الإشراف.</strong></p>}
+      {selectedOffer?.status === "active" && <p className="customer-file-notice"><strong>تم تفعيل المشرف على المشروع.</strong></p>}
+      {loading ? <p>جاري تحميل العروض...</p> : offers.filter((offer) => offer.status !== "expired").length === 0 ? <p>لم تصل عروض من المشرفين حتى الآن.</p> : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {offers.filter((offer) => offer.status !== "expired").map((offer) => (
+            <article key={offer.id} style={{ padding: 14, border: offer.id === selectedOffer?.id ? "2px solid #0b3b32" : "1px solid #e1e5e1", borderRadius: 14 }}>
+              <strong style={{ display: "block", fontSize: 18 }}>{offer.supervisor?.name || "مشرف"}</strong>
+              {offer.supervisor?.organizationName && <span>{offer.supervisor.organizationName}</span>}
+              <div>{offer.supervisor?.professionalTitle || ""}</div>
+              <div>الخبرة: {Number(offer.supervisor?.experienceYears || 0)} سنة — المشاريع السابقة: {Number(offer.supervisor?.completedProjectsCount || 0)}</div>
+              <p><strong>{Number(offer.price || 0).toLocaleString("ar-SA")} ريال</strong></p>
+              {offer.note && <p>{offer.note}</p>}
+              {offer.status === "submitted" && !selectedOffer && (
+                <button type="button" className="customer-land-entry-button" onClick={() => selectOffer(offer.id)} disabled={loading}>اختيار العرض</button>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+      <p className="customer-file-notice" style={{ marginBottom: 0 }}>يمكنك المقارنة بالسعر والخبرة وسجل المشرف؛ لا يفرض النظام اختيار الأرخص تلقائيًا.</p>
+    </section>
   );
 }
 
@@ -1116,6 +1183,8 @@ function CustomerFilePage({
         <ConstructionStageCard
           workspace={constructionWorkspace}
         />
+
+        <SupervisorOffersCard projectId={customerFile.id} />
 
         <section
           className="customer-file-card"
