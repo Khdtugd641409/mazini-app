@@ -80,7 +80,7 @@
 
 .admin-dashboard-card {
   padding: 24px;
-  background: #ffffff;
+  background: linear-gradient(145deg, #ffffff 0%, #fbfaf6 100%);
   border: 1px solid rgba(11, 59, 50, 0.1);
   border-radius: 22px;
   box-shadow: 0 12px 34px rgba(40, 48, 42, 0.065);
@@ -137,8 +137,7 @@
 
 .admin-action-grid {
   display: grid;
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -153,18 +152,10 @@
   font: inherit;
   text-align: right;
   cursor: pointer;
-  background:
-    linear-gradient(
-      135deg,
-      #fbfaf7,
-      #f3ecdc
-    );
+  background: linear-gradient(135deg, #fbfaf7, #f3ecdc);
   border: 1px solid #dfd5bd;
   border-radius: 17px;
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
 .admin-action-button:hover,
@@ -196,8 +187,7 @@
 
 .admin-section-grid {
   display: grid;
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
@@ -214,10 +204,7 @@
   background: #faf9f5;
   border: 1px solid #e0e5e1;
   border-radius: 17px;
-  transition:
-    transform 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .admin-section-button:hover,
@@ -245,8 +232,7 @@
 
 .admin-summary-grid {
   display: grid;
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin: 20px 0 0;
 }
@@ -279,14 +265,12 @@
 
 @media (max-width: 1100px) {
   .admin-action-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-section-grid,
   .admin-summary-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "../../lib/supabase.js";
 import { getCurrentAdmin } from "../../services/adminAuthService.js";
@@ -31,10 +31,18 @@ const DOCUMENT_LABELS = {
 };
 
 const cardStyle = {
-  background: "#fff",
+  background: "linear-gradient(145deg, #ffffff 0%, #fbfaf6 100%)",
   border: "1px solid #e3e0d7",
-  borderRadius: 18,
+  borderRadius: 20,
   padding: 20,
+  boxShadow: "0 10px 30px rgba(40,48,42,.055)",
+};
+
+const softCardStyle = {
+  background: "#f7f4ec",
+  border: "1px solid #dfd7c7",
+  borderRadius: 18,
+  padding: 18,
 };
 
 function formatDate(value) {
@@ -47,9 +55,15 @@ function formatDate(value) {
   }).format(date);
 }
 
+function getInitialView() {
+  const value = new URLSearchParams(window.location.search).get("view");
+  return value === "applicants" || value === "approved" ? value : "home";
+}
+
 function AdminSupervisorApplicationsPage() {
   const [admin, setAdmin] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [view, setView] = useState(getInitialView);
   const [selectedId, setSelectedId] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,18 +71,21 @@ function AdminSupervisorApplicationsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const applicants = useMemo(
+    () => applications.filter((item) => item.status !== "approved"),
+    [applications]
+  );
+  const approved = useMemo(
+    () => applications.filter((item) => item.status === "approved"),
+    [applications]
+  );
+  const visibleApplications = view === "approved" ? approved : applicants;
   const selected = applications.find((item) => item.id === selectedId) || null;
 
   async function loadApplications() {
     const { data, error } = await supabase.rpc("admin_list_supervisor_applications");
     if (error) throw error;
-    const rows = Array.isArray(data) ? data : [];
-    setApplications(rows);
-    setSelectedId((current) =>
-      current && rows.some((row) => row.id === current)
-        ? current
-        : rows[0]?.id || ""
-    );
+    setApplications(Array.isArray(data) ? data : []);
   }
 
   useEffect(() => {
@@ -87,7 +104,7 @@ function AdminSupervisorApplicationsPage() {
         setAdmin(currentAdmin);
         await loadApplications();
       } catch (error) {
-        if (active) setErrorMessage(error?.message || "تعذر تحميل طلبات المشرفين.");
+        if (active) setErrorMessage(error?.message || "تعذر تحميل سجلات المشرفين.");
       } finally {
         if (active) setLoading(false);
       }
@@ -103,8 +120,26 @@ function AdminSupervisorApplicationsPage() {
     setNote(selected?.adminNote || "");
   }, [selectedId]);
 
+  function openView(nextView) {
+    setView(nextView);
+    setSelectedId("");
+    setErrorMessage("");
+    setSuccessMessage("");
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", nextView);
+    window.history.replaceState({}, "", url);
+  }
+
+  function backToCategories() {
+    setView("home");
+    setSelectedId("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("view");
+    window.history.replaceState({}, "", url);
+  }
+
   async function decide(decision) {
-    if (!selected || saving) return;
+    if (!selected || saving || selected.status === "approved") return;
 
     if ((decision === "needs_completion" || decision === "reject") && note.trim().length < 3) {
       setErrorMessage("اكتب ملاحظة واضحة للمتقدم قبل هذا القرار.");
@@ -131,6 +166,8 @@ function AdminSupervisorApplicationsPage() {
             : "تم رفض الطلب."
       );
       await loadApplications();
+      setSelectedId("");
+      if (decision === "approve") setView("applicants");
     } catch (error) {
       setErrorMessage(error?.message || "تعذر تنفيذ قرار الإدارة.");
     } finally {
@@ -155,7 +192,7 @@ function AdminSupervisorApplicationsPage() {
   if (loading) {
     return (
       <main style={{ minHeight: "100vh", background: "#f5f3ee", padding: 24, direction: "rtl" }}>
-        <div style={{ ...cardStyle, maxWidth: 900, margin: "60px auto" }}>جاري تحميل طلبات المشرفين...</div>
+        <div style={{ ...cardStyle, maxWidth: 900, margin: "60px auto" }}>جاري تحميل سجلات المشرفين...</div>
       </main>
     );
   }
@@ -163,12 +200,12 @@ function AdminSupervisorApplicationsPage() {
   if (!admin) return null;
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f5f3ee", color: "#173f36", padding: "24px 16px 60px", direction: "rtl" }}>
+    <main style={{ minHeight: "100vh", background: "radial-gradient(circle at top right, rgba(205,166,77,.12), transparent 32%), #f7f5ef", color: "#173f36", padding: "24px 16px 60px", direction: "rtl" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gap: 18 }}>
         <header style={{ ...cardStyle, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <p style={{ margin: 0 }}>إدارة منصة نايف المزيني</p>
-            <h1 style={{ marginBottom: 0 }}>طلبات تسجيل المشرفين</h1>
+            <p style={{ margin: 0, color: "#6d7c76" }}>إدارة منصة نايف المزيني</p>
+            <h1 style={{ marginBottom: 0 }}>إدارة المشرفين</h1>
           </div>
           <button type="button" onClick={() => { window.location.href = "/admin/dashboard"; }}>العودة للوحة الإدارة</button>
         </header>
@@ -176,87 +213,130 @@ function AdminSupervisorApplicationsPage() {
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}
         {successMessage && <div style={cardStyle}>{successMessage}</div>}
 
-        {applications.length === 0 ? (
-          <section style={cardStyle}><p>لا توجد طلبات مشرفين حتى الآن.</p></section>
-        ) : (
+        {view === "home" && (
+          <section style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>سجلات المشرفين</h2>
+            <p style={{ color: "#687872" }}>اختر القائمة التي تريد مراجعتها.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginTop: 18 }}>
+              <button type="button" onClick={() => openView("applicants")} style={{ ...softCardStyle, minHeight: 150, textAlign: "right", cursor: "pointer", color: "#173f36", font: "inherit" }}>
+                <span style={{ display: "block", fontSize: 36, marginBottom: 10 }}>📝</span>
+                <strong style={{ display: "block", fontSize: 22 }}>المشرفون المتقدمون</strong>
+                <span style={{ display: "block", marginTop: 8, color: "#6d7c76" }}>طلبات التسجيل التي لم تعتمد بعد</span>
+                <strong style={{ display: "block", marginTop: 12, fontSize: 26 }}>{applicants.length}</strong>
+              </button>
+
+              <button type="button" onClick={() => openView("approved")} style={{ ...softCardStyle, minHeight: 150, textAlign: "right", cursor: "pointer", color: "#173f36", font: "inherit" }}>
+                <span style={{ display: "block", fontSize: 36, marginBottom: 10 }}>✅</span>
+                <strong style={{ display: "block", fontSize: 22 }}>المشرفون المعتمدون</strong>
+                <span style={{ display: "block", marginTop: 8, color: "#6d7c76" }}>المشرفون المقبولون في المنصة</span>
+                <strong style={{ display: "block", marginTop: 12, fontSize: 26 }}>{approved.length}</strong>
+              </button>
+            </div>
+          </section>
+        )}
+
+        {view !== "home" && !selected && (
           <>
-            <section style={cardStyle}>
-              <label style={{ display: "grid", gap: 8 }}>
-                <strong>اختر الطلب</strong>
-                <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} style={{ minHeight: 46, borderRadius: 10, border: "1px solid #d1d5db", padding: "0 12px", font: "inherit" }}>
-                  {applications.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.fullName} — {STATUS_LABELS[item.status] || item.status}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <section style={{ ...cardStyle, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <h2 style={{ margin: 0 }}>{view === "approved" ? "المشرفون المعتمدون" : "المشرفون المتقدمون"}</h2>
+                <p style={{ marginBottom: 0, color: "#687872" }}>اضغط «عرض السجل» للاطلاع على جميع بيانات المشرف ومستنداته.</p>
+              </div>
+              <button type="button" onClick={backToCategories}>العودة إلى قوائم المشرفين</button>
             </section>
 
-            {selected && (
-              <section style={{ ...cardStyle, display: "grid", gap: 18 }}>
-                <div>
-                  <h2 style={{ marginBottom: 5 }}>{selected.fullName}</h2>
-                  <strong>{STATUS_LABELS[selected.status] || selected.status}</strong>
-                  <p>تاريخ التقديم: {formatDate(selected.submittedAt)}</p>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
-                  <div><strong>الصفة</strong><p>{APPLICANT_TYPE_LABELS[selected.applicantType] || selected.applicantType}</p></div>
-                  <div><strong>البريد</strong><p>{selected.email}</p></div>
-                  <div><strong>الجوال</strong><p>{selected.mobileNumber}</p></div>
-                  <div><strong>المسمى المهني</strong><p>{selected.professionalTitle}</p></div>
-                  <div><strong>المدينة</strong><p>{selected.city}</p></div>
-                  <div><strong>سنوات الخبرة</strong><p>{selected.experienceYears}</p></div>
-                  <div><strong>المشاريع السابقة</strong><p>{selected.completedProjectsCount}</p></div>
-                  <div><strong>مناطق الخدمة</strong><p>{(selected.serviceAreas || []).join("، ") || "غير محدد"}</p></div>
-                </div>
-
-                <div>
-                  <strong>النبذة المهنية</strong>
-                  <p>{selected.profileSummary}</p>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
-                  <div><strong>اسم المكتب / المنشأة</strong><p>{selected.organizationName || "فرد — لا يوجد"}</p></div>
-                  <div><strong>السجل التجاري</strong><p>{selected.commercialRegistrationNumber || "غير مطلوب / غير مرفق"}</p></div>
-                  <div><strong>رقم الترخيص المهني</strong><p>{selected.professionalLicenseNumber || "غير مذكور"}</p></div>
-                </div>
-
-                <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-                  <h3>الخدمة المعروضة</h3>
-                  <strong>{selected.initialServiceTitle}</strong>
-                  {selected.initialServiceDescription && <p>{selected.initialServiceDescription}</p>}
-                  <p>التسعير: {PRICING_LABELS[selected.pricingModel] || selected.pricingModel}{selected.servicePrice != null ? ` — ${selected.servicePrice}` : ""}</p>
-                </div>
-
-                <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 14 }}>
-                  <h3>المستندات</h3>
-                  {(selected.documents || []).length === 0 ? (
-                    <p>لم يرفع المتقدم مستندات.</p>
-                  ) : (
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {selected.documents.map((document) => (
-                        <button key={document.id} type="button" onClick={() => openDocument(document)} style={{ textAlign: "right", padding: 12 }}>
-                          📄 {DOCUMENT_LABELS[document.documentType] || document.documentType} — {document.originalName}
-                        </button>
-                      ))}
+            {visibleApplications.length === 0 ? (
+              <section style={cardStyle}><p>لا توجد سجلات في هذه القائمة حاليًا.</p></section>
+            ) : (
+              <section style={{ ...cardStyle, display: "grid", gap: 12 }}>
+                {visibleApplications.map((item) => (
+                  <article key={item.id} style={{ ...softCardStyle, display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "center" }}>
+                    <div>
+                      <h3 style={{ margin: "0 0 6px" }}>{item.fullName}</h3>
+                      <strong>{STATUS_LABELS[item.status] || item.status}</strong>
+                      <div style={{ marginTop: 7, color: "#687872" }}>{item.professionalTitle || "المسمى غير محدد"} — {item.city || "المدينة غير محددة"}</div>
+                      <small style={{ display: "block", marginTop: 6 }}>تاريخ التقديم: {formatDate(item.submittedAt)}</small>
                     </div>
-                  )}
-                </div>
-
-                <label style={{ display: "grid", gap: 8 }}>
-                  <strong>ملاحظة الإدارة</strong>
-                  <textarea rows="4" value={note} onChange={(e) => setNote(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 10, padding: 12, font: "inherit" }} placeholder="تظهر للمتقدم عند طلب الاستكمال أو الرفض." />
-                </label>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="button" disabled={saving} onClick={() => decide("approve")}>قبول المشرف</button>
-                  <button type="button" disabled={saving} onClick={() => decide("needs_completion")}>طلب استكمال</button>
-                  <button type="button" disabled={saving} onClick={() => decide("reject")}>رفض الطلب</button>
-                </div>
+                    <button type="button" onClick={() => setSelectedId(item.id)} style={{ minHeight: 44, padding: "8px 16px" }}>عرض السجل</button>
+                  </article>
+                ))}
               </section>
             )}
+          </>
+        )}
+
+        {selected && (
+          <>
+            <section style={{ ...cardStyle, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <h2 style={{ margin: 0 }}>سجل المشرف</h2>
+                <p style={{ marginBottom: 0 }}>{selected.fullName}</p>
+              </div>
+              <button type="button" onClick={() => setSelectedId("")}>العودة إلى القائمة</button>
+            </section>
+
+            <section style={{ ...cardStyle, display: "grid", gap: 18 }}>
+              <div>
+                <h2 style={{ marginBottom: 5 }}>{selected.fullName}</h2>
+                <strong>{STATUS_LABELS[selected.status] || selected.status}</strong>
+                <p>تاريخ التقديم: {formatDate(selected.submittedAt)}</p>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+                <div style={softCardStyle}><strong>الصفة</strong><p>{APPLICANT_TYPE_LABELS[selected.applicantType] || selected.applicantType}</p></div>
+                <div style={softCardStyle}><strong>البريد</strong><p>{selected.email}</p></div>
+                <div style={softCardStyle}><strong>الجوال</strong><p>{selected.mobileNumber}</p></div>
+                <div style={softCardStyle}><strong>المسمى المهني</strong><p>{selected.professionalTitle}</p></div>
+                <div style={softCardStyle}><strong>المدينة</strong><p>{selected.city}</p></div>
+                <div style={softCardStyle}><strong>سنوات الخبرة</strong><p>{selected.experienceYears}</p></div>
+                <div style={softCardStyle}><strong>المشاريع السابقة</strong><p>{selected.completedProjectsCount}</p></div>
+                <div style={softCardStyle}><strong>مناطق الخدمة</strong><p>{(selected.serviceAreas || []).join("، ") || "غير محدد"}</p></div>
+              </div>
+
+              <div style={softCardStyle}><strong>النبذة المهنية</strong><p>{selected.profileSummary}</p></div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+                <div style={softCardStyle}><strong>اسم المكتب / المنشأة</strong><p>{selected.organizationName || "فرد — لا يوجد"}</p></div>
+                <div style={softCardStyle}><strong>السجل التجاري</strong><p>{selected.commercialRegistrationNumber || "غير مطلوب / غير مرفق"}</p></div>
+                <div style={softCardStyle}><strong>رقم الترخيص المهني</strong><p>{selected.professionalLicenseNumber || "غير مذكور"}</p></div>
+              </div>
+
+              <div style={softCardStyle}>
+                <h3 style={{ marginTop: 0 }}>الخدمة المعروضة</h3>
+                <strong>{selected.initialServiceTitle}</strong>
+                {selected.initialServiceDescription && <p>{selected.initialServiceDescription}</p>}
+                <p>التسعير: {PRICING_LABELS[selected.pricingModel] || selected.pricingModel}{selected.servicePrice != null ? ` — ${selected.servicePrice}` : ""}</p>
+              </div>
+
+              <div style={softCardStyle}>
+                <h3 style={{ marginTop: 0 }}>المستندات</h3>
+                {(selected.documents || []).length === 0 ? (
+                  <p>لم يرفع المتقدم مستندات.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {selected.documents.map((document) => (
+                      <button key={document.id} type="button" onClick={() => openDocument(document)} style={{ textAlign: "right", padding: 12 }}>📄 {DOCUMENT_LABELS[document.documentType] || document.documentType} — {document.originalName}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selected.status !== "approved" ? (
+                <>
+                  <label style={{ display: "grid", gap: 8 }}>
+                    <strong>ملاحظة الإدارة</strong>
+                    <textarea rows="4" value={note} onChange={(e) => setNote(e.target.value)} style={{ border: "1px solid #d1d5db", borderRadius: 10, padding: 12, font: "inherit" }} placeholder="تظهر للمتقدم عند طلب الاستكمال أو الرفض." />
+                  </label>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button type="button" disabled={saving} onClick={() => decide("approve")}>قبول المشرف</button>
+                    <button type="button" disabled={saving} onClick={() => decide("needs_completion")}>طلب استكمال</button>
+                    <button type="button" disabled={saving} onClick={() => decide("reject")}>رفض الطلب</button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ ...softCardStyle, fontWeight: 800 }}>هذا المشرف معتمد في المنصة. السجل متاح للإدارة للاطلاع في أي وقت.</div>
+              )}
+            </section>
           </>
         )}
       </div>

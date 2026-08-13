@@ -184,8 +184,9 @@ if (normalizedPath === "/supplier/application") {
   rootContent = (
     <>
       <App />
-      <FloatingShortcut href="/admin/supervisor-applications" bottom={18}>طلبات تسجيل المشرفين</FloatingShortcut>
-      <FloatingShortcut href="/admin/supplier-applications" bottom={70}>طلبات تسجيل الموردين</FloatingShortcut>
+      <FloatingShortcut href="/admin/supervisor-applications?view=applicants" bottom={18}>📝 المشرفون المتقدمون</FloatingShortcut>
+      <FloatingShortcut href="/admin/supervisor-applications?view=approved" bottom={70}>✅ المشرفون المعتمدون</FloatingShortcut>
+      <FloatingShortcut href="/admin/supplier-applications" bottom={122}>طلبات تسجيل الموردين</FloatingShortcut>
     </>
   );
 } else {
