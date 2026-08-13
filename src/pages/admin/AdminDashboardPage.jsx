@@ -677,82 +677,36 @@ function AdminDashboardPage({
             <section id="admin-supervisors" className="admin-dashboard-card">
               <header className="admin-dashboard-card-header">
                 <div>
-                  <h2>مشرفو المشاريع</h2>
-                  <p>اعتماد حسابات المشرفين ومراجعة اختيارات العملاء وتأكيد رسوم المنصة.</p>
+                  <h2>المشرفون والموردون</h2>
+                  <p>سجلات المتقدمين والحسابات المعتمدة في المنصة.</p>
                 </div>
               </header>
 
-              {supervisorsError && <p className="admin-dashboard-status is-error"><strong>{supervisorsError}</strong></p>}
-              {supervisorsMessage && <p className="admin-dashboard-status"><strong>{supervisorsMessage}</strong></p>}
+              <div className="admin-partner-directory-grid">
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supervisor-applications?view=applicants"; }}>
+                  <span className="admin-partner-directory-icon">📝</span>
+                  <span className="admin-partner-directory-title">المشرفون المتقدمون</span>
+                  <span className="admin-partner-directory-note">عرض طلبات التسجيل وسجلات المشرفين المتقدمين</span>
+                </button>
 
-              {supervisorsLoading ? (
-                <p>جاري تحميل حسابات المشرفين...</p>
-              ) : (
-                <div style={{ display: "grid", gap: 24 }}>
-                  <form onSubmit={handleActivateSupervisor} style={{ display: "grid", gap: 10 }}>
-                    <h3 style={{ margin: 0 }}>اعتماد حساب مشرف</h3>
-                    {pendingSupervisorCandidates.length === 0 ? (
-                      <p>لا توجد حسابات جديدة. يسجل المشرف دخوله ببريده أولًا.</p>
-                    ) : (
-                      <>
-                        <select value={selectedCandidateId} onChange={(event) => handleCandidateChange(event.target.value)}>
-                          <option value="">اختر الحساب</option>
-                          {pendingSupervisorCandidates.map((candidate) => (
-                            <option key={candidate.userId} value={candidate.userId}>{candidate.email}</option>
-                          ))}
-                        </select>
-                        <input placeholder="اسم المشرف" value={supervisorFullName} onChange={(event) => setSupervisorFullName(event.target.value)} />
-                        <input placeholder="المكتب / المؤسسة" value={supervisorOrganization} onChange={(event) => setSupervisorOrganization(event.target.value)} />
-                        <input placeholder="الجوال" value={supervisorMobile} onChange={(event) => setSupervisorMobile(event.target.value)} />
-                        <button type="submit" disabled={supervisorsSaving || !selectedCandidateId}>اعتماد المشرف</button>
-                      </>
-                    )}
-                  </form>
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supervisor-applications?view=approved"; }}>
+                  <span className="admin-partner-directory-icon">✅</span>
+                  <span className="admin-partner-directory-title">المشرفون المعتمدون</span>
+                  <span className="admin-partner-directory-note">عرض سجلات المشرفين المقبولين في المنصة</span>
+                </button>
 
-                  <div style={{ display: "grid", gap: 10, borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
-                    <h3 style={{ margin: 0 }}>اختيارات العملاء وعروض المشرفين</h3>
-                    {supervisorOfferReviews.filter((offer) => ["customer_selected","fee_pending"].includes(offer.status)).length === 0 ? (
-                      <p>لا توجد عروض بانتظار إجراء من الإدارة.</p>
-                    ) : supervisorOfferReviews.filter((offer) => ["customer_selected","fee_pending"].includes(offer.status)).map((offer) => (
-                      <article key={offer.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10 }}>
-                        <strong>{offer.projectNumber || "مشروع"}</strong>
-                        <div>العميل: {offer.customerName || "غير متوفر"}</div>
-                        <div>المشرف: {offer.supervisorName}{offer.organizationName ? ` — ${offer.organizationName}` : ""}</div>
-                        <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
-                        {offer.status === "customer_selected" ? (
-                          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                            <button type="button" onClick={() => handleDecideSupervisorOffer(offer.id, true)} disabled={supervisorsSaving}>اعتماد</button>
-                            <button type="button" onClick={() => handleDecideSupervisorOffer(offer.id, false)} disabled={supervisorsSaving}>رفض</button>
-                          </div>
-                        ) : (
-                          <div style={{ marginTop: 8 }}>
-                            <strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong>
-                            <div><button type="button" onClick={() => handleConfirmSupervisorFee(offer.id)} disabled={supervisorsSaving}>تأكيد استلام الرسوم وتفعيل المشرف</button></div>
-                          </div>
-                        )}
-                      </article>
-                    ))}
-                  </div>
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supplier-applications?view=applicants"; }}>
+                  <span className="admin-partner-directory-icon">📝</span>
+                  <span className="admin-partner-directory-title">الموردون المتقدمون</span>
+                  <span className="admin-partner-directory-note">عرض طلبات التسجيل وسجلات الموردين المتقدمين</span>
+                </button>
 
-                  <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
-                    <h3 style={{ marginTop: 0 }}>المشاريع والتعيينات الحالية</h3>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {supervisorProjects.map((project) => (
-                        <div key={project.projectId} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 10 }}>
-                          <strong>{project.projectNumber || project.projectId}</strong>
-                          <div>{project.customerName || "غير متوفر"}</div>
-                          <small style={{ display: "block", marginBottom: 8 }}>
-                            {project.supervisorName ? `المشرف: ${project.supervisorName}` : "لم يعيّن مشرف"}
-                          </small>
-                          <button type="button" onClick={() => handleViewProjectStage(project.projectId)} disabled={adminStageLoading}>
-                            عرض المرحلة
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supplier-applications?view=approved"; }}>
+                  <span className="admin-partner-directory-icon">✅</span>
+                  <span className="admin-partner-directory-title">الموردون المعتمدون</span>
+                  <span className="admin-partner-directory-note">عرض سجلات الموردين المقبولين في المنصة</span>
+                </button>
+              </div>
             </section>
 
             {adminStageWorkspace?.stage && (
