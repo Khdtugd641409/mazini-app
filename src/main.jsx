@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import { createPortal } from "react-dom";
 import App from "./App.jsx";
 import SupervisorApplicationPage from "./pages/SupervisorApplicationPage.jsx";
 import SupervisorServicesPage from "./pages/SupervisorServicesPage.jsx";
@@ -139,6 +140,92 @@ function FloatingShortcut({ href, children, bottom = 18 }) {
   );
 }
 
+function AdminSupervisorDirectory() {
+  const [target, setTarget] = useState(null);
+
+  useEffect(() => {
+    let stopped = false;
+
+    function locateTarget() {
+      if (stopped) return;
+      const section = document.getElementById("admin-supervisors");
+      if (section) setTarget((current) => current || section);
+    }
+
+    locateTarget();
+    const observer = new MutationObserver(locateTarget);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      stopped = true;
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!target) return undefined;
+    const hiddenChildren = [];
+
+    Array.from(target.children).forEach((child) => {
+      if (child.getAttribute("data-nm-supervisor-directory") === "true") return;
+      hiddenChildren.push({ child, display: child.style.display });
+      child.style.display = "none";
+    });
+
+    return () => {
+      hiddenChildren.forEach(({ child, display }) => {
+        child.style.display = display;
+      });
+    };
+  }, [target]);
+
+  if (!target) return null;
+
+  const cardStyle = {
+    display: "grid",
+    gap: 10,
+    minHeight: 148,
+    padding: 20,
+    color: "#173f36",
+    textDecoration: "none",
+    textAlign: "right",
+    background: "linear-gradient(135deg, #fbfaf7, #f3ecdc)",
+    border: "1px solid #dfd5bd",
+    borderRadius: 18,
+    boxShadow: "0 10px 24px rgba(86, 67, 28, 0.07)",
+  };
+
+  return createPortal(
+    <div data-nm-supervisor-directory="true" style={{ display: "grid", gap: 18 }}>
+      <header>
+        <h2 style={{ margin: 0, color: "#173f36" }}>مشرفو المشاريع</h2>
+        <p style={{ margin: "7px 0 0", color: "#687872" }}>
+          سجلات طلبات المشرفين والحسابات المعتمدة.
+        </p>
+      </header>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
+        <a href="/admin/supervisor-applications?view=applicants" style={cardStyle}>
+          <span style={{ fontSize: 34 }}>📝</span>
+          <strong style={{ fontSize: 21 }}>المشرفون المتقدمون</strong>
+          <span style={{ color: "#687872", lineHeight: 1.6 }}>
+            عرض طلبات التسجيل وسجلات المتقدمين
+          </span>
+        </a>
+
+        <a href="/admin/supervisor-applications?view=approved" style={cardStyle}>
+          <span style={{ fontSize: 34 }}>✅</span>
+          <strong style={{ fontSize: 21 }}>المشرفون المعتمدون</strong>
+          <span style={{ color: "#687872", lineHeight: 1.6 }}>
+            عرض سجلات المشرفين المقبولين في المنصة
+          </span>
+        </a>
+      </div>
+    </div>,
+    target
+  );
+}
+
 let rootContent;
 
 if (normalizedPath === "/supplier/application") {
@@ -184,9 +271,8 @@ if (normalizedPath === "/supplier/application") {
   rootContent = (
     <>
       <App />
-      <FloatingShortcut href="/admin/supervisor-applications?view=applicants" bottom={18}>📝 المشرفون المتقدمون</FloatingShortcut>
-      <FloatingShortcut href="/admin/supervisor-applications?view=approved" bottom={70}>✅ المشرفون المعتمدون</FloatingShortcut>
-      <FloatingShortcut href="/admin/supplier-applications" bottom={122}>طلبات تسجيل الموردين</FloatingShortcut>
+      <AdminSupervisorDirectory />
+      <FloatingShortcut href="/admin/supplier-applications" bottom={18}>طلبات تسجيل الموردين</FloatingShortcut>
     </>
   );
 } else {
