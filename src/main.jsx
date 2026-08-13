@@ -7,7 +7,6 @@ import AdminSupervisorApplicationsPage from "./pages/admin/AdminSupervisorApplic
 import SupplierApplicationPage from "./pages/SupplierApplicationPage.jsx";
 import SupplierPortalPage from "./pages/SupplierPortalPage.jsx";
 import AdminSupplierApplicationsPage from "./pages/admin/AdminSupplierApplicationsPage.jsx";
-import AdminPartnersDirectory from "./components/AdminPartnersDirectory.jsx";
 import { supabase } from "./lib/supabase.js";
 import "./index.css";
 
@@ -162,13 +161,6 @@ if (normalizedPath === "/supplier/application") {
       <App />
       <FloatingShortcut href="/supervisor/services">خدماتي</FloatingShortcut>
     </SupervisorSessionGuard>
-  );
-} else if (normalizedPath === "/admin/dashboard") {
-  rootContent = (
-    <>
-      <App />
-      <AdminPartnersDirectory />
-    </>
   );
 } else {
   rootContent = <App />;
