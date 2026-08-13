@@ -454,6 +454,58 @@ function SupervisorPortal({ onBackHome }) {
     }
   }
 
+  async function completeConstructionStage() {
+    if (!selectedStageId || loading) return;
+
+    const confirmed = window.confirm(
+      "هل أنت متأكد من إكمال هذه المرحلة؟ سيتم الانتقال إلى المرحلة التالية إن وجدت."
+    );
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const { data, error } = await supabase.rpc(
+        "supervisor_complete_construction_stage",
+        { p_project_stage_id: selectedStageId }
+      );
+
+      if (error) throw error;
+
+      await loadSupervisorDashboard();
+
+      const nextStageId = data?.nextStageId || null;
+      await loadStageWorkspace(nextStageId || selectedStageId);
+
+      if (data?.alreadyCompleted) {
+        setSuccessMessage("هذه المرحلة مكتملة بالفعل.");
+      } else if (nextStageId) {
+        setSuccessMessage("تم إكمال المرحلة وفتح المرحلة التالية.");
+      } else {
+        setSuccessMessage("تم إكمال المرحلة بنجاح.");
+      }
+    } catch (error) {
+      const message = String(error?.message || "");
+      const missingMatch = message.match(/REQUIRED_STANDARDS_INCOMPLETE:(\d+)/);
+
+      if (missingMatch) {
+        setErrorMessage(
+          `لا يمكن إكمال المرحلة قبل اعتماد ${missingMatch[1]} من المعايير المطلوبة.`
+        );
+      } else if (message.includes("PROJECT_STAGE_NOT_COMPLETABLE")) {
+        setErrorMessage("لا يمكن إكمال مرحلة ملغاة أو مرحلة بحالة غير قابلة للإكمال.");
+      } else if (message.includes("SUPERVISOR_AUTHORIZATION_REQUIRED")) {
+        setErrorMessage("ليس لديك صلاحية إكمال هذه المرحلة.");
+      } else {
+        setErrorMessage(error?.message || "تعذر إكمال المرحلة.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function submitProjectOffer(project) {
     const key = `${project.projectType}:${project.projectId}`;
     const price = Number(offerPrices[key]);
@@ -482,6 +534,21 @@ function SupervisorPortal({ onBackHome }) {
       setLoading(false);
     }
   }
+
+  const selectedStageStatus = stageWorkspace?.stage?.status || "";
+  const selectedStageStatusLabel = {
+    planned: "مخططة",
+    in_progress: "قيد التنفيذ",
+    completed: "مكتملة",
+    cancelled: "ملغاة",
+  }[selectedStageStatus] || selectedStageStatus;
+  const missingRequiredStandards = [
+    ...(stageWorkspace?.projectStandards || []),
+    ...(stageWorkspace?.generalStandards || []),
+  ].filter((item) => Boolean(item.required) && !Boolean(item.checked)).length;
+  const canCompleteSelectedStage = ["planned", "in_progress"].includes(
+    selectedStageStatus
+  );
 
   const shellStyle = {
     minHeight: "100vh",
@@ -668,6 +735,32 @@ function SupervisorPortal({ onBackHome }) {
           <section style={cardStyle}>
             <h2 style={{ margin: 0, fontWeight: 950 }}>{stageWorkspace.stage.mainStageName}</h2>
             <p style={{ marginTop: 6, fontSize: 18 }}>{stageWorkspace.stage.detailedStageName}</p>
+
+            <div style={{ padding: 14, marginBottom: 18, border: "1px solid #d1d5db", borderRadius: 12, background: "#f8fafc" }}>
+              <p style={{ marginTop: 0 }}>
+                <strong>حالة المرحلة:</strong> {selectedStageStatusLabel}
+              </p>
+              {canCompleteSelectedStage ? (
+                <>
+                  <p>
+                    {missingRequiredStandards > 0
+                      ? `متبقٍ ${missingRequiredStandards} من المعايير المطلوبة قبل إكمال المرحلة.`
+                      : "تم اعتماد جميع المعايير المطلوبة ويمكن إكمال المرحلة."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={completeConstructionStage}
+                    disabled={loading || missingRequiredStandards > 0}
+                  >
+                    إكمال المرحلة
+                  </button>
+                </>
+              ) : selectedStageStatus === "completed" ? (
+                <p style={{ marginBottom: 0 }}>تم إكمال هذه المرحلة.</p>
+              ) : selectedStageStatus === "cancelled" ? (
+                <p style={{ marginBottom: 0 }}>هذه المرحلة ملغاة ولا يمكن إكمالها.</p>
+              ) : null}
+            </div>
 
             <ConstructionStageRequests projectStageId={stageWorkspace.stage.id} />
 
