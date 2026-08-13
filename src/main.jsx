@@ -4,10 +4,14 @@ import App from "./App.jsx";
 import SupervisorApplicationPage from "./pages/SupervisorApplicationPage.jsx";
 import SupervisorServicesPage from "./pages/SupervisorServicesPage.jsx";
 import AdminSupervisorApplicationsPage from "./pages/admin/AdminSupervisorApplicationsPage.jsx";
+import SupplierApplicationPage from "./pages/SupplierApplicationPage.jsx";
+import SupplierPortalPage from "./pages/SupplierPortalPage.jsx";
+import AdminSupplierApplicationsPage from "./pages/admin/AdminSupplierApplicationsPage.jsx";
 import { supabase } from "./lib/supabase.js";
 import "./index.css";
 
 const SUPERVISOR_SESSION_KEY = "nm_supervisor_session_started_at";
+const SUPPLIER_SESSION_KEY = "nm_supplier_session_started_at";
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
 
@@ -79,6 +83,39 @@ function SupervisorSessionGuard({ children }) {
   return children;
 }
 
+function SupplierSessionGuard({ children }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function enforce(session) {
+      if (!session) {
+        localStorage.removeItem(SUPPLIER_SESSION_KEY);
+        if (active) setReady(true);
+        return;
+      }
+      const stored = Number(localStorage.getItem(SUPPLIER_SESSION_KEY) || 0);
+      const startedAt = stored || Date.now();
+      if (!stored) localStorage.setItem(SUPPLIER_SESSION_KEY, String(startedAt));
+      if (Date.now() - startedAt >= THIRTY_DAYS_MS) {
+        await supabase.auth.signOut();
+        localStorage.removeItem(SUPPLIER_SESSION_KEY);
+      }
+      if (active) setReady(true);
+    }
+    supabase.auth.getSession().then(({ data }) => enforce(data?.session || null));
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && !localStorage.getItem(SUPPLIER_SESSION_KEY)) localStorage.setItem(SUPPLIER_SESSION_KEY, String(Date.now()));
+      if (event === "SIGNED_OUT") localStorage.removeItem(SUPPLIER_SESSION_KEY);
+      enforce(session || null);
+    });
+    return () => { active = false; listener?.subscription?.unsubscribe(); };
+  }, []);
+
+  if (!ready) return <main style={{ padding: 24, direction: "rtl" }}>جاري التحقق من جلسة المورد...</main>;
+  return children;
+}
+
 function FloatingShortcut({ href, children, bottom = 18 }) {
   return (
     <a
@@ -104,7 +141,17 @@ function FloatingShortcut({ href, children, bottom = 18 }) {
 
 let rootContent;
 
-if (normalizedPath === "/supervisor/application") {
+if (normalizedPath === "/supplier/application") {
+  rootContent = <SupplierApplicationPage />;
+} else if (normalizedPath === "/supplier") {
+  rootContent = (
+    <SupplierSessionGuard>
+      <SupplierPortalPage />
+    </SupplierSessionGuard>
+  );
+} else if (normalizedPath === "/admin/supplier-applications") {
+  rootContent = <AdminSupplierApplicationsPage />;
+} else if (normalizedPath === "/supervisor/application") {
   rootContent = (
     <SupervisorApplicationPage
       onBack={() => {
@@ -137,9 +184,8 @@ if (normalizedPath === "/supervisor/application") {
   rootContent = (
     <>
       <App />
-      <FloatingShortcut href="/admin/supervisor-applications">
-        طلبات تسجيل المشرفين
-      </FloatingShortcut>
+      <FloatingShortcut href="/admin/supervisor-applications" bottom={18}>طلبات تسجيل المشرفين</FloatingShortcut>
+      <FloatingShortcut href="/admin/supplier-applications" bottom={70}>طلبات تسجيل الموردين</FloatingShortcut>
     </>
   );
 } else {

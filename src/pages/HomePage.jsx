@@ -12,11 +12,15 @@ function HomePage({
 }) {
   const [isLoginMenuOpen, setIsLoginMenuOpen] = useState(false);
   const [isSupervisorMenuOpen, setIsSupervisorMenuOpen] = useState(false);
+  const [isSupplierMenuOpen, setIsSupplierMenuOpen] = useState(false);
 
   const toggleLoginMenu = () => {
     setIsLoginMenuOpen((currentValue) => {
       const nextValue = !currentValue;
-      if (!nextValue) setIsSupervisorMenuOpen(false);
+      if (!nextValue) {
+        setIsSupervisorMenuOpen(false);
+        setIsSupplierMenuOpen(false);
+      }
       return nextValue;
     });
   };
@@ -24,6 +28,7 @@ function HomePage({
   const closeLoginMenu = () => {
     setIsLoginMenuOpen(false);
     setIsSupervisorMenuOpen(false);
+    setIsSupplierMenuOpen(false);
   };
 
   const handleOpenCustomerApplication = () => {
@@ -72,6 +77,16 @@ function HomePage({
   const handleOpenSupervisorApplication = () => {
     closeLoginMenu();
     window.location.href = "/supervisor/application";
+  };
+
+  const handleOpenSupplier = () => {
+    closeLoginMenu();
+    window.location.href = "/supplier";
+  };
+
+  const handleOpenSupplierApplication = () => {
+    closeLoginMenu();
+    window.location.href = "/supplier/application";
   };
 
   const handleOpenAdmin = () => {
@@ -173,6 +188,41 @@ function HomePage({
                     onClick={handleOpenSupervisorApplication}
                     style={{ minHeight: 44 }}
                   >
+                    <span>إنشاء حساب</span>
+                    <span aria-hidden="true">📝</span>
+                  </button>
+                </div>
+              )}
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setIsSupplierMenuOpen((current) => !current);
+                  setIsSupervisorMenuOpen(false);
+                }}
+                aria-expanded={isSupplierMenuOpen}
+              >
+                <span>مورد</span>
+                <span aria-hidden="true">🚚</span>
+              </button>
+
+              {isSupplierMenuOpen && (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    padding: "10px 12px 12px",
+                    background: "rgba(23,63,54,0.04)",
+                    borderRadius: 12,
+                    margin: "0 8px 6px",
+                  }}
+                >
+                  <button type="button" role="menuitem" onClick={handleOpenSupplier} style={{ minHeight: 44 }}>
+                    <span>تسجيل الدخول</span>
+                    <span aria-hidden="true">🔐</span>
+                  </button>
+                  <button type="button" role="menuitem" onClick={handleOpenSupplierApplication} style={{ minHeight: 44 }}>
                     <span>إنشاء حساب</span>
                     <span aria-hidden="true">📝</span>
                   </button>
