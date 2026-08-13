@@ -8,6 +8,7 @@ const ACTION_TYPE_LABELS = {
   land_review: "أراضٍ بانتظار المراجعة",
   land_transfer: "طلبات إفراغ تحتاج اعتماد",
   supervisor_report: "تقارير مشرفين تحتاج مراجعة",
+  project_follow_up_request: "طلبات متابعة مشاريع",
   investor_application: "طلبات مستثمرين",
 };
 
@@ -17,6 +18,7 @@ const ACTION_TYPE_ICONS = {
   land_review: "📍",
   land_transfer: "🏠",
   supervisor_report: "🏗️",
+  project_follow_up_request: "🧭",
   investor_application: "📈",
 };
 
@@ -145,7 +147,27 @@ function AdminDashboardPage({
   const [adminStageWorkspace, setAdminStageWorkspace] = useState(null);
   const [adminStageLoading, setAdminStageLoading] = useState(false);
 
-  const totalPendingActions = pendingActions.reduce(
+  const pendingFollowUpRequests = supervisorOfferReviews.filter((offer) =>
+    ["customer_selected", "fee_pending"].includes(offer.status)
+  ).length;
+
+  const visiblePendingActions = useMemo(() => {
+    const withoutFollowUp = pendingActions.filter(
+      (action) => action.type !== "project_follow_up_request"
+    );
+
+    if (pendingFollowUpRequests <= 0) return withoutFollowUp;
+
+    return [
+      ...withoutFollowUp,
+      {
+        type: "project_follow_up_request",
+        count: pendingFollowUpRequests,
+      },
+    ];
+  }, [pendingActions, pendingFollowUpRequests]);
+
+  const totalPendingActions = visiblePendingActions.reduce(
     (total, action) => total + Number(action.count || 0),
     0
   );
@@ -496,6 +518,11 @@ function AdminDashboardPage({
   }
 
   function handleOpenAction(actionType) {
+    if (actionType === "project_follow_up_request") {
+      window.location.href = "/admin/project-follow-up-requests";
+      return;
+    }
+
     if (actionType === "land_review") {
       window.location.href = "/admin/customers?status=land_under_review";
       return;
@@ -549,14 +576,14 @@ function AdminDashboardPage({
                 <span className="admin-dashboard-total-pending">{totalPendingActions}</span>
               </header>
 
-              {pendingActions.length === 0 ? (
+              {visiblePendingActions.length === 0 ? (
                 <div className="admin-dashboard-empty">
                   <h3>لا توجد إجراءات معلقة</h3>
                   <p>جميع الأعمال الحالية تمت مراجعتها.</p>
                 </div>
               ) : (
                 <div className="admin-action-grid">
-                  {pendingActions.map((action) => (
+                  {visiblePendingActions.map((action) => (
                     <button
                       key={action.type}
                       type="button"
@@ -683,6 +710,15 @@ function AdminDashboardPage({
               </header>
 
               <div className="admin-partner-directory-grid">
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/project-follow-up-requests"; }}>
+                  <span className="admin-partner-directory-icon">🧭</span>
+                  <span className="admin-partner-directory-title">طلبات متابعة مشاريع</span>
+                  <span className="admin-partner-directory-note">اعتماد اختيار العميل، ثم تأكيد الرسوم وإسناد المشروع للمشرف</span>
+                  <strong className="admin-partner-directory-count" aria-label={`${pendingFollowUpRequests} طلبات تحتاج إجراءً`}>
+                    {pendingFollowUpRequests}
+                  </strong>
+                </button>
+
                 <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supervisor-applications?view=applicants"; }}>
                   <span className="admin-partner-directory-icon">📝</span>
                   <span className="admin-partner-directory-title">المشرفون المتقدمون</span>

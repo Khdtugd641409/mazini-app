@@ -327,6 +327,7 @@
 }
 
 .admin-partner-directory-card {
+  position: relative;
   display: grid;
   gap: 10px;
   min-height: 150px;
@@ -352,6 +353,21 @@
 .admin-partner-directory-icon { font-size: 32px; }
 .admin-partner-directory-title { font-size: 21px; font-weight: 950; }
 .admin-partner-directory-note { color: #687872; line-height: 1.6; }
+.admin-partner-directory-count {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 4px 8px;
+  color: #ffffff;
+  font-size: 16px;
+  background: #0b3b32;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
 
 @media (max-width: 720px) {
   .admin-partner-directory-grid { grid-template-columns: 1fr; }

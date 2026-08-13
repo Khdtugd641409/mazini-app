@@ -12,6 +12,7 @@ import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminCustomerFilesPage from "./pages/admin/AdminCustomerFilesPage.jsx";
 import AdminCustomerWorkspace from "./pages/admin/AdminCustomerWorkspace.jsx";
+import AdminProjectFollowUpRequestsPage from "./pages/admin/AdminProjectFollowUpRequestsPage.jsx";
 
 import { supabase } from "./lib/supabase.js";
 import ConstructionStageRequests from "./components/ConstructionStageRequests.jsx";
@@ -524,7 +525,7 @@ function SupervisorPortal({ onBackHome }) {
         p_offer_note: String(offerNotes[key] || "").trim() || null,
       });
       if (error) throw error;
-      setSuccessMessage("تم إرسال العرض إلى العميل.");
+      setSuccessMessage("تم إرسال السعر إلى العميل.");
       setOfferPrices((current) => ({ ...current, [key]: "" }));
       setOfferNotes((current) => ({ ...current, [key]: "" }));
       await loadSupervisorDashboard();
@@ -642,10 +643,10 @@ function SupervisorPortal({ onBackHome }) {
         {successMessage && <div style={cardStyle}>{successMessage}</div>}
 
         <section style={cardStyle}>
-          <h2 style={{ marginTop: 0 }}>مشاريع متاحة في منطقتك</h2>
-          <p>تظهر هنا المشاريع التي تقع في مدينتك أو ضمن مناطق خدمتك ولم يُفعّل لها مشرف بعد.</p>
+          <h2 style={{ marginTop: 0 }}>طلبات إشراف من العملاء</h2>
+          <p>لا يظهر المشروع هنا إلا بعد أن يختارك العميل ويرسل لك طلب تسعير الإشراف.</p>
           {availableProjects.length === 0 ? (
-            <p>لا توجد مشاريع متاحة حاليًا في منطقتك.</p>
+            <p>لا توجد طلبات إشراف جديدة حاليًا.</p>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
               {availableProjects.map((project) => {
@@ -657,15 +658,15 @@ function SupervisorPortal({ onBackHome }) {
                     <div>{project.projectTitle || ""} — {project.landArea || "-"} م² — {project.floors || "-"} دور</div>
                     <small>المرحلة: {project.currentStage || "غير محددة"}</small>
                     {project.locationUrl && <p><a href={project.locationUrl} target="_blank" rel="noreferrer">فتح موقع المشروع</a></p>}
-                    {project.myOfferStatus ? (
-                      <p><strong>تم إرسال عرضك:</strong> {Number(project.myOfferPrice || 0).toLocaleString("ar-SA")} ريال</p>
-                    ) : (
-                      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                        <input type="number" min="1" step="0.01" placeholder="سعر الإشراف بالريال" value={offerPrices[key] || ""} onChange={(e) => setOfferPrices((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
-                        <textarea rows="2" placeholder="ملاحظة العرض (اختياري)" value={offerNotes[key] || ""} onChange={(e) => setOfferNotes((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
-                        <button type="button" onClick={() => submitProjectOffer(project)} disabled={loading || !offerPrices[key]}>إرسال عرض</button>
-                      </div>
+                    <p><strong>وقت الطلب:</strong> {formatSupervisorDate(project.requestedAt)}</p>
+                    {project.customerRequestNote && (
+                      <p><strong>ملاحظة العميل:</strong> {project.customerRequestNote}</p>
                     )}
+                    <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                      <input type="number" min="1" step="0.01" placeholder="سعر الإشراف بالريال" value={offerPrices[key] || ""} onChange={(e) => setOfferPrices((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                      <textarea rows="2" placeholder="ملاحظة العرض (اختياري)" value={offerNotes[key] || ""} onChange={(e) => setOfferNotes((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                      <button type="button" onClick={() => submitProjectOffer(project)} disabled={loading || !offerPrices[key]}>إرسال السعر إلى العميل</button>
+                    </div>
                   </article>
                 );
               })}
@@ -680,8 +681,12 @@ function SupervisorPortal({ onBackHome }) {
               {myOffers.map((offer) => (
                 <article key={offer.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 12 }}>
                   <strong>{offer.projectNumber || "مشروع"}</strong>
-                  <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
-                  <div>الحالة: {offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "customer_selected" ? "اختارك العميل — بانتظار اعتماد الإدارة" : offer.status === "fee_pending" ? "معتمد — بانتظار سداد رسوم المنصة" : offer.status === "active" ? "تم التفعيل" : offer.status === "admin_rejected" ? "لم تعتمد الإدارة العرض" : offer.status}</div>
+                  {offer.status === "requested" ? (
+                    <div>السعر: لم يُرسل بعد</div>
+                  ) : (
+                    <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
+                  )}
+                  <div>الحالة: {offer.status === "requested" ? "طلب جديد من العميل — بانتظار تسعيرك" : offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "customer_selected" ? "اختارك العميل — بانتظار اعتماد الإدارة" : offer.status === "fee_pending" ? "معتمد — بانتظار سداد رسوم المنصة" : offer.status === "active" ? "تم التفعيل" : offer.status === "admin_rejected" ? "لم تعتمد الإدارة العرض" : offer.status}</div>
                   {offer.status === "fee_pending" && <p><strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />بعد السداد وتأكيد الإدارة تُفتح أدوات الإشراف على المشروع.</p>}
                 </article>
               ))}
@@ -852,6 +857,7 @@ function getInitialPageFromPath() {
     "/admin/login": "admin-login",
     "/admin/dashboard": "admin-dashboard",
     "/admin/customers": "admin-customer-files",
+    "/admin/project-follow-up-requests": "admin-project-follow-up-requests",
   };
 
   return routes[path] || "home";
@@ -1221,6 +1227,25 @@ function App() {
         onNextPage={handleCustomerNextPage}
         onOpenCustomerFile={handleOpenCustomerFile}
         onBackToHome={openAdminDashboard}
+      />
+    );
+  }
+
+  if (currentPage === "admin-project-follow-up-requests") {
+    if (!currentAdmin) {
+      return (
+        <AdminLoginPage
+          onSubmit={handleAdminSignIn}
+          isSubmitting={isAdminSigningIn}
+          errorMessage={adminLoginError}
+          onBackToHome={openHomePage}
+        />
+      );
+    }
+
+    return (
+      <AdminProjectFollowUpRequestsPage
+        onBack={openAdminDashboard}
       />
     );
   }
