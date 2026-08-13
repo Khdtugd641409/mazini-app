@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
 
 const SESSION_KEY = "nm_supervisor_session_started_at";
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ALLOWED_FILE_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -11,6 +10,27 @@ const ALLOWED_FILE_TYPES = [
   "image/webp",
 ];
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+const INITIAL_FORM = {
+  applicantType: "individual",
+  fullName: "",
+  email: "",
+  mobileNumber: "",
+  organizationName: "",
+  commercialRegistrationNumber: "",
+  professionalTitle: "",
+  professionalLicenseNumber: "",
+  city: "",
+  serviceAreas: "",
+  experienceYears: "0",
+  completedProjectsCount: "0",
+  profileSummary: "",
+  mapsUrl: "",
+  initialServiceTitle: "إشراف على مشروع بناء",
+  initialServiceDescription: "",
+  pricingModel: "flexible",
+  servicePrice: "",
+};
 
 function normalizeOtp(value) {
   return String(value || "")
@@ -33,15 +53,6 @@ function sanitizeFileName(fileName) {
   return extension ? `${base}.${extension}` : base;
 }
 
-function isSupervisorSessionFresh() {
-  const startedAt = Number(localStorage.getItem(SESSION_KEY) || 0);
-  return startedAt > 0 && Date.now() - startedAt < THIRTY_DAYS_MS;
-}
-
-function startSupervisorSession() {
-  localStorage.setItem(SESSION_KEY, String(Date.now()));
-}
-
 const fieldStyle = {
   minHeight: 46,
   border: "1px solid #d1d5db",
@@ -59,33 +70,14 @@ const cardStyle = {
   padding: 20,
 };
 
-function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
-  const [step, setStep] = useState("checking");
-  const [email, setEmail] = useState("");
+export default function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
+  const [step, setStep] = useState("form");
+  const [form, setForm] = useState(INITIAL_FORM);
   const [otp, setOtp] = useState("");
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [form, setForm] = useState({
-    applicantType: "individual",
-    fullName: "",
-    mobileNumber: "",
-    organizationName: "",
-    commercialRegistrationNumber: "",
-    professionalTitle: "",
-    professionalLicenseNumber: "",
-    city: "",
-    serviceAreas: "",
-    experienceYears: "0",
-    completedProjectsCount: "0",
-    profileSummary: "",
-    mapsUrl: "",
-    initialServiceTitle: "إشراف على مشروع بناء",
-    initialServiceDescription: "",
-    pricingModel: "flexible",
-    servicePrice: "",
-  });
   const [documents, setDocuments] = useState({
     qualification: null,
     professional_license: null,
@@ -93,194 +85,124 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
     portfolio: null,
   });
 
-  async function loadApplication() {
-    const { data, error } = await supabase.rpc("supervisor_get_my_application");
-    if (error) throw error;
-
-    setApplication(data || null);
-
-    if (data) {
-      setForm({
-        applicantType: data.applicantType || "individual",
-        fullName: data.fullName || "",
-        mobileNumber: data.mobileNumber || "",
-        organizationName: data.organizationName || "",
-        commercialRegistrationNumber: data.commercialRegistrationNumber || "",
-        professionalTitle: data.professionalTitle || "",
-        professionalLicenseNumber: data.professionalLicenseNumber || "",
-        city: data.city || "",
-        serviceAreas: Array.isArray(data.serviceAreas) ? data.serviceAreas.join("، ") : "",
-        experienceYears: String(data.experienceYears ?? 0),
-        completedProjectsCount: String(data.completedProjectsCount ?? 0),
-        profileSummary: data.profileSummary || "",
-        mapsUrl: data.mapsUrl || "",
-        initialServiceTitle: data.initialServiceTitle || "إشراف على مشروع بناء",
-        initialServiceDescription: data.initialServiceDescription || "",
-        pricingModel: data.pricingModel || "flexible",
-        servicePrice: data.servicePrice == null ? "" : String(data.servicePrice),
-      });
-    }
-
-    setStep("form");
+  function updateField(name, value) {
+    setForm((current) => ({ ...current, [name]: value }));
   }
 
   useEffect(() => {
     let active = true;
 
-    async function restoreSession() {
+    async function restoreExistingApplication() {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (!active) return;
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!active || !sessionData?.session) return;
 
-        if (!data?.session) {
-          localStorage.removeItem(SESSION_KEY);
-          setStep("email");
-          return;
-        }
+        const { data, error } = await supabase.rpc("supervisor_get_my_application");
+        if (error || !data || !active) return;
 
-        if (!isSupervisorSessionFresh()) {
-          await supabase.auth.signOut();
-          localStorage.removeItem(SESSION_KEY);
-          if (active) setStep("email");
-          return;
-        }
-
-        await loadApplication();
-      } catch (error) {
-        if (active) {
-          setErrorMessage(error?.message || "تعذر التحقق من جلسة المشرف.");
-          setStep("email");
-        }
+        setApplication(data);
+        setForm({
+          applicantType: data.applicantType || "individual",
+          fullName: data.fullName || "",
+          email: sessionData.session.user?.email || "",
+          mobileNumber: data.mobileNumber || "",
+          organizationName: data.organizationName || "",
+          commercialRegistrationNumber: data.commercialRegistrationNumber || "",
+          professionalTitle: data.professionalTitle || "",
+          professionalLicenseNumber: data.professionalLicenseNumber || "",
+          city: data.city || "",
+          serviceAreas: Array.isArray(data.serviceAreas) ? data.serviceAreas.join("، ") : "",
+          experienceYears: String(data.experienceYears ?? 0),
+          completedProjectsCount: String(data.completedProjectsCount ?? 0),
+          profileSummary: data.profileSummary || "",
+          mapsUrl: data.mapsUrl || "",
+          initialServiceTitle: data.initialServiceTitle || "إشراف على مشروع بناء",
+          initialServiceDescription: data.initialServiceDescription || "",
+          pricingModel: data.pricingModel || "flexible",
+          servicePrice: data.servicePrice == null ? "" : String(data.servicePrice),
+        });
+      } catch {
+        // التسجيل الجديد لا يعتمد على وجود جلسة سابقة.
       }
     }
 
-    restoreSession();
+    restoreExistingApplication();
     return () => {
       active = false;
     };
   }, []);
 
-  async function sendCode(event) {
+  function validateForm() {
+    if (form.fullName.trim().length < 3) throw new Error("اكتب الاسم الكامل للمشرف.");
+    if (!form.email.trim().includes("@")) throw new Error("أدخل بريدًا إلكترونيًا صحيحًا.");
+    if (!/^05\d{8}$/.test(form.mobileNumber.trim())) throw new Error("رقم الجوال يجب أن يبدأ بـ05 ويتكون من 10 أرقام.");
+    if (!form.professionalTitle.trim()) throw new Error("اكتب المسمى المهني.");
+    if (!form.city.trim()) throw new Error("اكتب المدينة.");
+    if (form.profileSummary.trim().length < 10) throw new Error("اكتب نبذة مهنية أوضح عن خبرتك.");
+    if (!form.initialServiceTitle.trim()) throw new Error("اكتب اسم الخدمة التي ستعرضها.");
+  }
+
+  async function sendRegistrationCode(event) {
     event.preventDefault();
     if (loading) return;
 
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail || !normalizedEmail.includes("@")) {
-      setErrorMessage("أدخل بريدًا إلكترونيًا صحيحًا.");
-      return;
-    }
-
     try {
+      validateForm();
       setLoading(true);
       setErrorMessage("");
       setSuccessMessage("");
-
+      const normalizedEmail = form.email.trim().toLowerCase();
       const { error } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: { shouldCreateUser: true },
       });
       if (error) throw error;
-
-      setEmail(normalizedEmail);
+      setForm((current) => ({ ...current, email: normalizedEmail }));
       setOtp("");
       setStep("otp");
-      setSuccessMessage("تم إرسال رمز الدخول إلى بريدك الإلكتروني.");
+      setSuccessMessage("تم إرسال رمز التحقق إلى بريدك الإلكتروني.");
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر إرسال رمز الدخول.");
+      setErrorMessage(error?.message || "تعذر إرسال رمز التحقق.");
     } finally {
       setLoading(false);
     }
-  }
-
-  async function verifyCode(event) {
-    event.preventDefault();
-    if (loading) return;
-
-    const normalizedOtp = normalizeOtp(otp);
-    if (!/^\d{8}$/.test(normalizedOtp)) {
-      setErrorMessage("أدخل رمز الدخول المكوّن من 8 أرقام.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setErrorMessage("");
-      setSuccessMessage("");
-
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: normalizedOtp,
-        type: "email",
-      });
-      if (error) throw error;
-      if (!data?.session) throw new Error("لم تُنشأ جلسة دخول صالحة.");
-
-      startSupervisorSession();
-      await loadApplication();
-    } catch (error) {
-      setErrorMessage(error?.message || "تعذر التحقق من رمز الدخول.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function updateField(name, value) {
-    setForm((current) => ({ ...current, [name]: value }));
   }
 
   async function uploadDocument(documentType, file, userId) {
     if (!file) return;
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      throw new Error(`نوع الملف ${file.name} غير مدعوم.`);
-    }
-    if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
-      throw new Error(`حجم الملف ${file.name} يجب ألا يتجاوز 20 ميجابايت.`);
-    }
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) throw new Error(`نوع الملف ${file.name} غير مدعوم.`);
+    if (file.size <= 0 || file.size > MAX_FILE_SIZE) throw new Error(`حجم الملف ${file.name} يجب ألا يتجاوز 20 ميجابايت.`);
 
-    const uniquePart =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const uniquePart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const storagePath = `${userId}/${documentType}/${uniquePart}-${sanitizeFileName(file.name)}`;
 
     const { error: uploadError } = await supabase.storage
       .from("supervisor-documents")
-      .upload(storagePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type,
-      });
+      .upload(storagePath, file, { cacheControl: "3600", upsert: false, contentType: file.type });
     if (uploadError) throw uploadError;
 
-    const { error: registerError } = await supabase.rpc(
-      "supervisor_register_application_document",
-      {
-        p_document_type: documentType,
-        p_storage_path: storagePath,
-        p_original_name: file.name,
-        p_content_type: file.type,
-        p_size_bytes: file.size,
-      }
-    );
-
+    const { error: registerError } = await supabase.rpc("supervisor_register_application_document", {
+      p_document_type: documentType,
+      p_storage_path: storagePath,
+      p_original_name: file.name,
+      p_content_type: file.type,
+      p_size_bytes: file.size,
+    });
     if (registerError) {
       await supabase.storage.from("supervisor-documents").remove([storagePath]);
       throw registerError;
     }
   }
 
-  async function submitApplication(event) {
+  async function verifyAndSubmit(event) {
     event.preventDefault();
     if (loading) return;
 
-    if (!/^05\d{8}$/.test(form.mobileNumber.trim())) {
-      setErrorMessage("رقم الجوال يجب أن يبدأ بـ05 ويتكون من 10 أرقام.");
-      return;
-    }
-
-    if (form.profileSummary.trim().length < 10) {
-      setErrorMessage("اكتب نبذة مهنية أوضح عن خبرتك.");
+    const normalizedOtp = normalizeOtp(otp);
+    if (!/^\d{8}$/.test(normalizedOtp)) {
+      setErrorMessage("أدخل رمز التحقق المكوّن من 8 أرقام.");
       return;
     }
 
@@ -288,22 +210,19 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
       setLoading(true);
       setErrorMessage("");
       setSuccessMessage("");
+      const { data, error } = await supabase.auth.verifyOtp({ email: form.email, token: normalizedOtp, type: "email" });
+      if (error) throw error;
+      if (!data?.session) throw new Error("لم تُنشأ جلسة دخول صالحة.");
 
-      const serviceAreas = form.serviceAreas
-        .split(/[،,]/)
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-      const { error } = await supabase.rpc("supervisor_submit_application", {
+      const serviceAreas = form.serviceAreas.split(/[،,]/).map((value) => value.trim()).filter(Boolean);
+      const { error: submitError } = await supabase.rpc("supervisor_submit_application", {
         p_applicant_type: form.applicantType,
         p_full_name: form.fullName.trim(),
         p_mobile_number: form.mobileNumber.trim(),
         p_organization_name: form.organizationName.trim() || null,
-        p_commercial_registration_number:
-          form.commercialRegistrationNumber.trim() || null,
+        p_commercial_registration_number: form.commercialRegistrationNumber.trim() || null,
         p_professional_title: form.professionalTitle.trim(),
-        p_professional_license_number:
-          form.professionalLicenseNumber.trim() || null,
+        p_professional_license_number: form.professionalLicenseNumber.trim() || null,
         p_city: form.city.trim(),
         p_service_areas: serviceAreas,
         p_experience_years: Number(form.experienceYears || 0),
@@ -315,25 +234,18 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
         p_pricing_model: form.pricingModel,
         p_service_price: form.servicePrice === "" ? null : Number(form.servicePrice),
       });
-      if (error) throw error;
+      if (submitError) throw submitError;
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      const userId = userData?.user?.id;
+      const userId = data.user?.id;
       if (!userId) throw new Error("تعذر تحديد حساب المشرف.");
-
       for (const [documentType, file] of Object.entries(documents)) {
         if (file) await uploadDocument(documentType, file, userId);
       }
 
-      setDocuments({
-        qualification: null,
-        professional_license: null,
-        commercial_registration: null,
-        portfolio: null,
-      });
-      setSuccessMessage("تم إرسال طلب التسجيل إلى الإدارة.");
-      await loadApplication();
+      localStorage.setItem(SESSION_KEY, String(Date.now()));
+      setApplication({ status: "under_review" });
+      setStep("success");
+      setSuccessMessage("تم إرسال طلب تسجيل المشرف إلى إدارة المنصة.");
     } catch (error) {
       setErrorMessage(error?.message || "تعذر إرسال طلب المشرف.");
     } finally {
@@ -345,7 +257,9 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
     await supabase.auth.signOut();
     localStorage.removeItem(SESSION_KEY);
     setApplication(null);
-    setStep("email");
+    setForm(INITIAL_FORM);
+    setOtp("");
+    setStep("form");
     setSuccessMessage("");
     setErrorMessage("");
   }
@@ -359,49 +273,48 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
     direction: "rtl",
   };
 
-  if (step === "checking") {
-    return <main style={shellStyle}><div style={{ ...cardStyle, maxWidth: 560, margin: "70px auto" }}>جاري التحقق من الحساب...</div></main>;
-  }
-
-  if (step === "email" || step === "otp") {
-    return (
-      <main style={shellStyle}>
-        <section style={{ ...cardStyle, maxWidth: 560, margin: "50px auto" }}>
-          <button type="button" onClick={onBack}>العودة</button>
-          <h1>طلب تسجيل مشرف</h1>
-          <p>الدخول بالبريد الإلكتروني. بعد التحقق تبقى جلسة هذا الجهاز مفتوحة لمدة 30 يومًا.</p>
-          {errorMessage && <p style={{ color: "#991b1b" }}>{errorMessage}</p>}
-          {successMessage && <p>{successMessage}</p>}
-
-          {step === "email" ? (
-            <form onSubmit={sendCode} style={{ display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 7 }}>
-                <strong>البريد الإلكتروني</strong>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={fieldStyle} required disabled={loading} />
-              </label>
-              <button type="submit" disabled={loading} style={{ minHeight: 46 }}>إرسال رمز الدخول</button>
-            </form>
-          ) : (
-            <form onSubmit={verifyCode} style={{ display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 7 }}>
-                <strong>رمز الدخول من 8 أرقام</strong>
-                <input inputMode="numeric" value={otp} onChange={(e) => setOtp(normalizeOtp(e.target.value))} maxLength={8} style={fieldStyle} required disabled={loading} />
-              </label>
-              <button type="submit" disabled={loading}>تحقق ودخول</button>
-              <button type="button" onClick={() => setStep("email")} disabled={loading}>تغيير البريد</button>
-            </form>
-          )}
-        </section>
-      </main>
-    );
-  }
-
   const statusLabels = {
     under_review: "بانتظار مراجعة الإدارة",
     needs_completion: "مطلوب استكمال",
     approved: "مقبول",
     rejected: "مرفوض",
   };
+
+  if (step === "success") {
+    return (
+      <main style={shellStyle}>
+        <section style={{ ...cardStyle, maxWidth: 650, margin: "50px auto", display: "grid", gap: 14 }}>
+          <h1>تم إرسال طلب التسجيل</h1>
+          <p>{successMessage}</p>
+          <p>بعد قبول الإدارة، ادخل من «مشرف ← تسجيل الدخول» باستخدام البريد نفسه.</p>
+          <button type="button" onClick={onBack}>العودة للرئيسية</button>
+        </section>
+      </main>
+    );
+  }
+
+  if (step === "otp") {
+    return (
+      <main style={shellStyle}>
+        <section style={{ ...cardStyle, maxWidth: 560, margin: "50px auto" }}>
+          <button type="button" onClick={() => setStep("form")} disabled={loading}>العودة للبيانات</button>
+          <h1>التحقق من البريد الإلكتروني</h1>
+          <p>أرسلنا رمزًا من 8 أرقام إلى <strong>{form.email}</strong>.</p>
+          {errorMessage && <p style={{ color: "#991b1b" }}>{errorMessage}</p>}
+          {successMessage && <p>{successMessage}</p>}
+          <form onSubmit={verifyAndSubmit} style={{ display: "grid", gap: 12 }}>
+            <label style={{ display: "grid", gap: 7 }}>
+              <strong>رمز التحقق من 8 أرقام</strong>
+              <input inputMode="numeric" value={otp} onChange={(event) => setOtp(normalizeOtp(event.target.value))} maxLength={8} style={fieldStyle} required disabled={loading} />
+            </label>
+            <button type="submit" disabled={loading || normalizeOtp(otp).length !== 8} style={{ minHeight: 48 }}>
+              {loading ? "جاري الإرسال..." : "تحقق وإرسال الطلب للإدارة"}
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main style={shellStyle}>
@@ -410,11 +323,9 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
           <div>
             <p style={{ margin: 0 }}>منصة نايف المزيني</p>
             <h1 style={{ marginBottom: 0 }}>طلب تسجيل مشرف</h1>
+            <p>أكمل بياناتك أولًا، ثم نتحقق من بريدك الإلكتروني قبل إرسال الطلب للإدارة.</p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={onBack}>الرئيسية</button>
-            <button type="button" onClick={signOut}>تسجيل الخروج</button>
-          </div>
+          <button type="button" onClick={onBack}>العودة</button>
         </header>
 
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}
@@ -422,70 +333,69 @@ function SupervisorApplicationPage({ onBack, onOpenSupervisor }) {
 
         {application && (
           <section style={cardStyle}>
-            <strong>حالة الطلب: {statusLabels[application.status] || application.status}</strong>
+            <strong>حالة الطلب السابقة: {statusLabels[application.status] || application.status}</strong>
             {application.adminNote && <p>ملاحظة الإدارة: {application.adminNote}</p>}
-            {application.status === "approved" && (
-              <button type="button" onClick={onOpenSupervisor}>فتح حساب المشرف</button>
-            )}
+            {application.status === "approved" && <button type="button" onClick={onOpenSupervisor}>فتح حساب المشرف</button>}
           </section>
         )}
 
         {application?.status !== "approved" && (
-          <form onSubmit={submitApplication} style={{ ...cardStyle, display: "grid", gap: 16 }}>
+          <form onSubmit={sendRegistrationCode} style={{ ...cardStyle, display: "grid", gap: 16 }}>
             <label style={{ display: "grid", gap: 7 }}>
               <strong>صفة مقدم الخدمة</strong>
-              <select value={form.applicantType} onChange={(e) => updateField("applicantType", e.target.value)} style={fieldStyle} disabled={loading}>
+              <select value={form.applicantType} onChange={(event) => updateField("applicantType", event.target.value)} style={fieldStyle} disabled={loading}>
                 <option value="individual">فرد يعمل لحسابه الخاص</option>
                 <option value="organization">مكتب أو منشأة هندسية</option>
               </select>
             </label>
 
-            <label style={{ display: "grid", gap: 7 }}><strong>الاسم الكامل</strong><input value={form.fullName} onChange={(e) => updateField("fullName", e.target.value)} style={fieldStyle} required /></label>
-            <label style={{ display: "grid", gap: 7 }}><strong>الجوال</strong><input inputMode="numeric" value={form.mobileNumber} onChange={(e) => updateField("mobileNumber", e.target.value.replace(/\D/g, "").slice(0, 10))} style={fieldStyle} placeholder="05xxxxxxxx" required /></label>
-            <label style={{ display: "grid", gap: 7 }}><strong>المسمى المهني</strong><input value={form.professionalTitle} onChange={(e) => updateField("professionalTitle", e.target.value)} style={fieldStyle} placeholder="مثال: مهندس مدني / مهندس معماري" required /></label>
-            <label style={{ display: "grid", gap: 7 }}><strong>المدينة</strong><input value={form.city} onChange={(e) => updateField("city", e.target.value)} style={fieldStyle} required /></label>
-            <label style={{ display: "grid", gap: 7 }}><strong>مناطق تقديم الخدمة</strong><input value={form.serviceAreas} onChange={(e) => updateField("serviceAreas", e.target.value)} style={fieldStyle} placeholder="الرياض، الخرج، المزاحمية" /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>الاسم الكامل</strong><input value={form.fullName} onChange={(event) => updateField("fullName", event.target.value)} style={fieldStyle} required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>البريد الإلكتروني</strong><input type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} style={fieldStyle} required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>رقم الجوال</strong><input inputMode="numeric" value={form.mobileNumber} onChange={(event) => updateField("mobileNumber", event.target.value.replace(/\D/g, "").slice(0, 10))} style={fieldStyle} placeholder="05xxxxxxxx" required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>المسمى المهني</strong><input value={form.professionalTitle} onChange={(event) => updateField("professionalTitle", event.target.value)} style={fieldStyle} placeholder="مثال: مهندس مدني / مهندس معماري" required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>المدينة</strong><input value={form.city} onChange={(event) => updateField("city", event.target.value)} style={fieldStyle} required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>مناطق تقديم الخدمة</strong><input value={form.serviceAreas} onChange={(event) => updateField("serviceAreas", event.target.value)} style={fieldStyle} placeholder="الرياض، الخرج، المزاحمية" /></label>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
-              <label style={{ display: "grid", gap: 7 }}><strong>سنوات الخبرة</strong><input type="number" min="0" max="80" value={form.experienceYears} onChange={(e) => updateField("experienceYears", e.target.value)} style={fieldStyle} /></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>عدد المشاريع السابقة</strong><input type="number" min="0" value={form.completedProjectsCount} onChange={(e) => updateField("completedProjectsCount", e.target.value)} style={fieldStyle} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>سنوات الخبرة</strong><input type="number" min="0" max="80" value={form.experienceYears} onChange={(event) => updateField("experienceYears", event.target.value)} style={fieldStyle} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>عدد المشاريع السابقة</strong><input type="number" min="0" value={form.completedProjectsCount} onChange={(event) => updateField("completedProjectsCount", event.target.value)} style={fieldStyle} /></label>
             </div>
 
-            <label style={{ display: "grid", gap: 7 }}><strong>نبذة مهنية</strong><textarea rows="5" value={form.profileSummary} onChange={(e) => updateField("profileSummary", e.target.value)} style={{ ...fieldStyle, padding: 12, resize: "vertical" }} required /></label>
-            <label style={{ display: "grid", gap: 7 }}><strong>رقم الترخيص المهني — اختياري</strong><input value={form.professionalLicenseNumber} onChange={(e) => updateField("professionalLicenseNumber", e.target.value)} style={fieldStyle} /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>نبذة مهنية</strong><textarea rows="5" value={form.profileSummary} onChange={(event) => updateField("profileSummary", event.target.value)} style={{ ...fieldStyle, padding: 12, resize: "vertical" }} required /></label>
+            <label style={{ display: "grid", gap: 7 }}><strong>رقم الترخيص المهني — اختياري</strong><input value={form.professionalLicenseNumber} onChange={(event) => updateField("professionalLicenseNumber", event.target.value)} style={fieldStyle} /></label>
 
             <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, display: "grid", gap: 12 }}>
               <h2 style={{ margin: 0 }}>بيانات المكتب أو المنشأة — اختيارية</h2>
-              <p style={{ margin: 0 }}>يمكن تركها فارغة بالكامل إذا كنت تعمل كفرد لحسابك الخاص.</p>
-              <label style={{ display: "grid", gap: 7 }}><strong>اسم المكتب / المنشأة</strong><input value={form.organizationName} onChange={(e) => updateField("organizationName", e.target.value)} style={fieldStyle} /></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>رقم السجل التجاري</strong><input value={form.commercialRegistrationNumber} onChange={(e) => updateField("commercialRegistrationNumber", e.target.value)} style={fieldStyle} /></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>رابط الموقع في الخرائط — اختياري</strong><input type="url" value={form.mapsUrl} onChange={(e) => updateField("mapsUrl", e.target.value)} style={fieldStyle} /></label>
+              <p style={{ margin: 0 }}>يمكن تركها فارغة إذا كان المشرف يعمل كفرد.</p>
+              <label style={{ display: "grid", gap: 7 }}><strong>اسم المكتب / المنشأة</strong><input value={form.organizationName} onChange={(event) => updateField("organizationName", event.target.value)} style={fieldStyle} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>رقم السجل التجاري</strong><input value={form.commercialRegistrationNumber} onChange={(event) => updateField("commercialRegistrationNumber", event.target.value)} style={fieldStyle} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>رابط الموقع في Google Maps — اختياري</strong><input type="url" value={form.mapsUrl} onChange={(event) => updateField("mapsUrl", event.target.value)} style={fieldStyle} /></label>
             </div>
 
             <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, display: "grid", gap: 12 }}>
               <h2 style={{ margin: 0 }}>الخدمة التي ستعرضها</h2>
-              <label style={{ display: "grid", gap: 7 }}><strong>اسم الخدمة</strong><input value={form.initialServiceTitle} onChange={(e) => updateField("initialServiceTitle", e.target.value)} style={fieldStyle} required /></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>وصف الخدمة</strong><textarea rows="4" value={form.initialServiceDescription} onChange={(e) => updateField("initialServiceDescription", e.target.value)} style={{ ...fieldStyle, padding: 12, resize: "vertical" }} /></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>طريقة التسعير</strong><select value={form.pricingModel} onChange={(e) => updateField("pricingModel", e.target.value)} style={fieldStyle}><option value="flexible">حسب الاتفاق</option><option value="fixed">مبلغ ثابت</option><option value="monthly">شهري</option><option value="percentage">نسبة من المشروع</option></select></label>
-              <label style={{ display: "grid", gap: 7 }}><strong>السعر / القيمة — اختياري</strong><input type="number" min="0" step="0.01" value={form.servicePrice} onChange={(e) => updateField("servicePrice", e.target.value)} style={fieldStyle} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>اسم الخدمة</strong><input value={form.initialServiceTitle} onChange={(event) => updateField("initialServiceTitle", event.target.value)} style={fieldStyle} required /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>وصف الخدمة</strong><textarea rows="4" value={form.initialServiceDescription} onChange={(event) => updateField("initialServiceDescription", event.target.value)} style={{ ...fieldStyle, padding: 12, resize: "vertical" }} /></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>طريقة التسعير</strong><select value={form.pricingModel} onChange={(event) => updateField("pricingModel", event.target.value)} style={fieldStyle}><option value="flexible">حسب الاتفاق</option><option value="fixed">مبلغ ثابت</option><option value="monthly">شهري</option><option value="percentage">نسبة من المشروع</option></select></label>
+              <label style={{ display: "grid", gap: 7 }}><strong>السعر / القيمة — اختياري</strong><input type="number" min="0" step="0.01" value={form.servicePrice} onChange={(event) => updateField("servicePrice", event.target.value)} style={fieldStyle} /></label>
             </div>
 
             <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, display: "grid", gap: 12 }}>
-              <h2 style={{ margin: 0 }}>المستندات — اختيارية وتساعد الإدارة في التحقق</h2>
-              <label>المؤهل أو الشهادة<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setDocuments((c) => ({ ...c, qualification: e.target.files?.[0] || null }))} /></label>
-              <label>الترخيص المهني<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setDocuments((c) => ({ ...c, professional_license: e.target.files?.[0] || null }))} /></label>
-              <label>السجل التجاري — اختياري<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setDocuments((c) => ({ ...c, commercial_registration: e.target.files?.[0] || null }))} /></label>
-              <label>نماذج أعمال سابقة<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(e) => setDocuments((c) => ({ ...c, portfolio: e.target.files?.[0] || null }))} /></label>
+              <h2 style={{ margin: 0 }}>المستندات — اختيارية</h2>
+              <label>المؤهل أو الشهادة<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(event) => setDocuments((current) => ({ ...current, qualification: event.target.files?.[0] || null }))} /></label>
+              <label>الترخيص المهني<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(event) => setDocuments((current) => ({ ...current, professional_license: event.target.files?.[0] || null }))} /></label>
+              <label>السجل التجاري<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(event) => setDocuments((current) => ({ ...current, commercial_registration: event.target.files?.[0] || null }))} /></label>
+              <label>نماذج أعمال سابقة<input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={(event) => setDocuments((current) => ({ ...current, portfolio: event.target.files?.[0] || null }))} /></label>
             </div>
 
             <button type="submit" disabled={loading} style={{ minHeight: 50, fontWeight: 800 }}>
-              {loading ? "جاري الإرسال..." : application ? "إعادة إرسال الطلب بعد التحديث" : "إرسال طلب التسجيل"}
+              {loading ? "جاري الإرسال..." : "متابعة والتحقق من البريد"}
             </button>
           </form>
         )}
+
+        {application && <button type="button" onClick={signOut}>بدء تسجيل جديد ببريد آخر</button>}
       </div>
     </main>
   );
 }
-
-export default SupervisorApplicationPage;
