@@ -330,6 +330,18 @@ function HomePage({
           <p>عرض التكاليف والدفعة والحالة والمرحلة الحالية داخل ملف العميل.</p>
         </article>
       </section>
+
+      <section className="home-store-entry" aria-labelledby="home-store-title">
+        <div className="home-store-entry-copy">
+          <span>قسم مستقل عن مشاريع البناء</span>
+          <h2 id="home-store-title">متجر المنزل</h2>
+          <p>تسوّق العدد والأدوات المنزلية مثل الدريل والمطرقة والمفاتيح، ثم أرسل طلبك للتاجر لتأكيد الدفع والتسليم.</p>
+          <a href="/home-store">دخول متجر المنزل</a>
+        </div>
+        <div className="home-store-entry-tools" aria-hidden="true">
+          <span>🔩</span><span>🔨</span><span>🧰</span><span>🔌</span>
+        </div>
+      </section>
     </main>
   );
 }

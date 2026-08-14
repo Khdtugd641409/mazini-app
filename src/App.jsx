@@ -7,6 +7,8 @@ import CustomerAccountLoginPage from "./pages/CustomerAccountLoginPage.jsx";
 import CustomerProjectsPage from "./pages/CustomerProjectsPage.jsx";
 import CustomerProjectPage from "./pages/CustomerProjectPage.jsx";
 import CustomerLandSubmissionPage from "./pages/CustomerLandSubmissionPage.jsx";
+import SupplierMarketplacePage from "./pages/SupplierMarketplacePage.jsx";
+import HomeMarketplacePage from "./pages/HomeMarketplacePage.jsx";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
@@ -846,6 +848,8 @@ function getInitialPageFromPath() {
     "/customer/service-application": "customer-service-application",
     "/customer/account-login": "customer-account-login",
     "/customer/projects": "customer-projects",
+    "/marketplace": "supplier-marketplace",
+    "/home-store": "home-marketplace",
     "/customer/access": "customer-account-login",
     "/supervisor": "supervisor",
     "/supervisor/dashboard": "supervisor",
@@ -1147,6 +1151,8 @@ function App() {
 
   if (currentPage === "customer-account-login") return <CustomerAccountLoginPage />;
   if (currentPage === "customer-projects") return <CustomerProjectsPage />;
+  if (currentPage === "supplier-marketplace") return <SupplierMarketplacePage />;
+  if (currentPage === "home-marketplace") return <HomeMarketplacePage />;
   if (currentPage === "customer-land-submission") return <CustomerLandSubmissionPage />;
   if (currentPage === "customer-project") return <CustomerProjectPage />;
 

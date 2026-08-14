@@ -5,6 +5,14 @@ import {
   getMyCustomerProjects,
   signOutCustomerAccount,
 } from "../services/customerAccountAuthService.js";
+import { getMySupplierMarketplaceOrders } from "../services/supplierMarketplaceService.js";
+import {
+  MARKETPLACE_ORDER_STATUSES,
+  formatMarketplaceMoney,
+  formatMarketplaceQuantity,
+  getSupplierProductImageUrl,
+  getSupplierUnitLabel,
+} from "../utils/supplierMarketplace.js";
 
 function getStatusLabel(status) {
   const labels = {
@@ -49,6 +57,7 @@ function getStageLabel(stage) {
 
 export default function CustomerProjectsPage() {
   const [projects, setProjects] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] =
     useState(false);
@@ -75,15 +84,25 @@ export default function CustomerProjectsPage() {
           return;
         }
 
-        const result =
-          await getMyCustomerProjects();
+        const [projectResult, purchaseResult] = await Promise.allSettled([
+          getMyCustomerProjects(),
+          getMySupplierMarketplaceOrders("home"),
+        ]);
+
+        if (projectResult.status === "rejected" && purchaseResult.status === "rejected") {
+          throw projectResult.reason;
+        }
 
         if (pageIsActive) {
-          setProjects(result);
+          setProjects(projectResult.status === "fulfilled" ? projectResult.value : []);
+          setPurchases(purchaseResult.status === "fulfilled" ? purchaseResult.value : []);
+          if (projectResult.status === "rejected") setErrorMessage("تعذر تحميل المشاريع، لكن مشترياتك ما زالت متاحة.");
+          if (purchaseResult.status === "rejected") setErrorMessage("تعذر تحميل المشتريات، لكن مشاريعك ما زالت متاحة.");
         }
       } catch (error) {
         if (pageIsActive) {
           setProjects([]);
+          setPurchases([]);
 
           setErrorMessage(
             error?.message ||
@@ -194,7 +213,7 @@ export default function CustomerProjectsPage() {
                   fontSize: "30px",
                 }}
               >
-                مشاريعي
+                {projects.length === 0 && purchases.length > 0 ? "مشترياتي" : purchases.length > 0 ? "حسابي" : "مشاريعي"}
               </h1>
 
               <p
@@ -204,8 +223,11 @@ export default function CustomerProjectsPage() {
                   lineHeight: "1.7",
                 }}
               >
-                جميع مشاريع البناء المرتبطة
-                بحسابك.
+                {projects.length === 0 && purchases.length > 0
+                  ? "طلبات متجر المنزل المرتبطة بحسابك."
+                  : purchases.length > 0
+                    ? "مشاريعك ومشترياتك في حساب واحد."
+                    : "جميع مشاريع البناء المرتبطة بحسابك."}
               </p>
             </div>
           </div>
@@ -217,6 +239,24 @@ export default function CustomerProjectsPage() {
               flexWrap: "wrap",
             }}
           >
+            <button
+              type="button"
+              onClick={() => { window.location.href = "/home-store"; }}
+              style={{
+                minHeight: "44px",
+                padding: "0 15px",
+                color: "#ffffff",
+                font: "inherit",
+                fontWeight: "800",
+                cursor: "pointer",
+                background: "#173f36",
+                border: 0,
+                borderRadius: "13px",
+              }}
+            >
+              🏠 متجر المنزل
+            </button>
+
             <button
               type="button"
               onClick={() => { window.location.href = "/marketplace"; }}
@@ -303,6 +343,24 @@ export default function CustomerProjectsPage() {
           </div>
         )}
 
+        {!loading && purchases.length > 0 && (
+          <section style={{ marginBottom: "28px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: "12px", marginBottom: "13px" }}>
+              <div><small style={{ color: "#8d620e", fontWeight: "900" }}>متجر المنزل</small><h2 style={{ margin: "4px 0 0" }}>مشترياتي</h2></div>
+              <strong>{purchases.length}</strong>
+            </div>
+            <div style={{ display: "grid", gap: "14px" }}>
+              {purchases.map((order) => (
+                <article key={order.id} style={{ overflow: "hidden", background: "rgba(255,255,255,.94)", border: "1px solid rgba(11,59,50,.11)", borderRadius: "18px", boxShadow: "0 12px 34px rgba(50,42,27,.07)" }}>
+                  <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", padding: "14px 16px", background: "#fbfaf7", borderBottom: "1px solid #ece8de" }}><div><strong dir="ltr">{order.orderNumber}</strong><small style={{ display: "block", marginTop: "3px", color: "#74807c" }}>{order.supplierName}</small></div><span style={{ padding: "6px 10px", color: "#875c14", background: "#fff3ce", borderRadius: "999px", fontSize: "13px", fontWeight: "850" }}>{MARKETPLACE_ORDER_STATUSES[order.status] || order.status}</span></header>
+                  <div style={{ display: "grid", gap: "8px", padding: "14px 16px" }}>{(order.items || []).map((item) => <div key={item.id} style={{ display: "grid", gridTemplateColumns: "52px minmax(0,1fr) auto", alignItems: "center", gap: "10px" }}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "10px" }} /><span><strong style={{ display: "block" }}>{item.productName}</strong><small style={{ color: "#74807c" }}>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>)}</div>
+                  <footer style={{ display: "flex", justifyContent: "space-between", padding: "13px 16px", borderTop: "1px solid #ece8de" }}><span>الإجمالي</span><strong>{formatMarketplaceMoney(order.subtotal)}</strong></footer>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         {loading ? (
           <div
             style={{
@@ -318,9 +376,10 @@ export default function CustomerProjectsPage() {
               fontWeight: "800",
             }}
           >
-            جاري تحميل المشاريع...
+            جاري تحميل الحساب...
           </div>
         ) : projects.length === 0 ? (
+          purchases.length === 0 ? (
           <div
             style={{
               padding: "38px 24px",
@@ -375,6 +434,7 @@ export default function CustomerProjectsPage() {
               للبريد المسجل عند تقديم الطلب.
             </p>
           </div>
+          ) : null
         ) : (
           <div
             style={{

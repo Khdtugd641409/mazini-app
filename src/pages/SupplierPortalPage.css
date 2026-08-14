@@ -12,6 +12,7 @@
 .supplier-section-note { color: #687570; line-height: 1.65; }
 .supplier-market-orders { display: grid; gap: 14px; }
 .supplier-market-orders > article { overflow: hidden; border: 1px solid #e5e1d7; border-radius: 16px; }
+.supplier-order-market-label { width: max-content; margin: 10px 16px 0; padding: 5px 10px; color: #805b14; background: #f8edd4; border-radius: 999px; font-size: 12px; font-weight: 900; }
 .supplier-market-orders article > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid #ece8de; background: #fbfaf7; }
 .supplier-market-orders article > header div { display: grid; gap: 3px; }
 .supplier-market-orders article > header small { color: #74807c; }

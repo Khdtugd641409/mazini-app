@@ -9,36 +9,50 @@ const IMAGE_EXTENSIONS = {
 };
 
 export async function getSupplierMarketplaceCatalog() {
-  const { data, error } = await supabase.rpc("marketplace_get_catalog");
+  const { data, error } = await supabase.rpc("construction_marketplace_get_catalog");
   if (error) throw error;
   return data || { actor: null, products: [] };
 }
 
-export async function getMySupplierMarketplaceOrders() {
-  const { data, error } = await supabase.rpc("marketplace_list_my_orders");
+export async function getHomeMarketplaceCatalog() {
+  const { data, error } = await supabase.rpc("home_marketplace_get_catalog");
   if (error) throw error;
-  return Array.isArray(data) ? data : [];
+  return data || { products: [] };
+}
+
+export async function getMySupplierMarketplaceOrders(section = null) {
+  const { data, error } = await supabase.rpc("marketplace_list_my_orders_v2");
+  if (error) throw error;
+  const orders = Array.isArray(data) ? data : [];
+  return section ? orders.filter((order) => (order.marketplaceSection || "construction") === section) : orders;
 }
 
 export async function checkoutSupplierMarketplace({
   items,
   buyerName,
+  buyerEmail,
   buyerMobile,
   deliveryAddress,
   deliveryMapsUrl,
   buyerNote,
+  marketplaceSection = "construction",
 }) {
-  const { data, error } = await supabase.rpc("marketplace_checkout", {
+  const isHome = marketplaceSection === "home";
+  const { data, error } = await supabase.rpc(
+    isHome ? "home_marketplace_checkout" : "construction_marketplace_checkout",
+    {
     p_items: items.map((item) => ({
       productId: item.productId,
       quantity: Number(item.quantity),
     })),
     p_buyer_name: buyerName,
+    ...(isHome ? { p_buyer_email: buyerEmail } : {}),
     p_buyer_mobile: buyerMobile,
     p_delivery_address: deliveryAddress,
     p_delivery_maps_url: deliveryMapsUrl || null,
     p_buyer_note: buyerNote || null,
-  });
+    }
+  );
   if (error) throw error;
   return data;
 }
@@ -79,7 +93,7 @@ export async function saveSupplierMarketplaceProduct(product, imageFile) {
       ? (uploadedImagePath = await uploadProductImage(imageFile))
       : product.imagePath;
 
-    const { data, error } = await supabase.rpc("supplier_save_product", {
+    const { data, error } = await supabase.rpc("supplier_save_marketplace_product", {
       p_product_id: product.id || null,
       p_product_name: product.productName,
       p_description: product.description || null,
@@ -87,6 +101,7 @@ export async function saveSupplierMarketplaceProduct(product, imageFile) {
       p_unit_code: product.unitCode,
       p_category_code: product.categoryCode,
       p_image_path: imagePath,
+      p_marketplace_section: product.marketplaceSection || "construction",
     });
     if (error) throw error;
     return data;
