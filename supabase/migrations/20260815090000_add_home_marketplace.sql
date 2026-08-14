@@ -519,11 +519,9 @@ begin
 end;
 $$;
 
--- The original functions become internal implementation details. Public callers use
--- the section-aware wrappers above so a cart cannot cross the two stores.
-revoke all on function public.marketplace_get_catalog() from public, anon, authenticated;
-revoke all on function public.marketplace_checkout(jsonb, text, text, text, text, text) from public, anon, authenticated;
-revoke all on function public.marketplace_list_my_orders() from public, anon, authenticated;
+-- Keep the authenticated grants on the legacy RPCs during the rollout so the
+-- currently deployed frontend remains functional until the new build is live.
+-- A follow-up hardening migration can revoke them after deployment verification.
 
 revoke all on function public.construction_marketplace_get_catalog() from public, anon, authenticated;
 revoke all on function public.home_marketplace_get_catalog() from public, anon, authenticated;
