@@ -8,7 +8,7 @@ const ACTION_TYPE_LABELS = {
   land_review: "أراضٍ بانتظار المراجعة",
   land_transfer: "طلبات إفراغ تحتاج اعتماد",
   supervisor_report: "تقارير مشرفين تحتاج مراجعة",
-  project_follow_up_request: "طلبات متابعة مشاريع",
+  project_follow_up_request: "مديونيات متابعة المشاريع",
   investor_application: "طلبات مستثمرين",
 };
 
@@ -148,7 +148,7 @@ function AdminDashboardPage({
   const [adminStageLoading, setAdminStageLoading] = useState(false);
 
   const pendingFollowUpRequests = supervisorOfferReviews.filter((offer) =>
-    ["customer_selected", "fee_pending"].includes(offer.status)
+    offer.feeStatus === "pending"
   ).length;
 
   const visiblePendingActions = useMemo(() => {
@@ -444,37 +444,6 @@ function AdminDashboardPage({
     }
   }
 
-  async function handleDecideSupervisorOffer(offerId, approve) {
-    if (!offerId || supervisorsSaving) return;
-    const note = approve ? "" : (window.prompt("سبب عدم الاعتماد (اختياري):") || "");
-    try {
-      setSupervisorsSaving(true);
-      setSupervisorsError("");
-      const { error } = await supabase.rpc("admin_decide_supervisor_offer", {
-        p_offer_id: offerId, p_approve: Boolean(approve), p_note: note || null,
-      });
-      if (error) throw error;
-      setSupervisorsMessage(approve ? "تم اعتماد اختيار العميل، وأصبحت رسوم 2٪ مستحقة على المشرف." : "تم رفض اختيار المشرف ويمكن للعميل اختيار عرض آخر.");
-      await reloadSupervisors();
-    } catch (error) {
-      setSupervisorsError(error?.message || "تعذر تنفيذ قرار العرض.");
-    } finally { setSupervisorsSaving(false); }
-  }
-
-  async function handleConfirmSupervisorFee(offerId) {
-    if (!offerId || supervisorsSaving) return;
-    try {
-      setSupervisorsSaving(true);
-      setSupervisorsError("");
-      const { error } = await supabase.rpc("admin_confirm_supervisor_offer_fee_paid", { p_offer_id: offerId });
-      if (error) throw error;
-      setSupervisorsMessage("تم تأكيد سداد الرسوم وتفعيل المشرف على المشروع.");
-      await reloadSupervisors();
-    } catch (error) {
-      setSupervisorsError(error?.message || "تعذر تأكيد السداد.");
-    } finally { setSupervisorsSaving(false); }
-  }
-
   async function handleViewProjectStage(projectId) {
     if (!projectId || adminStageLoading) return;
     try {
@@ -713,8 +682,8 @@ function AdminDashboardPage({
                 <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/project-follow-up-requests"; }}>
                   <span className="admin-partner-directory-icon">🧭</span>
                   <span className="admin-partner-directory-title">طلبات متابعة مشاريع</span>
-                  <span className="admin-partner-directory-note">اعتماد اختيار العميل، ثم تأكيد الرسوم وإسناد المشروع للمشرف</span>
-                  <strong className="admin-partner-directory-count" aria-label={`${pendingFollowUpRequests} طلبات تحتاج إجراءً`}>
+                  <span className="admin-partner-directory-note">متابعة المشاريع المسندة وتأكيد المديونيات بعد اكتمال المراحل</span>
+                  <strong className="admin-partner-directory-count" aria-label={`${pendingFollowUpRequests} مديونيات تحتاج تأكيدًا`}>
                     {pendingFollowUpRequests}
                   </strong>
                 </button>

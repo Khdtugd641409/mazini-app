@@ -562,6 +562,8 @@ function SupervisorOffersCard({ projectId }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [availabilityMessage, setAvailabilityMessage] = useState("");
+  const [requiresBuiltUpArea, setRequiresBuiltUpArea] = useState(false);
+  const [builtUpArea, setBuiltUpArea] = useState("");
 
   async function loadOffers() {
     if (!projectId) return;
@@ -569,6 +571,7 @@ function SupervisorOffersCard({ projectId }) {
       setLoading(true);
       setErrorMessage("");
       setAvailabilityMessage("");
+      setRequiresBuiltUpArea(false);
       setAvailableSupervisors([]);
 
       const [offersResult, supervisorsResult] = await Promise.all([
@@ -590,6 +593,20 @@ function SupervisorOffersCard({ projectId }) {
         if (message.includes("PROJECT_ALREADY_HAS_SUPERVISOR")) {
           setAvailableSupervisors([]);
           setAvailabilityMessage("تم إسناد مشرف لهذا المشروع بالفعل.");
+        } else if (message.includes("PROJECT_BUILT_UP_AREA_REQUIRED")) {
+          setAvailableSupervisors([]);
+          setRequiresBuiltUpArea(true);
+          setAvailabilityMessage(
+            "أدخل إجمالي مسطح البناء قبل طلب الإشراف؛ لا تُحسب العمولة من مساحة الأرض."
+          );
+        } else if (message.includes("UNSUPPORTED_FLOOR_COUNT_FOR_PLATFORM_FEE")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage(
+            "تسعير عمولة الإشراف محدد حاليًا للمباني من دور إلى ثلاثة أدوار فقط."
+          );
+        } else if (message.includes("PROJECT_SUPERVISION_COMPLETED")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage("اكتملت متابعة هذا المشروع.");
         } else if (message.includes("PROJECT_NOT_AVAILABLE_FOR_SUPERVISION")) {
           setAvailableSupervisors([]);
           setAvailabilityMessage(
@@ -622,10 +639,50 @@ function SupervisorOffersCard({ projectId }) {
       setSuccessMessage("");
       const { error } = await supabase.rpc("customer_select_supervisor_offer", { p_offer_id: offerId });
       if (error) throw error;
-      setSuccessMessage("تم إرسال اختيارك إلى إدارة المنصة لاعتماد الإسناد.");
+      setSuccessMessage("تم إسناد المشرف وفتح خدمات متابعة المشروع فورًا.");
       await loadOffers();
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر اختيار العرض.");
+      const message = String(error?.message || "");
+
+      if (message.includes("SUPERVISOR_HAS_OUTSTANDING_PLATFORM_DEBT")) {
+        setErrorMessage(
+          "لا يمكن إسناد هذا المشرف حاليًا لوجود مديونية مستحقة عليه. اختر مشرفًا آخر."
+        );
+      } else {
+        setErrorMessage(error?.message || "تعذر اختيار العرض.");
+      }
+      setLoading(false);
+    }
+  }
+
+  async function saveBuiltUpArea() {
+    const area = Number(builtUpArea);
+
+    if (!Number.isFinite(area) || area <= 0 || loading) {
+      setErrorMessage("أدخل إجمالي مسطح البناء بصورة صحيحة.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const { error } = await supabase.rpc(
+        "customer_set_service_project_built_up_area",
+        {
+          p_project_id: projectId,
+          p_built_up_area: area,
+        }
+      );
+
+      if (error) throw error;
+
+      setBuiltUpArea("");
+      setSuccessMessage("تم حفظ إجمالي مسطح البناء.");
+      await loadOffers();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر حفظ إجمالي مسطح البناء.");
       setLoading(false);
     }
   }
@@ -664,7 +721,11 @@ function SupervisorOffersCard({ projectId }) {
     }
   }
 
-  const selectedOffer = offers.find((offer) => ["customer_selected","fee_pending","active"].includes(offer.status));
+  const selectedOffer = offers.find((offer) =>
+    ["customer_selected", "fee_pending", "active", "completed"].includes(
+      offer.status
+    )
+  );
   const visibleOffers = offers.filter(
     (offer) => !["expired", "cancelled", "withdrawn"].includes(offer.status)
   );
@@ -673,8 +734,9 @@ function SupervisorOffersCard({ projectId }) {
     requested: "تم إرسال الطلب — بانتظار السعر",
     submitted: "وصل عرض المشرف",
     customer_selected: "تم اختيار العرض",
-    fee_pending: "اعتمدت الإدارة الاختيار",
+    fee_pending: "مديونية المنصة مستحقة",
     active: "تم تفعيل المتابعة",
+    completed: "اكتملت متابعة المشروع",
   };
 
   return (
@@ -682,9 +744,8 @@ function SupervisorOffersCard({ projectId }) {
       <h2>طلب إشراف وعروض المشرفين</h2>
       {errorMessage && <p className="customer-file-notice" style={{ color: "#991b1b" }}>{errorMessage}</p>}
       {successMessage && <p className="customer-file-notice"><strong>{successMessage}</strong></p>}
-      {selectedOffer?.status === "customer_selected" && <p className="customer-file-notice"><strong>تم اختيار المشرف. في انتظار قبول إدارة المنصة.</strong></p>}
-      {selectedOffer?.status === "fee_pending" && <p className="customer-file-notice"><strong>اعتمدت الإدارة اختيارك. بانتظار سداد المشرف رسوم المنصة لتفعيل الإشراف.</strong></p>}
       {selectedOffer?.status === "active" && <p className="customer-file-notice"><strong>تم تفعيل المشرف على المشروع.</strong></p>}
+      {selectedOffer?.status === "completed" && <p className="customer-file-notice"><strong>اكتملت خدمات متابعة هذا المشروع.</strong></p>}
 
       {!selectedOffer && (
         <div style={{ margin: "18px 0", display: "grid", gap: 12 }}>
@@ -698,7 +759,31 @@ function SupervisorOffersCard({ projectId }) {
           {loading ? (
             <p>جاري تحميل المشرفين...</p>
           ) : availabilityMessage ? (
-            <p>{availabilityMessage}</p>
+            <div style={{ display: "grid", gap: 10 }}>
+              <p>{availabilityMessage}</p>
+              {requiresBuiltUpArea && (
+                <div style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={builtUpArea}
+                    onChange={(event) => setBuiltUpArea(event.target.value)}
+                    placeholder="إجمالي مسطح البناء بالمتر المربع"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="customer-land-entry-button"
+                    onClick={saveBuiltUpArea}
+                    disabled={loading || !builtUpArea}
+                  >
+                    حفظ المسطح وفتح قائمة المشرفين
+                  </button>
+                </div>
+              )}
+            </div>
           ) : availableSupervisors.length === 0 ? (
             <p>لا يوجد مشرف نشط يغطي مدينة المشروع حاليًا.</p>
           ) : (
@@ -710,6 +795,7 @@ function SupervisorOffersCard({ projectId }) {
                   "customer_selected",
                   "fee_pending",
                   "active",
+                  "completed",
                 ].includes(supervisor.requestStatus);
 
                 return (

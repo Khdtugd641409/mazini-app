@@ -203,15 +203,36 @@
   background: #dcfce7;
 }
 
+.admin-follow-up-status.is-completed {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.admin-follow-up-status.is-debt-pending {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .admin-follow-up-status.is-admin_rejected {
   color: #991b1b;
   background: #fee2e2;
 }
 
 .admin-follow-up-price {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
   color: #9a6b0f;
-  font-size: clamp(22px, 4vw, 30px);
   white-space: nowrap;
+}
+
+.admin-follow-up-price small {
+  color: #687872;
+  font-size: 13px;
+}
+
+.admin-follow-up-price strong {
+  font-size: clamp(22px, 4vw, 30px);
 }
 
 .admin-follow-up-details {
@@ -249,6 +270,12 @@
   background: #faf9f5;
   border: 1px solid #e5e7eb;
   border-radius: 13px;
+}
+
+.admin-follow-up-activation.is-debt {
+  color: #991b1b;
+  background: #fff1f2;
+  border-color: #fecdd3;
 }
 
 .admin-follow-up-note p,

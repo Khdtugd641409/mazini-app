@@ -627,6 +627,10 @@ function normalizeServiceProjectForWorkspace(
     project_title:
       project.project_title || "",
     land_area: Number(project.land_area),
+    built_up_area:
+      project.built_up_area == null
+        ? null
+        : Number(project.built_up_area),
     floors: Number(project.floors),
     property_location_url:
       project.property_location_url || "",

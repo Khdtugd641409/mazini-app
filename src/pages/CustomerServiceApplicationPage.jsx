@@ -19,6 +19,7 @@ const INITIAL_FORM_DATA = {
   propertyLocationUrl: "",
   city: "",
   landArea: "",
+  builtUpArea: "",
   projectTitle: "",
   floors: "",
   stageSelection: "",
@@ -132,6 +133,7 @@ export default function CustomerServiceApplicationPage({
       !formData.propertyLocationUrl.trim() ||
       !formData.city.trim() ||
       !formData.landArea ||
+      !formData.builtUpArea ||
       !formData.projectTitle ||
       !formData.floors
     ) {
@@ -234,6 +236,9 @@ export default function CustomerServiceApplicationPage({
 
           landArea:
             formData.landArea,
+
+          builtUpArea:
+            formData.builtUpArea,
 
           projectTitle:
             formData.projectTitle,
@@ -564,7 +569,7 @@ export default function CustomerServiceApplicationPage({
 
                 <label>
                   <span>
-                    المساحة بالمتر المربع
+                    مساحة الأرض (م²)
                   </span>
 
                   <input
@@ -582,6 +587,31 @@ export default function CustomerServiceApplicationPage({
                     disabled={isSubmitting}
                     required
                   />
+                </label>
+
+                <label>
+                  <span>
+                    إجمالي مسطح البناء (م²)
+                  </span>
+
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="1"
+                    step="0.01"
+                    value={formData.builtUpArea}
+                    onChange={(event) =>
+                      updateField(
+                        "builtUpArea",
+                        event.target.value
+                      )
+                    }
+                    disabled={isSubmitting}
+                    required
+                  />
+                  <small>
+                    مجموع مساحات جميع الأدوار المبنية، وليس مساحة الأرض.
+                  </small>
                 </label>
 
                 <label>

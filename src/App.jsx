@@ -477,6 +477,19 @@ function SupervisorPortal({ onBackHome }) {
 
       await loadSupervisorDashboard();
 
+      if (data?.projectCompleted) {
+        setStageWorkspace(null);
+        setSelectedStageId("");
+        setSuccessMessage(
+          data?.feeBecameDue
+            ? `اكتملت جميع مراحل المشروع. أصبحت مديونية المنصة ${Number(
+                data.feeAmount || 0
+              ).toLocaleString("ar-SA")} ريال مستحقة، ولن يظهر حسابك في الترشيحات الجديدة حتى تأكيد سدادها.`
+            : "اكتملت جميع مراحل المشروع."
+        );
+        return;
+      }
+
       const nextStageId = data?.nextStageId || null;
       await loadStageWorkspace(nextStageId || selectedStageId);
 
@@ -530,7 +543,12 @@ function SupervisorPortal({ onBackHome }) {
       setOfferNotes((current) => ({ ...current, [key]: "" }));
       await loadSupervisorDashboard();
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر إرسال العرض.");
+      const message = String(error?.message || "");
+      setErrorMessage(
+        message.includes("SUPERVISOR_HAS_OUTSTANDING_PLATFORM_DEBT")
+          ? "لا يمكنك إرسال عرض جديد قبل تأكيد سداد مديونية المنصة المستحقة."
+          : error?.message || "تعذر إرسال العرض."
+      );
     } finally {
       setLoading(false);
     }
@@ -549,6 +567,13 @@ function SupervisorPortal({ onBackHome }) {
   ].filter((item) => Boolean(item.required) && !Boolean(item.checked)).length;
   const canCompleteSelectedStage = ["planned", "in_progress"].includes(
     selectedStageStatus
+  );
+  const pendingPlatformDebts = myOffers.filter(
+    (offer) => offer.feeStatus === "pending"
+  );
+  const pendingPlatformDebtTotal = pendingPlatformDebts.reduce(
+    (total, offer) => total + Number(offer.feeAmount || 0),
+    0
   );
 
   const shellStyle = {
@@ -641,6 +666,14 @@ function SupervisorPortal({ onBackHome }) {
 
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}
         {successMessage && <div style={cardStyle}>{successMessage}</div>}
+        {pendingPlatformDebts.length > 0 && (
+          <div style={{ ...cardStyle, color: "#991b1b", background: "#fff1f2", borderColor: "#fecdd3" }}>
+            <strong>مديونية مستحقة للمنصة: {pendingPlatformDebtTotal.toLocaleString("ar-SA")} ريال</strong>
+            <p style={{ marginBottom: 0 }}>
+              لا يظهر حسابك ضمن ترشيحات المشرفين الجديدة حتى تأكيد السداد. المشاريع السابقة وسجلاتها لا تُحذف.
+            </p>
+          </div>
+        )}
 
         <section style={cardStyle}>
           <h2 style={{ marginTop: 0 }}>طلبات إشراف من العملاء</h2>
@@ -655,7 +688,7 @@ function SupervisorPortal({ onBackHome }) {
                   <article key={key} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 12 }}>
                     <strong style={{ display: "block" }}>{project.projectNumber || "مشروع"}</strong>
                     <div>{project.city || ""}{project.district ? ` — ${project.district}` : ""}</div>
-                    <div>{project.projectTitle || ""} — {project.landArea || "-"} م² — {project.floors || "-"} دور</div>
+                    <div>{project.projectTitle || ""} — مساحة الأرض {project.landArea || "-"} م² — المسطح المبني {project.builtUpArea || "-"} م² — {project.floors || "-"} دور</div>
                     <small>المرحلة: {project.currentStage || "غير محددة"}</small>
                     {project.locationUrl && <p><a href={project.locationUrl} target="_blank" rel="noreferrer">فتح موقع المشروع</a></p>}
                     <p><strong>وقت الطلب:</strong> {formatSupervisorDate(project.requestedAt)}</p>
@@ -686,8 +719,14 @@ function SupervisorPortal({ onBackHome }) {
                   ) : (
                     <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
                   )}
-                  <div>الحالة: {offer.status === "requested" ? "طلب جديد من العميل — بانتظار تسعيرك" : offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "customer_selected" ? "اختارك العميل — بانتظار اعتماد الإدارة" : offer.status === "fee_pending" ? "معتمد — بانتظار سداد رسوم المنصة" : offer.status === "active" ? "تم التفعيل" : offer.status === "admin_rejected" ? "لم تعتمد الإدارة العرض" : offer.status}</div>
-                  {offer.status === "fee_pending" && <p><strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />بعد السداد وتأكيد الإدارة تُفتح أدوات الإشراف على المشروع.</p>}
+                  <div>الحالة: {offer.status === "requested" ? "طلب جديد من العميل — بانتظار تسعيرك" : offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "active" ? "تم الإسناد وفتح خدمات المتابعة" : offer.status === "completed" && offer.feeStatus === "pending" ? "اكتملت المراحل — المديونية مستحقة" : offer.status === "completed" && offer.feeStatus === "paid" ? "اكتملت المراحل — تم سداد المديونية" : offer.status}</div>
+                  {offer.feeAmount != null && offer.status === "active" && (
+                    <p>
+                      رسوم المنصة المحتسبة: <strong>{Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong>
+                      {" "}({Number(offer.feeBasisArea || 0).toLocaleString("ar-SA")} م² × {Number(offer.feeUnitRate || 0).toLocaleString("ar-SA")} ريال). تستحق عند اكتمال جميع المراحل.
+                    </p>
+                  )}
+                  {offer.feeStatus === "pending" && <p><strong>مديونية المنصة: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />يُعاد ظهور حسابك في الترشيحات الجديدة بعد تأكيد السداد.</p>}
                 </article>
               ))}
             </div>

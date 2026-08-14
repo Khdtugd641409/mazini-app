@@ -5,10 +5,19 @@ import { supabase } from "../../lib/supabase.js";
 import "./AdminProjectFollowUpRequestsPage.css";
 
 const STATUS_LABELS = {
-  customer_selected: "بانتظار اعتماد الإدارة",
-  fee_pending: "معتمد — بانتظار تأكيد الرسوم",
-  active: "تم الإسناد وتفعيل المتابعة",
-  admin_rejected: "لم تعتمد الإدارة الطلب",
+  active: "المتابعة فعالة",
+  completed: "اكتملت المتابعة",
+  customer_selected: "حالة قديمة — لم تُفعّل",
+  fee_pending: "حالة قديمة — بانتظار المعالجة",
+  admin_rejected: "حالة قديمة — غير معتمدة",
+};
+
+const FEE_STATUS_LABELS = {
+  not_due: "غير مستحقة حتى نهاية المراحل",
+  pending: "مديونية مستحقة",
+  paid: "تم السداد",
+  waived: "معفاة",
+  refunded: "مستردة",
 };
 
 const PROJECT_TYPE_LABELS = {
@@ -40,10 +49,15 @@ function formatMoney(value) {
   }).format(amount);
 }
 
+function formatNumber(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "غير متوفر";
+  return new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 }).format(number);
+}
+
 function AdminProjectFollowUpRequestsPage({ onBack }) {
   const [requests, setRequests] = useState([]);
-  const [filter, setFilter] = useState("pending");
-  const [notes, setNotes] = useState({});
+  const [filter, setFilter] = useState("debts");
   const [loading, setLoading] = useState(true);
   const [busyOfferId, setBusyOfferId] = useState("");
   const [message, setMessage] = useState("");
@@ -64,7 +78,7 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
     } catch (error) {
       setRequests([]);
       setErrorMessage(
-        error?.message || "تعذر تحميل طلبات متابعة المشاريع."
+        error?.message || "تعذر تحميل سجل متابعة المشاريع."
       );
     } finally {
       setLoading(false);
@@ -75,85 +89,29 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
     loadRequests();
   }, []);
 
-  const pendingCount = useMemo(
-    () =>
-      requests.filter((request) =>
-        ["customer_selected", "fee_pending"].includes(request.status)
-      ).length,
+  const pendingDebtCount = useMemo(
+    () => requests.filter((request) => request.feeStatus === "pending").length,
+    [requests]
+  );
+
+  const activeProjectCount = useMemo(
+    () => requests.filter((request) => request.status === "active").length,
     [requests]
   );
 
   const visibleRequests = useMemo(() => {
-    if (filter === "pending") {
-      return requests.filter((request) =>
-        ["customer_selected", "fee_pending"].includes(request.status)
-      );
+    if (filter === "debts") {
+      return requests.filter((request) => request.feeStatus === "pending");
     }
 
     return requests;
   }, [filter, requests]);
 
-  function updateNote(offerId, value) {
-    setNotes((current) => ({
-      ...current,
-      [offerId]: value,
-    }));
-  }
-
-  async function decideRequest(request, approve) {
-    if (!request?.id || busyOfferId) return;
-
-    const note = String(notes[request.id] || "").trim();
-
-    if (!approve && note.length < 3) {
-      setErrorMessage("اكتب سبب عدم الاعتماد قبل رفض الطلب.");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      approve
-        ? "هل تريد اعتماد اختيار العميل؟ سيصبح الطلب بانتظار تأكيد رسوم المنصة قبل الإسناد."
-        : "هل تريد رفض طلب الإسناد؟ سيتمكن العميل بعدها من اختيار عرض آخر."
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setBusyOfferId(request.id);
-      setErrorMessage("");
-      setMessage("");
-
-      const { error } = await supabase.rpc(
-        "admin_decide_supervisor_offer",
-        {
-          p_offer_id: request.id,
-          p_approve: Boolean(approve),
-          p_note: note || null,
-        }
-      );
-
-      if (error) throw error;
-
-      setNotes((current) => ({ ...current, [request.id]: "" }));
-      setMessage(
-        approve
-          ? "تم اعتماد الطلب. بقي تأكيد سداد رسوم المنصة لإسناد المشروع وفتح خدمات المتابعة."
-          : "تم رفض الطلب، ويمكن للعميل اختيار عرض آخر."
-      );
-
-      await loadRequests();
-    } catch (error) {
-      setErrorMessage(error?.message || "تعذر تنفيذ قرار الإدارة.");
-    } finally {
-      setBusyOfferId("");
-    }
-  }
-
-  async function confirmFeeAndActivate(request) {
+  async function confirmDebtPayment(request) {
     if (!request?.id || busyOfferId) return;
 
     const confirmed = window.confirm(
-      "هل تؤكد استلام رسوم المنصة؟ سيُسند المشروع للمشرف وتُفتح خدمات متابعة المشروع فورًا."
+      "هل تؤكد استلام مديونية المنصة؟ سيعود حساب المشرف للظهور في الترشيحات الجديدة، ولن يتغير سجل المشروع المكتمل."
     );
 
     if (!confirmed) return;
@@ -171,13 +129,11 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
       if (error) throw error;
 
       setMessage(
-        "تم إسناد المشروع للمشرف وفتح خدمات متابعة المشروع بنجاح."
+        "تم تأكيد سداد المديونية، وأصبح المشرف مؤهلًا للظهور في الترشيحات الجديدة."
       );
       await loadRequests();
     } catch (error) {
-      setErrorMessage(
-        error?.message || "تعذر إسناد المشروع وتفعيل المتابعة."
-      );
+      setErrorMessage(error?.message || "تعذر تأكيد سداد المديونية.");
     } finally {
       setBusyOfferId("");
     }
@@ -191,7 +147,8 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
             <p>إدارة منصة نايف المزيني</p>
             <h1>طلبات متابعة مشاريع</h1>
             <p className="admin-follow-up-description">
-              طلبات الإسناد التي وافق العميل على سعر المشرف الخاص بها.
+              سجل الإسنادات المباشرة ومديونيات المشرفين. قبول العميل يفتح
+              المتابعة دون موافقة إدارية.
             </p>
           </div>
 
@@ -204,31 +161,31 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
           </button>
         </header>
 
-        <section className="admin-follow-up-summary" aria-label="ملخص الطلبات">
+        <section className="admin-follow-up-summary" aria-label="ملخص المتابعة">
           <div>
-            <span>تحتاج إجراءً</span>
-            <strong>{pendingCount}</strong>
+            <span>مديونيات تحتاج تأكيدًا</span>
+            <strong>{pendingDebtCount}</strong>
           </div>
           <div>
-            <span>إجمالي السجل</span>
-            <strong>{requests.length}</strong>
+            <span>مشاريع متابعة فعالة</span>
+            <strong>{activeProjectCount}</strong>
           </div>
         </section>
 
-        <div className="admin-follow-up-filters" role="group" aria-label="تصفية الطلبات">
+        <div className="admin-follow-up-filters" role="group" aria-label="تصفية السجل">
           <button
             type="button"
-            className={filter === "pending" ? "is-active" : ""}
-            onClick={() => setFilter("pending")}
+            className={filter === "debts" ? "is-active" : ""}
+            onClick={() => setFilter("debts")}
           >
-            الطلبات المعلقة ({pendingCount})
+            المديونيات المستحقة ({pendingDebtCount})
           </button>
           <button
             type="button"
             className={filter === "all" ? "is-active" : ""}
             onClick={() => setFilter("all")}
           >
-            جميع الطلبات ({requests.length})
+            جميع المشاريع ({requests.length})
           </button>
           <button type="button" onClick={loadRequests} disabled={loading || Boolean(busyOfferId)}>
             تحديث
@@ -239,28 +196,41 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
         {errorMessage && <p className="admin-follow-up-notice is-error"><strong>{errorMessage}</strong></p>}
 
         {loading ? (
-          <section className="admin-follow-up-empty">جاري تحميل الطلبات...</section>
+          <section className="admin-follow-up-empty">جاري تحميل السجل...</section>
         ) : visibleRequests.length === 0 ? (
           <section className="admin-follow-up-empty">
             <span aria-hidden="true">✓</span>
-            <h2>{filter === "pending" ? "لا توجد طلبات معلقة" : "لا يوجد سجل طلبات بعد"}</h2>
-            <p>ستظهر هنا الطلبات بعد موافقة العميل على عرض المشرف.</p>
+            <h2>{filter === "debts" ? "لا توجد مديونيات مستحقة" : "لا توجد مشاريع متابعة بعد"}</h2>
+            <p>
+              {filter === "debts"
+                ? "كل مديونيات المشرفين مسددة أو لم يحِن استحقاقها."
+                : "تظهر المشاريع هنا فور قبول العميل لعرض المشرف."}
+            </p>
           </section>
         ) : (
-          <section className="admin-follow-up-list" aria-label="طلبات متابعة المشاريع">
+          <section className="admin-follow-up-list" aria-label="سجل متابعة المشاريع">
             {visibleRequests.map((request) => (
               <article key={request.id} className="admin-follow-up-card">
                 <header>
                   <div>
-                    <span className={`admin-follow-up-status is-${request.status}`}>
-                      {STATUS_LABELS[request.status] || request.status}
+                    <span
+                      className={`admin-follow-up-status ${
+                        request.feeStatus === "pending"
+                          ? "is-debt-pending"
+                          : `is-${request.status}`
+                      }`}
+                    >
+                      {request.feeStatus === "pending"
+                        ? "مديونية مستحقة"
+                        : STATUS_LABELS[request.status] || request.status}
                     </span>
                     <h2>{request.projectNumber || "مشروع بدون رقم"}</h2>
                     <p>{PROJECT_TYPE_LABELS[request.projectType] || "مشروع"}</p>
                   </div>
-                  <strong className="admin-follow-up-price">
-                    {formatMoney(request.offerPrice)}
-                  </strong>
+                  <div className="admin-follow-up-price">
+                    <small>قيمة عقد الإشراف</small>
+                    <strong>{formatMoney(request.offerPrice)}</strong>
+                  </div>
                 </header>
 
                 <dl className="admin-follow-up-details">
@@ -277,17 +247,39 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
                     <dd>{request.organizationName || "فرد"}</dd>
                   </div>
                   <div>
-                    <dt>وقت طلب العميل</dt>
-                    <dd>{formatDate(request.requestedAt)}</dd>
+                    <dt>عدد الأدوار</dt>
+                    <dd>{formatNumber(request.floors)}</dd>
                   </div>
                   <div>
-                    <dt>وقت موافقة العميل على السعر</dt>
+                    <dt>المسطح المثبت</dt>
+                    <dd>{formatNumber(request.feeBasisArea)} م²</dd>
+                  </div>
+                  <div>
+                    <dt>سعر المنصة للمتر</dt>
+                    <dd>{formatMoney(request.feeUnitRate)}</dd>
+                  </div>
+                  <div>
+                    <dt>رسوم المنصة</dt>
+                    <dd>{formatMoney(request.feeAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>حالة الرسوم</dt>
+                    <dd>{FEE_STATUS_LABELS[request.feeStatus] || request.feeStatus}</dd>
+                  </div>
+                  <div>
+                    <dt>وقت قبول العميل</dt>
                     <dd>{formatDate(request.selectedAt)}</dd>
                   </div>
-                  {request.status === "fee_pending" && (
+                  {request.feeDueAt && (
                     <div>
-                      <dt>رسوم المنصة ٢٪</dt>
-                      <dd>{formatMoney(request.feeAmount)}</dd>
+                      <dt>وقت الاستحقاق</dt>
+                      <dd>{formatDate(request.feeDueAt)}</dd>
+                    </div>
+                  )}
+                  {request.feePaidAt && (
+                    <div>
+                      <dt>وقت تأكيد السداد</dt>
+                      <dd>{formatDate(request.feePaidAt)}</dd>
                     </div>
                   )}
                 </dl>
@@ -299,61 +291,29 @@ function AdminProjectFollowUpRequestsPage({ onBack }) {
                   </div>
                 )}
 
-                {request.adminNote && (
-                  <div className="admin-follow-up-note">
-                    <strong>ملاحظة الإدارة</strong>
-                    <p>{request.adminNote}</p>
-                  </div>
-                )}
-
-                {request.status === "customer_selected" && (
-                  <div className="admin-follow-up-decision">
-                    <label>
-                      <strong>ملاحظة الإدارة</strong>
-                      <textarea
-                        rows="3"
-                        value={notes[request.id] || ""}
-                        onChange={(event) => updateNote(request.id, event.target.value)}
-                        placeholder="اختيارية عند الاعتماد، ومطلوبة عند الرفض"
-                        disabled={Boolean(busyOfferId)}
-                        maxLength={1000}
-                      />
-                    </label>
-
-                    <div>
-                      <button
-                        type="button"
-                        className="is-approve"
-                        onClick={() => decideRequest(request, true)}
-                        disabled={Boolean(busyOfferId)}
-                      >
-                        {busyOfferId === request.id ? "جاري التنفيذ..." : "اعتماد الطلب"}
-                      </button>
-                      <button
-                        type="button"
-                        className="is-reject"
-                        onClick={() => decideRequest(request, false)}
-                        disabled={Boolean(busyOfferId)}
-                      >
-                        عدم الاعتماد
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {request.status === "fee_pending" && (
+                {request.status === "active" && request.feeStatus === "not_due" && (
                   <div className="admin-follow-up-activation">
                     <p>
-                      لا تُفتح أدوات المتابعة قبل تأكيد استلام الرسوم؛ التأكيد يُنشئ الإسناد الفعلي للمشروع.
+                      خدمات المتابعة مفتوحة الآن. الرسوم محسوبة ومثبتة، لكنها لا
+                      تصبح مديونية إلا بعد اكتمال جميع المراحل.
+                    </p>
+                  </div>
+                )}
+
+                {request.feeStatus === "pending" && (
+                  <div className="admin-follow-up-activation is-debt">
+                    <p>
+                      انتهت المراحل وحُجب المشرف عن الترشيحات الجديدة. أكّد
+                      السداد فقط بعد تحقق وصول المبلغ.
                     </p>
                     <button
                       type="button"
-                      onClick={() => confirmFeeAndActivate(request)}
+                      onClick={() => confirmDebtPayment(request)}
                       disabled={Boolean(busyOfferId)}
                     >
                       {busyOfferId === request.id
-                        ? "جاري التفعيل..."
-                        : "تأكيد السداد وإسناد المشروع"}
+                        ? "جاري التأكيد..."
+                        : "تأكيد سداد المديونية"}
                     </button>
                   </div>
                 )}
