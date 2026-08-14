@@ -6,6 +6,7 @@ import SupervisorServicesPage from "./pages/SupervisorServicesPage.jsx";
 import AdminSupervisorApplicationsPage from "./pages/admin/AdminSupervisorApplicationsPage.jsx";
 import SupplierApplicationPage from "./pages/SupplierApplicationPage.jsx";
 import SupplierPortalPage from "./pages/SupplierPortalPage.jsx";
+import SupplierMarketplacePage from "./pages/SupplierMarketplacePage.jsx";
 import AdminSupplierApplicationsPage from "./pages/admin/AdminSupplierApplicationsPage.jsx";
 import { supabase } from "./lib/supabase.js";
 import "./index.css";
@@ -130,7 +131,9 @@ function FloatingShortcut({ href, children, bottom = 18 }) {
 
 let rootContent;
 
-if (normalizedPath === "/supplier/application") {
+if (normalizedPath === "/marketplace") {
+  rootContent = <SupplierMarketplacePage />;
+} else if (normalizedPath === "/supplier/application") {
   rootContent = <SupplierApplicationPage />;
 } else if (normalizedPath === "/supplier") {
   rootContent = (
@@ -160,6 +163,7 @@ if (normalizedPath === "/supplier/application") {
     <SupervisorSessionGuard>
       <App />
       <FloatingShortcut href="/supervisor/services">خدماتي</FloatingShortcut>
+      <FloatingShortcut href="/marketplace" bottom={70}>سوق المواد</FloatingShortcut>
     </SupervisorSessionGuard>
   );
 } else {

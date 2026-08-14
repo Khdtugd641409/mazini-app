@@ -134,9 +134,14 @@ function SupervisorServicesPage() {
             <p style={{ margin: 0 }}>حساب المشرف</p>
             <h1 style={{ marginBottom: 0 }}>خدماتي</h1>
           </div>
-          <button type="button" onClick={() => { window.location.href = "/supervisor"; }}>
-            العودة لحساب المشرف
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => { window.location.href = "/marketplace"; }}>
+              🛒 سوق مواد البناء
+            </button>
+            <button type="button" onClick={() => { window.location.href = "/supervisor"; }}>
+              العودة لحساب المشرف
+            </button>
+          </div>
         </header>
 
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}

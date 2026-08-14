@@ -706,6 +706,12 @@ function AdminDashboardPage({
                   <span className="admin-partner-directory-title">الموردون المعتمدون</span>
                   <span className="admin-partner-directory-note">عرض سجلات الموردين المقبولين في المنصة</span>
                 </button>
+
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/marketplace"; }}>
+                  <span className="admin-partner-directory-icon">🛒</span>
+                  <span className="admin-partner-directory-title">سوق مواد البناء</span>
+                  <span className="admin-partner-directory-note">تصفح منتجات الموردين والشراء بحساب إدارة المنصة</span>
+                </button>
               </div>
             </section>
 

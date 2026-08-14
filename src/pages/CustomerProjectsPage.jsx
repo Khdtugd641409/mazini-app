@@ -219,6 +219,24 @@ export default function CustomerProjectsPage() {
           >
             <button
               type="button"
+              onClick={() => { window.location.href = "/marketplace"; }}
+              style={{
+                minHeight: "44px",
+                padding: "0 15px",
+                color: "#ffffff",
+                font: "inherit",
+                fontWeight: "800",
+                cursor: "pointer",
+                background: "#b98822",
+                border: 0,
+                borderRadius: "13px",
+              }}
+            >
+              🛒 سوق مواد البناء
+            </button>
+
+            <button
+              type="button"
               onClick={handleBackToHome}
               disabled={signingOut}
               style={{
