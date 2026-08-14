@@ -13,6 +13,21 @@ export const SUPPLIER_PRODUCT_CATEGORIES = [
   { value: "other", label: "مواد أخرى", icon: "📦" },
 ];
 
+export const HOME_PRODUCT_CATEGORIES = [
+  { value: "power_tools", label: "عدد كهربائية", icon: "🔌" },
+  { value: "hand_tools", label: "عدد يدوية", icon: "🔨" },
+  { value: "home_maintenance", label: "صيانة المنزل", icon: "🧰" },
+  { value: "garden_tools", label: "أدوات الحديقة", icon: "🌿" },
+  { value: "cleaning_tools", label: "أدوات التنظيف", icon: "🧹" },
+  { value: "home_safety", label: "السلامة المنزلية", icon: "🧯" },
+  { value: "other_home", label: "منتجات منزلية أخرى", icon: "🏠" },
+];
+
+export const MARKETPLACE_SECTIONS = [
+  { value: "construction", label: "مواد البناء" },
+  { value: "home", label: "متجر المنزل" },
+];
+
 export const SUPPLIER_PRODUCT_UNITS = [
   { value: "unit", label: "حبة" },
   { value: "piece", label: "قطعة" },
@@ -48,15 +63,20 @@ export const MARKETPLACE_ORDER_NEXT_ACTIONS = {
 };
 
 const categoryLabels = Object.fromEntries(
-  SUPPLIER_PRODUCT_CATEGORIES.map((category) => [category.value, category.label])
+  [...SUPPLIER_PRODUCT_CATEGORIES, ...HOME_PRODUCT_CATEGORIES]
+    .map((category) => [category.value, category.label])
 );
+
+export function getProductCategoriesForSection(section) {
+  return section === "home" ? HOME_PRODUCT_CATEGORIES : SUPPLIER_PRODUCT_CATEGORIES;
+}
 
 const unitLabels = Object.fromEntries(
   SUPPLIER_PRODUCT_UNITS.map((unit) => [unit.value, unit.label])
 );
 
 export function getSupplierCategoryLabel(value) {
-  return categoryLabels[value] || "مواد أخرى";
+  return categoryLabels[value] || "قسم آخر";
 }
 
 export function getSupplierUnitLabel(value) {
@@ -93,6 +113,8 @@ export function getMarketplaceErrorMessage(error, fallback = "تعذر إكما�
   const labels = {
     AUTHENTICATION_REQUIRED: "سجّل الدخول أولًا.",
     MARKETPLACE_BUYER_AUTHORIZATION_REQUIRED: "السوق متاح لحسابات العملاء والمشرفين وإدارة المنصة.",
+    BUYER_EMAIL_MISMATCH: "البريد المدخل لا يطابق البريد الذي تم توثيقه.",
+    CART_PRODUCT_SECTION_MISMATCH: "لا يمكن خلط منتجات متجر المنزل مع مواد البناء في طلب واحد.",
     INVALID_BUYER_NAME: "اكتب اسم المستلم بشكل صحيح.",
     INVALID_BUYER_MOBILE: "أدخل رقم جوال سعودي يبدأ بـ 05 ويتكون من 10 أرقام.",
     INVALID_DELIVERY_ADDRESS: "اكتب عنوان التسليم بوضوح.",
@@ -109,6 +131,7 @@ export function getMarketplaceErrorMessage(error, fallback = "تعذر إكما�
     INVALID_PRODUCT_PRICE: "أدخل سعرًا صحيحًا أكبر من صفر وبحد أقصى منزلتين عشريتين.",
     INVALID_PRODUCT_UNIT: "اختر وحدة بيع صحيحة.",
     INVALID_PRODUCT_CATEGORY: "اختر قسم المنتج.",
+    INVALID_MARKETPLACE_SECTION: "اختر السوق الذي سيظهر فيه المنتج.",
     INVALID_PRODUCT_IMAGE_PATH: "ارفع صورة صحيحة للمنتج.",
     PRODUCT_NOT_FOUND: "المنتج غير موجود أو لا يتبع هذا المورد.",
     ORDER_NOT_FOUND: "الطلب غير موجود أو لا يتبع هذا المورد.",

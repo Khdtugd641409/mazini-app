@@ -88,7 +88,7 @@ export default function SupplierMarketplacePage() {
   async function loadMarketplace() {
     const [catalog, buyerOrders] = await Promise.all([
       getSupplierMarketplaceCatalog(),
-      getMySupplierMarketplaceOrders(),
+      getMySupplierMarketplaceOrders("construction"),
     ]);
     const nextProducts = Array.isArray(catalog?.products) ? catalog.products : [];
     setActor(catalog?.actor || null);
