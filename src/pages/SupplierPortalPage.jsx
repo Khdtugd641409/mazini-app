@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase.js";
+import {
+  SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY,
+  SUPPLIER_PLATFORM_FEE_PERCENT,
+  SUPPLIER_PLATFORM_FEE_TERMS_TEXT,
+} from "../utils/supplierPlatformFee.js";
 
 function normalizeOtp(value) {
   return String(value || "").replace(/[^\d٠-٩۰-۹]/g, "").slice(0, 8);
@@ -117,7 +122,7 @@ export default function SupplierPortalPage() {
 
   if (step === "pending") {
     const labels = { under_review: "طلبك تحت مراجعة الإدارة", needs_completion: "طلبك يحتاج استكمال", rejected: "تم رفض الطلب", approved: "تم قبول الطلب" };
-    return <main style={shell}><section style={{ ...card, maxWidth: 650, margin: "40px auto", display: "grid", gap: 12 }}><h1>حساب المورد</h1><strong>{labels[application?.status] || "لم يتم اعتماد الحساب بعد"}</strong>{application?.adminNote && <p>ملاحظة الإدارة: {application.adminNote}</p>}<p>بعد قبول الإدارة سيُفتح لك حساب المورد من نفس البريد.</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => window.location.href = "/supplier/application"}>فتح طلب التسجيل</button><button type="button" onClick={signOut}>تسجيل الخروج</button></div></section></main>;
+    return <main style={shell}><section style={{ ...card, maxWidth: 650, margin: "40px auto", display: "grid", gap: 12 }}><h1>حساب المورد</h1><strong>{labels[application?.status] || "لم يتم اعتماد الحساب بعد"}</strong>{application?.adminNote && <p>ملاحظة الإدارة: {application.adminNote}</p>}<section style={{ border: "1px solid #d7c58f", background: "#fffbeb", borderRadius: 14, padding: 15 }}><strong>تعهّد عمولة المنصة: {SUPPLIER_PLATFORM_FEE_PERCENT}٪</strong><p style={{ lineHeight: 1.8 }}>{SUPPLIER_PLATFORM_FEE_TERMS_TEXT}</p><div><strong>الآيبان: </strong><code dir="ltr">{SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY}</code></div>{application?.platformFeeAcceptedAt && <small style={{ display: "block", marginTop: 9 }}>تم القبول: {formatDate(application.platformFeeAcceptedAt)}</small>}</section><p>بعد قبول الإدارة سيُفتح لك حساب المورد من نفس البريد.</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => window.location.href = "/supplier/application"}>فتح طلب التسجيل</button><button type="button" onClick={signOut}>تسجيل الخروج</button></div></section></main>;
   }
 
   const purchaseRequests = Array.isArray(dashboard?.purchaseRequests) ? dashboard.purchaseRequests : [];
@@ -128,6 +133,8 @@ export default function SupplierPortalPage() {
     <main style={shell}>
       <div style={{ maxWidth: 1050, margin: "0 auto", display: "grid", gap: 18 }}>
         <header style={{ ...card, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}><div><p style={{ margin: 0 }}>نايف المزيني للبناء الذاتي</p><h1 style={{ margin: "5px 0 0" }}>{dashboard?.profile?.organizationName || "حساب المورد"}</h1></div><div style={{ display: "flex", gap: 8 }}><button type="button" onClick={() => document.getElementById("supplier-account")?.scrollIntoView({ behavior: "smooth" })}>👤 حسابي</button><button type="button" onClick={signOut}>تسجيل الخروج</button></div></header>
+
+        <section style={{ ...card, borderColor: "#d7c58f", background: "#fffbeb" }}><h2 style={{ marginTop: 0 }}>عمولة المنصة</h2><p style={{ lineHeight: 1.8 }}>{SUPPLIER_PLATFORM_FEE_TERMS_TEXT}</p><div><strong>آيبان حساب المنصة: </strong><code dir="ltr">{SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY}</code></div><p style={{ marginBottom: 0 }}>لا تحسب المنصة مبلغ العمولة تلقائيًا لأن قيمة التعاقد لا تمر عبرها، ولا يؤدي عدم تسجيل مبلغ آلي إلى إخفاء حسابك أو إيقاف ظهوره للعملاء.</p></section>
 
         <section style={card}><h2 style={{ marginTop: 0 }}>طلبات العملاء الراغبين بالشراء</h2>{purchaseRequests.length === 0 ? <p>لا توجد طلبات شراء جديدة حاليًا.</p> : <div style={{ display: "grid", gap: 10 }}>{purchaseRequests.map((request) => <article key={request.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}><strong>{request.productName}</strong>{request.requestText && <p>{request.requestText}</p>}{request.requestedQuantity && <p>الكمية: {request.requestedQuantity}</p>}<small>{formatDate(request.createdAt)}</small></article>)}</div>}</section>
 

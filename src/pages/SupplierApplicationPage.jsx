@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase.js";
+import {
+  SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY,
+  SUPPLIER_PLATFORM_FEE_TERMS_TEXT,
+  SUPPLIER_PLATFORM_FEE_TERMS_VERSION,
+} from "../utils/supplierPlatformFee.js";
 
 const initialForm = {
   organizationName: "",
@@ -8,10 +13,25 @@ const initialForm = {
   mobileNumber: "",
   mapsUrl: "",
   productName: "",
+  acceptPlatformFeeTerms: false,
 };
 
 function normalizeOtp(value) {
   return String(value || "").replace(/[^\d٠-٩۰-۹]/g, "").slice(0, 8);
+}
+
+function getSubmitErrorMessage(error) {
+  const message = String(error?.message || "");
+
+  if (message.includes("SUPPLIER_PLATFORM_FEE_TERMS_REQUIRED")) {
+    return "يجب قبول تعهّد عمولة المنصة قبل إرسال الطلب.";
+  }
+
+  if (message.includes("SUPPLIER_PLATFORM_FEE_TERMS_VERSION_MISMATCH")) {
+    return "تم تحديث نص التعهّد. ارجع إلى نموذج التسجيل واقرأ النسخة الجديدة ثم وافق عليها.";
+  }
+
+  return message || "تعذر إرسال طلب المورد.";
 }
 
 export default function SupplierApplicationPage() {
@@ -33,6 +53,7 @@ export default function SupplierApplicationPage() {
     if (!/^05\d{8}$/.test(form.mobileNumber.trim())) throw new Error("أدخل رقم جوال صحيحًا يبدأ بـ05.");
     if (!/^https?:\/\//i.test(form.mapsUrl.trim())) throw new Error("أدخل رابط موقع المؤسسة في Google Maps.");
     if (form.productName.trim().length < 2) throw new Error("اكتب المنتج الذي تقدمه المؤسسة.");
+    if (!form.acceptPlatformFeeTerms) throw new Error("يجب قبول تعهّد عمولة المنصة قبل المتابعة.");
   }
 
   async function sendCode(event) {
@@ -72,12 +93,14 @@ export default function SupplierApplicationPage() {
         p_mobile_number: form.mobileNumber.trim(),
         p_maps_url: form.mapsUrl.trim(),
         p_product_name: form.productName.trim(),
+        p_accept_platform_fee_terms: form.acceptPlatformFeeTerms,
+        p_platform_fee_terms_version: SUPPLIER_PLATFORM_FEE_TERMS_VERSION,
       });
       if (submitError) throw submitError;
       setStep("success");
       setMessage("تم إرسال طلب تسجيل المورد إلى إدارة المنصة.");
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر إرسال طلب المورد.");
+      setErrorMessage(getSubmitErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -88,7 +111,7 @@ export default function SupplierApplicationPage() {
   const input = { minHeight: 46, border: "1px solid #d1d5db", borderRadius: 10, padding: "0 12px", font: "inherit" };
 
   if (step === "success") {
-    return <main style={shell}><section style={card}><h1>تم إرسال الطلب</h1><p>{message}</p><p>يمكنك العودة لاحقًا والدخول من أيقونة «مورد» بنفس البريد لمتابعة حالة الطلب.</p><button type="button" onClick={() => window.location.href = "/"}>العودة للرئيسية</button></section></main>;
+    return <main style={shell}><section style={card}><h1>تم إرسال الطلب</h1><p>{message}</p><p>تم حفظ قبول تعهّد عمولة المنصة وتوقيته مع الطلب.</p><p>يمكنك العودة لاحقًا والدخول من أيقونة «مورد» بنفس البريد لمتابعة حالة الطلب.</p><button type="button" onClick={() => window.location.href = "/"}>العودة للرئيسية</button></section></main>;
   }
 
   return (
@@ -106,10 +129,31 @@ export default function SupplierApplicationPage() {
             <label style={{ display: "grid", gap: 6 }}><strong>رقم الجوال</strong><input style={input} inputMode="numeric" placeholder="05xxxxxxxx" value={form.mobileNumber} onChange={(e) => updateField("mobileNumber", e.target.value.replace(/\D/g, "").slice(0, 10))} required /></label>
             <label style={{ display: "grid", gap: 6 }}><strong>رابط موقع المؤسسة في Google Maps</strong><input style={input} type="url" value={form.mapsUrl} onChange={(e) => updateField("mapsUrl", e.target.value)} required /></label>
             <label style={{ display: "grid", gap: 6 }}><strong>المنتج الذي تقدمه</strong><input style={input} value={form.productName} onChange={(e) => updateField("productName", e.target.value)} placeholder="مثال: رخام، حديد، خرسانة..." required /></label>
+            <section style={{ border: "1px solid #d7c58f", background: "#fffbeb", borderRadius: 14, padding: 16, display: "grid", gap: 12 }}>
+              <div>
+                <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>تعهّد عمولة المنصة</h2>
+                <p style={{ margin: 0, lineHeight: 1.9 }}>{SUPPLIER_PLATFORM_FEE_TERMS_TEXT}</p>
+              </div>
+              <div style={{ display: "grid", gap: 5 }}>
+                <strong>آيبان حساب المنصة</strong>
+                <code dir="ltr" style={{ display: "block", fontSize: 17, overflowWrap: "anywhere" }}>{SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY}</code>
+              </div>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 9, lineHeight: 1.7 }}>
+                <input
+                  type="checkbox"
+                  checked={form.acceptPlatformFeeTerms}
+                  onChange={(event) => updateField("acceptPlatformFeeTerms", event.target.checked)}
+                  required
+                  style={{ marginTop: 6 }}
+                />
+                <strong>قرأت التعهّد وأوافق عليه، وأقر بأن عمولة 1٪ تبقى في ذمتي حتى سدادها.</strong>
+              </label>
+            </section>
             <button type="submit" disabled={loading} style={{ minHeight: 48 }}>إرسال رمز التحقق</button>
           </form>
         ) : (
           <form onSubmit={verifyAndSubmit} style={{ display: "grid", gap: 12 }}>
+            <p style={{ margin: 0, lineHeight: 1.8 }}>بإدخال رمز البريد وإرسال الطلب، تؤكد هويتك وقبولك تعهّد عمولة المنصة الموضح في نموذج التسجيل.</p>
             <label style={{ display: "grid", gap: 6 }}><strong>رمز التحقق من 8 أرقام</strong><input style={input} inputMode="numeric" maxLength={8} value={otp} onChange={(e) => setOtp(normalizeOtp(e.target.value))} required /></label>
             <button type="submit" disabled={loading || normalizeOtp(otp).length !== 8} style={{ minHeight: 48 }}>تحقق وإرسال الطلب</button>
             <button type="button" onClick={() => setStep("form")} disabled={loading}>تعديل البيانات</button>

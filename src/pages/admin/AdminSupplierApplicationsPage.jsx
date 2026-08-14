@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase.js";
+import { SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY } from "../../utils/supplierPlatformFee.js";
 
 const LABELS = {
   under_review: "تحت المراجعة",
@@ -28,6 +29,16 @@ function initialView() {
   return value === "applicants" || value === "approved" ? value : "home";
 }
 
+function formatDate(value) {
+  if (!value) return "غير مسجل";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "غير مسجل";
+  return new Intl.DateTimeFormat("ar-SA", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export default function AdminSupplierApplicationsPage() {
   const [items, setItems] = useState([]);
   const [view, setView] = useState(initialView);
@@ -47,6 +58,11 @@ export default function AdminSupplierApplicationsPage() {
   );
   const visibleItems = view === "approved" ? approved : applicants;
   const selected = items.find((item) => item.id === selectedId) || null;
+  const selectedHasPlatformFeeAcceptance = Boolean(
+    selected?.platformFeeAcceptedAt &&
+    Number(selected?.platformFeeRate) === 0.01 &&
+    selected?.platformFeeIban
+  );
 
   async function reload() {
     setLoading(true);
@@ -142,7 +158,7 @@ export default function AdminSupplierApplicationsPage() {
               <section style={{ ...cardStyle, display: "grid", gap: 12 }}>
                 {visibleItems.map((item) => (
                   <article key={item.id} style={{ ...softCardStyle, display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "center" }}>
-                    <div><h3 style={{ margin: "0 0 6px" }}>{item.organizationName}</h3><strong>{LABELS[item.status] || item.status}</strong><div style={{ marginTop: 7, color: "#687872" }}>{item.initialProductName}</div></div>
+                    <div><h3 style={{ margin: "0 0 6px" }}>{item.organizationName}</h3><strong>{LABELS[item.status] || item.status}</strong><div style={{ marginTop: 7, color: "#687872" }}>{item.initialProductName}</div><small style={{ display: "block", marginTop: 7, color: item.platformFeeAcceptedAt ? "#176b43" : "#991b1b" }}>{item.platformFeeAcceptedAt ? "تعهد عمولة 1٪ مقبول" : "لم يُسجل تعهد العمولة"}</small></div>
                     <button type="button" onClick={() => setSelectedId(item.id)}>عرض السجل</button>
                   </article>
                 ))}
@@ -162,13 +178,14 @@ export default function AdminSupplierApplicationsPage() {
                 <div style={softCardStyle}><strong>البريد</strong><p>{selected.email}</p></div>
                 <div style={softCardStyle}><strong>الجوال</strong><p>{selected.mobileNumber}</p></div>
                 <div style={softCardStyle}><strong>المنتج</strong><p>{selected.initialProductName}</p></div>
+                <div style={softCardStyle}><strong>تعهد عمولة المنصة</strong><p style={{ color: selectedHasPlatformFeeAcceptance ? "#176b43" : "#991b1b" }}>{selectedHasPlatformFeeAcceptance ? "مقبول بنسبة 1٪" : "غير مسجل — لا يمكن اعتماد المورد"}</p><small>وقت القبول: {formatDate(selected.platformFeeAcceptedAt)}</small><div style={{ marginTop: 7 }}><code dir="ltr">{selected.platformFeeIban || SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY}</code></div></div>
               </div>
               <a href={selected.mapsUrl} target="_blank" rel="noreferrer">فتح الموقع على الخرائط</a>
               {selected.status !== "approved" && (
                 <>
                   <textarea rows="3" placeholder="ملاحظة الإدارة" value={notes[selected.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [selected.id]: event.target.value }))} />
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" disabled={busyId === selected.id} onClick={() => decide(selected.id, "approved")}>قبول</button>
+                    <button type="button" disabled={busyId === selected.id || !selectedHasPlatformFeeAcceptance} onClick={() => decide(selected.id, "approved")}>قبول</button>
                     <button type="button" disabled={busyId === selected.id} onClick={() => decide(selected.id, "needs_completion")}>طلب استكمال</button>
                     <button type="button" disabled={busyId === selected.id} onClick={() => decide(selected.id, "rejected")}>رفض</button>
                   </div>
