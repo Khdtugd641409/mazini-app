@@ -143,6 +143,30 @@
 .marketplace-product-price span { color: #65736e; font-size: 13px; }
 .marketplace-product-body button { min-height: 41px; display: flex; justify-content: center; align-items: center; gap: 7px; margin-top: 3px; border: 0; border-radius: 12px; color: #fff; background: var(--market-ink); font: inherit; font-weight: 850; cursor: pointer; }
 
+.marketplace-comparison { overflow: hidden; border: 1px solid var(--market-border); border-radius: 20px; background: #fff; box-shadow: 0 8px 28px rgba(44, 53, 49, .06); }
+.marketplace-comparison > header { display: flex; justify-content: space-between; align-items: end; gap: 18px; padding: 17px 19px; border-bottom: 1px solid var(--market-border); }
+.marketplace-comparison > header div { display: grid; gap: 2px; }
+.marketplace-comparison > header span { color: #a86e16; font-size: 13px; font-weight: 850; }
+.marketplace-comparison > header h2 { margin: 0; font-size: 21px; }
+.marketplace-comparison > header small { max-width: 390px; color: #6d7975; line-height: 1.6; }
+.marketplace-comparison-scroll { width: 100%; overflow: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+.marketplace-comparison table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; }
+.marketplace-comparison th,
+.marketplace-comparison td { min-width: 180px; height: 92px; padding: 12px; border-inline-start: 1px solid #eeeae2; border-bottom: 1px solid #eeeae2; background: #fff; vertical-align: middle; }
+.marketplace-comparison thead th { position: sticky; top: 0; z-index: 3; height: 78px; color: var(--market-ink); background: #f8f6f0; }
+.marketplace-comparison thead th strong,
+.marketplace-comparison thead th small { display: block; }
+.marketplace-comparison thead th strong { max-width: 190px; margin: auto; line-height: 1.45; }
+.marketplace-comparison thead th small { margin-top: 4px; color: #77827e; font-weight: 650; }
+.marketplace-comparison tr:last-child th,
+.marketplace-comparison tr:last-child td { border-bottom: 0; }
+.marketplace-comparison .marketplace-supplier-column { position: sticky; right: 0; z-index: 4; min-width: 170px; max-width: 170px; border-inline-start: 1px solid #ded8cb; background: #fffdf8; text-align: start; line-height: 1.5; }
+.marketplace-comparison thead .marketplace-supplier-column { z-index: 5; background: #f1ede3; }
+.marketplace-comparison-offer { display: grid; justify-items: center; gap: 8px; }
+.marketplace-comparison-offer > strong { color: #a86e16; font-size: 17px; }
+.marketplace-comparison-offer button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 11px; border: 0; border-radius: 10px; color: #fff; background: var(--market-ink); font: inherit; font-size: 12px; font-weight: 850; cursor: pointer; }
+.marketplace-offer-unavailable { color: #a0aaa6; font-size: 13px; }
+
 .marketplace-empty { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 32px; border: 1px dashed #d7d1c3; border-radius: 22px; color: #6a7873; background: #fff; text-align: center; }
 .marketplace-empty h2,
 .marketplace-empty p { margin: 0; }
@@ -240,6 +264,14 @@
   .marketplace-product-body h2 { font-size: 15px; }
   .marketplace-product-price strong { font-size: 15px; }
   .marketplace-product-body button { min-height: 38px; padding: 0 6px; font-size: 12px; }
+  .marketplace-comparison { border-radius: 15px; }
+  .marketplace-comparison > header { align-items: start; flex-direction: column; gap: 5px; padding: 14px; }
+  .marketplace-comparison > header h2 { font-size: 19px; }
+  .marketplace-comparison th,
+  .marketplace-comparison td { min-width: 150px; height: 86px; padding: 9px; }
+  .marketplace-comparison .marketplace-supplier-column { min-width: 132px; max-width: 132px; font-size: 13px; }
+  .marketplace-comparison-offer > strong { font-size: 15px; }
+  .marketplace-comparison-offer button { min-height: 34px; padding: 0 8px; font-size: 11px; }
   .marketplace-categories { gap: 9px; padding-bottom: 11px; }
   .marketplace-categories button { min-width: 104px; min-height: 88px; padding: 11px 12px; font-size: 13px; white-space: nowrap; }
   .marketplace-categories button span { font-size: 31px; }
