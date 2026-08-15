@@ -23,6 +23,7 @@ import {
   formatMarketplaceMoney,
   formatMarketplaceQuantity,
   getMarketplaceErrorMessage,
+  getSupplierCategoryLabel,
   getSupplierProductImageUrl,
   getSupplierUnitLabel,
   isDiscreteSupplierUnit,
@@ -64,6 +65,60 @@ function formatDate(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+const comparisonCollator = new Intl.Collator("ar", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function normalizeComparisonText(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[\u0640\u064B-\u065F\u0670]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("ar");
+}
+
+function buildProductComparison(productOffers) {
+  const columnsByKey = new Map();
+  const suppliersByKey = new Map();
+
+  productOffers.forEach((product) => {
+    const productName = String(product.productName || "").trim().replace(/\s+/g, " ");
+    const unitLabel = getSupplierUnitLabel(product.unitCode, product.customUnitLabel);
+    const columnKey = [
+      normalizeComparisonText(productName),
+      product.unitCode || "",
+      normalizeComparisonText(product.customUnitLabel),
+    ].join("::");
+    const supplierName = String(product.supplierName || "مؤسسة غير محددة").trim();
+    const supplierKey = product.supplierUserId || normalizeComparisonText(supplierName);
+
+    if (!columnsByKey.has(columnKey)) {
+      columnsByKey.set(columnKey, { key: columnKey, productName, unitLabel });
+    }
+    if (!suppliersByKey.has(supplierKey)) {
+      suppliersByKey.set(supplierKey, { key: supplierKey, supplierName, offers: new Map() });
+    }
+
+    const supplier = suppliersByKey.get(supplierKey);
+    const currentOffer = supplier.offers.get(columnKey);
+    if (!currentOffer || Number(product.price) < Number(currentOffer.price)) {
+      supplier.offers.set(columnKey, product);
+    }
+  });
+
+  return {
+    columns: [...columnsByKey.values()].sort((first, second) => (
+      comparisonCollator.compare(first.productName, second.productName)
+      || comparisonCollator.compare(first.unitLabel, second.unitLabel)
+    )),
+    suppliers: [...suppliersByKey.values()].sort((first, second) => (
+      comparisonCollator.compare(first.supplierName, second.supplierName)
+    )),
+  };
 }
 
 export default function SupplierMarketplacePage() {
@@ -151,6 +206,11 @@ export default function SupplierMarketplacePage() {
       return matchesCategory && matchesSearch;
     });
   }, [activeCategory, products, searchText]);
+
+  const productComparison = useMemo(
+    () => buildProductComparison(activeCategory === "all" ? [] : filteredProducts),
+    [activeCategory, filteredProducts]
+  );
 
   const cartLines = useMemo(() => cart
     .map((item) => {
@@ -309,6 +369,43 @@ export default function SupplierMarketplacePage() {
 
           {filteredProducts.length === 0 ? (
             <section className="marketplace-empty"><Store size={38} /><h2>لا توجد منتجات مطابقة حاليًا</h2><p>ستظهر هنا منتجات الموردين المكتملة بصورتها وسعرها ووحدة البيع.</p></section>
+          ) : activeCategory !== "all" ? (
+            <section className="marketplace-comparison" aria-label={`مقارنة عروض ${getSupplierCategoryLabel(activeCategory)}`}>
+              <header>
+                <div><span>مقارنة الموردين</span><h2>{getSupplierCategoryLabel(activeCategory)}</h2></div>
+                <small>مرّر الجدول أفقيًا لرؤية بقية المنتجات؛ يبقى عمود المؤسسة ثابتًا.</small>
+              </header>
+              <div className="marketplace-comparison-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th className="marketplace-supplier-column" scope="col">المؤسسة</th>
+                      {productComparison.columns.map((column) => <th key={column.key} scope="col"><strong>{column.productName}</strong><small>{column.unitLabel}</small></th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productComparison.suppliers.map((supplier) => (
+                      <tr key={supplier.key}>
+                        <th className="marketplace-supplier-column" scope="row">{supplier.supplierName}</th>
+                        {productComparison.columns.map((column) => {
+                          const product = supplier.offers.get(column.key);
+                          if (!product) return <td key={column.key}><span className="marketplace-offer-unavailable">غير متوفر</span></td>;
+                          const inCart = cart.find((item) => item.productId === product.id);
+                          return (
+                            <td key={column.key}>
+                              <div className="marketplace-comparison-offer">
+                                <strong>{formatMarketplaceMoney(product.price)}</strong>
+                                <button type="button" onClick={() => addToCart(product)}>{inCart ? <><Plus size={15} /> إضافة أخرى ({formatMarketplaceQuantity(inCart.quantity)})</> : <><ShoppingCart size={15} /> أضف للسلة</>}</button>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           ) : (
             <section className="marketplace-product-grid" aria-label="منتجات الموردين">
               {filteredProducts.map((product) => {
@@ -319,7 +416,7 @@ export default function SupplierMarketplacePage() {
                     <div className="marketplace-product-body">
                       <small>{product.supplierName}</small>
                       <h2>{product.productName}</h2>
-                      <div className="marketplace-product-price"><strong>{formatMarketplaceMoney(product.price)}</strong><span>/ {getSupplierUnitLabel(product.unitCode)}</span></div>
+                      <div className="marketplace-product-price"><strong>{formatMarketplaceMoney(product.price)}</strong><span>/ {getSupplierUnitLabel(product.unitCode, product.customUnitLabel)}</span></div>
                       <button type="button" onClick={() => addToCart(product)}>{inCart ? <><Plus size={17} /> إضافة أخرى ({formatMarketplaceQuantity(inCart.quantity)})</> : <><ShoppingCart size={17} /> أضف للسلة</>}</button>
                     </div>
                   </article>
@@ -339,7 +436,7 @@ export default function SupplierMarketplacePage() {
               <div className="marketplace-order-supplier"><strong>{order.supplierName}</strong><a href={`tel:${order.supplierMobile}`}>{order.supplierMobile}</a></div>
               <div className="marketplace-order-items">
                 {(order.items || []).map((item) => (
-                  <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>
+                  <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode, item.customUnitLabel)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>
                 ))}
               </div>
               <footer><span>الإجمالي</span><strong>{formatMarketplaceMoney(order.subtotal)}</strong></footer>
@@ -361,7 +458,7 @@ export default function SupplierMarketplacePage() {
               {cartLines.map((line) => (
                 <article key={line.product.id}>
                   <img src={getSupplierProductImageUrl(line.product.imagePath)} alt={line.product.productName} />
-                  <div><strong>{line.product.productName}</strong><small>{line.product.supplierName}</small><span>{formatMarketplaceMoney(line.product.price)} / {getSupplierUnitLabel(line.product.unitCode)}</span>
+                  <div><strong>{line.product.productName}</strong><small>{line.product.supplierName}</small><span>{formatMarketplaceMoney(line.product.price)} / {getSupplierUnitLabel(line.product.unitCode, line.product.customUnitLabel)}</span>
                     <div className="marketplace-quantity"><button type="button" onClick={() => changeQuantity(line.product, -1)}><Minus size={15} /></button><input type="number" min={isDiscreteSupplierUnit(line.product.unitCode) ? "1" : "0.001"} step={isDiscreteSupplierUnit(line.product.unitCode) ? "1" : "0.001"} value={line.quantity} onChange={(event) => updateQuantity(line.product, event.target.value)} /><button type="button" onClick={() => changeQuantity(line.product, 1)}><Plus size={15} /></button></div>
                   </div>
                   <button className="marketplace-remove-line" type="button" onClick={() => removeFromCart(line.product.id)} aria-label={`حذف ${line.product.productName}`}><X size={18} /></button>
