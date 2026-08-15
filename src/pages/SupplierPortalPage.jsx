@@ -8,12 +8,13 @@ import {
 import {
   MARKETPLACE_ORDER_NEXT_ACTIONS,
   MARKETPLACE_ORDER_STATUSES,
-  MARKETPLACE_SECTIONS,
+  HOME_PRODUCT_CATEGORIES,
+  SUPPLIER_PRODUCT_CATEGORIES,
   SUPPLIER_PRODUCT_UNITS,
   formatMarketplaceMoney,
   formatMarketplaceQuantity,
   getMarketplaceErrorMessage,
-  getProductCategoriesForSection,
+  getMarketplaceSectionForCategory,
   getSupplierCategoryLabel,
   getSupplierProductImageUrl,
   getSupplierUnitLabel,
@@ -31,8 +32,7 @@ const EMPTY_PRODUCT = {
   description: "",
   price: "",
   unitCode: "piece",
-  categoryCode: "other",
-  marketplaceSection: "construction",
+  categoryCode: "",
   imagePath: "",
 };
 
@@ -184,8 +184,7 @@ export default function SupplierPortalPage() {
       description: product.description || "",
       price: product.price ?? "",
       unitCode: product.unitCode || "piece",
-      categoryCode: product.categoryCode || "other",
-      marketplaceSection: product.marketplaceSection || "construction",
+      categoryCode: product.categoryCode || "",
       imagePath: product.imagePath || "",
     });
     setProductImagePreview(getSupplierProductImageUrl(product.imagePath));
@@ -303,8 +302,6 @@ export default function SupplierPortalPage() {
   const marketplaceOrders = Array.isArray(dashboard?.marketplaceOrders) ? dashboard.marketplaceOrders : [];
   const projects = Array.isArray(dashboard?.projects) ? dashboard.projects : [];
   const products = Array.isArray(dashboard?.products) ? dashboard.products : [];
-  const activeProductCategories = getProductCategoriesForSection(productForm.marketplaceSection);
-
   return (
     <main style={shell} className="supplier-portal">
       <div style={{ maxWidth: 1120, margin: "0 auto", display: "grid", gap: 18 }}>
@@ -346,8 +343,7 @@ export default function SupplierPortalPage() {
             <div className="supplier-product-image-field"><label htmlFor="supplier-product-image">{productImagePreview ? <img src={productImagePreview} alt="معاينة المنتج" /> : <span>📷<strong>إضافة صورة مربعة</strong><small>JPG أو PNG أو WebP — حتى 5 MB</small></span>}</label><input key={fileInputKey} id="supplier-product-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} disabled={productSaving} /></div>
             <div className="supplier-product-fields">
               <label><span>اسم المنتج</span><input value={productForm.productName} onChange={(event) => setProductForm({ ...productForm, productName: event.target.value })} required minLength={2} disabled={productSaving} /></label>
-              <label><span>السوق</span><select value={productForm.marketplaceSection} onChange={(event) => { const marketplaceSection = event.target.value; const categories = getProductCategoriesForSection(marketplaceSection); setProductForm({ ...productForm, marketplaceSection, categoryCode: categories[0].value }); }} disabled={productSaving}>{MARKETPLACE_SECTIONS.map((section) => <option key={section.value} value={section.value}>{section.label}</option>)}</select></label>
-              <label><span>القسم</span><select value={productForm.categoryCode} onChange={(event) => setProductForm({ ...productForm, categoryCode: event.target.value })} disabled={productSaving}>{activeProductCategories.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
+              <label><span>تصنيف المنتج</span><select value={productForm.categoryCode} onChange={(event) => setProductForm({ ...productForm, categoryCode: event.target.value })} required disabled={productSaving}><option value="" disabled>اختر تصنيف المنتج</option><optgroup label="سوق مواد البناء">{SUPPLIER_PRODUCT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</optgroup><optgroup label="متجر المنزل — العدد والأدوات">{HOME_PRODUCT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</optgroup></select><small className="supplier-product-destination">{productForm.categoryCode ? <>سيظهر تلقائيًا في {getMarketplaceSectionForCategory(productForm.categoryCode) === "home" ? "متجر المنزل" : "سوق مواد البناء"}.</> : "اختر التصنيف ليحدد النظام متجر العرض تلقائيًا."}</small></label>
               <label><span>السعر بالوحدة (ريال)</span><input type="number" min="0.01" max="9999999999.99" step="0.01" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} required disabled={productSaving} /></label>
               <label><span>وحدة البيع</span><select value={productForm.unitCode} onChange={(event) => setProductForm({ ...productForm, unitCode: event.target.value })} disabled={productSaving}>{SUPPLIER_PRODUCT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
               <label className="wide"><span>وصف مختصر <small>اختياري</small></span><textarea rows="3" maxLength={3000} value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} disabled={productSaving} /></label>

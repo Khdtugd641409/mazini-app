@@ -43,6 +43,7 @@
 .supplier-product-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .supplier-product-fields label { display: grid; align-content: start; gap: 6px; font-weight: 800; }
 .supplier-product-fields label span small { color: #78837f; font-weight: 500; }
+.supplier-product-destination { color: #8a6824; font-weight: 700; line-height: 1.55; }
 .supplier-product-fields input,
 .supplier-product-fields select,
 .supplier-product-fields textarea { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #d7d2c6; border-radius: 10px; font: inherit; resize: vertical; }

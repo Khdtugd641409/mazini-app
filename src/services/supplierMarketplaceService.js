@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase.js";
+import { getMarketplaceSectionForCategory } from "../utils/supplierMarketplace.js";
 
 const PRODUCT_BUCKET = "supplier-products";
 const MAX_PRODUCT_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -87,6 +88,9 @@ async function uploadProductImage(file) {
 }
 
 export async function saveSupplierMarketplaceProduct(product, imageFile) {
+  const marketplaceSection = getMarketplaceSectionForCategory(product.categoryCode);
+  if (!marketplaceSection) throw new Error("INVALID_PRODUCT_CATEGORY");
+
   let uploadedImagePath = "";
   try {
     const imagePath = imageFile
@@ -101,7 +105,7 @@ export async function saveSupplierMarketplaceProduct(product, imageFile) {
       p_unit_code: product.unitCode,
       p_category_code: product.categoryCode,
       p_image_path: imagePath,
-      p_marketplace_section: product.marketplaceSection || "construction",
+      p_marketplace_section: marketplaceSection,
     });
     if (error) throw error;
     return data;

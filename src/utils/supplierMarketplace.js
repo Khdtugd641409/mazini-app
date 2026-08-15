@@ -23,11 +23,6 @@ export const HOME_PRODUCT_CATEGORIES = [
   { value: "other_home", label: "منتجات منزلية أخرى", icon: "🏠" },
 ];
 
-export const MARKETPLACE_SECTIONS = [
-  { value: "construction", label: "مواد البناء" },
-  { value: "home", label: "متجر المنزل" },
-];
-
 export const SUPPLIER_PRODUCT_UNITS = [
   { value: "unit", label: "حبة" },
   { value: "piece", label: "قطعة" },
@@ -67,8 +62,18 @@ const categoryLabels = Object.fromEntries(
     .map((category) => [category.value, category.label])
 );
 
-export function getProductCategoriesForSection(section) {
-  return section === "home" ? HOME_PRODUCT_CATEGORIES : SUPPLIER_PRODUCT_CATEGORIES;
+const constructionCategoryValues = new Set(
+  SUPPLIER_PRODUCT_CATEGORIES.map((category) => category.value)
+);
+
+const homeCategoryValues = new Set(
+  HOME_PRODUCT_CATEGORIES.map((category) => category.value)
+);
+
+export function getMarketplaceSectionForCategory(categoryCode) {
+  if (homeCategoryValues.has(categoryCode)) return "home";
+  if (constructionCategoryValues.has(categoryCode)) return "construction";
+  return null;
 }
 
 const unitLabels = Object.fromEntries(
