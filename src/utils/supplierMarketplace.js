@@ -1,19 +1,63 @@
 import { supabase } from "../lib/supabase.js";
 
+export const SUPPLIER_MARKETPLACE_ROOT_CATEGORIES = [
+  { value: "construction", label: "مواد بناء" },
+  { value: "home", label: "أدوات منزلية" },
+];
+
+export const CONSTRUCTION_PHASE_CATEGORIES = [
+  { value: "structure", label: "عظم", enabled: true },
+  { value: "finishing", label: "تشطيب", enabled: false },
+];
+
+export const STRUCTURAL_LISTING_TYPES = [
+  { value: "materials", label: "مواد" },
+  { value: "contractors", label: "مقاول" },
+];
+
+export const STRUCTURAL_MATERIAL_CATEGORIES = [
+  { value: "concrete", label: "خرسانة", icon: "🏗️", listingType: "materials" },
+  { value: "steel", label: "حديد", icon: "🔩", listingType: "materials" },
+  { value: "blocks", label: "طوب", icon: "🧱", listingType: "materials" },
+  { value: "backfill_material", label: "ردمية", icon: "⛰️", listingType: "materials" },
+  { value: "plumbing", label: "سباكة", icon: "🚿", listingType: "materials" },
+  { value: "electrical", label: "كهرباء", icon: "💡", listingType: "materials" },
+  { value: "cement", label: "أسمنت", icon: "🏭", listingType: "materials" },
+  { value: "sand", label: "رمل", icon: "🏜️", listingType: "materials" },
+];
+
+export const STRUCTURAL_CONTRACTOR_CATEGORIES = [
+  { value: "engineering_office", label: "مكتب هندسي", icon: "📐", listingType: "contractors" },
+  { value: "excavation", label: "حفر", icon: "🚜", listingType: "contractors" },
+  { value: "backfilling", label: "دفن", icon: "⛏️", listingType: "contractors" },
+  { value: "carpenter", label: "نجار", icon: "🪚", listingType: "contractors" },
+  { value: "blacksmith", label: "حداد", icon: "🔨", listingType: "contractors" },
+  { value: "electrician", label: "كهربائي", icon: "⚡", listingType: "contractors" },
+  { value: "plumber", label: "سباك", icon: "🔧", listingType: "contractors" },
+  { value: "mason", label: "بناء", icon: "🧱", listingType: "contractors" },
+  { value: "plasterer", label: "مليس", icon: "🏠", listingType: "contractors" },
+];
+
 export const SUPPLIER_PRODUCT_CATEGORIES = [
-  { value: "steel", label: "حديد وتسليح", icon: "🏗️" },
-  { value: "concrete", label: "خرسانة وأسمنت", icon: "🧱" },
-  { value: "blocks", label: "بلوك وطوب", icon: "🧱" },
+  ...STRUCTURAL_MATERIAL_CATEGORIES,
+  ...STRUCTURAL_CONTRACTOR_CATEGORIES,
+];
+
+// These codes may already exist on products created before the cascading
+// classification was introduced. They remain readable, but are not offered
+// for new supplier listings.
+const LEGACY_CONSTRUCTION_PRODUCT_CATEGORIES = [
   { value: "insulation", label: "عزل", icon: "🛡️" },
-  { value: "plumbing", label: "سباكة", icon: "🚿" },
-  { value: "electrical", label: "كهرباء", icon: "💡" },
   { value: "finishes", label: "تشطيبات", icon: "🎨" },
   { value: "doors_windows", label: "أبواب ونوافذ", icon: "🚪" },
   { value: "tiles_stone", label: "بلاط وحجر", icon: "◻️" },
   { value: "other", label: "مواد أخرى", icon: "📦" },
 ];
 
-export const HOME_PRODUCT_CATEGORIES = [
+// The home-store branches have not been approved yet. Keep the old codes only
+// for backward compatibility; the storefront and supplier form do not present
+// them as the current classification.
+const LEGACY_HOME_PRODUCT_CATEGORIES = [
   { value: "power_tools", label: "عدد كهربائية", icon: "🔌" },
   { value: "hand_tools", label: "عدد يدوية", icon: "🔨" },
   { value: "home_maintenance", label: "صيانة المنزل", icon: "🧰" },
@@ -23,14 +67,22 @@ export const HOME_PRODUCT_CATEGORIES = [
   { value: "other_home", label: "منتجات منزلية أخرى", icon: "🏠" },
 ];
 
+export const HOME_PRODUCT_CATEGORIES = [];
+
 export const SUPPLIER_PRODUCT_UNITS = [
+  { value: "linear_meter", label: "متر طولي" },
+  { value: "square_meter", label: "متر مربع" },
+  { value: "flat_meter", label: "متر مسطح" },
+  { value: "cubic_meter", label: "متر مكعب" },
+  { value: "ton", label: "طن" },
   { value: "unit", label: "حبة" },
+  { value: "other", label: "أخرى" },
+];
+
+const LEGACY_SUPPLIER_PRODUCT_UNITS = [
   { value: "piece", label: "قطعة" },
   { value: "meter", label: "متر" },
-  { value: "square_meter", label: "م²" },
-  { value: "cubic_meter", label: "م³" },
   { value: "kilogram", label: "كيلو" },
-  { value: "ton", label: "طن" },
   { value: "bag", label: "كيس" },
   { value: "carton", label: "كرتون" },
   { value: "roll", label: "لفة" },
@@ -58,16 +110,21 @@ export const MARKETPLACE_ORDER_NEXT_ACTIONS = {
 };
 
 const categoryLabels = Object.fromEntries(
-  [...SUPPLIER_PRODUCT_CATEGORIES, ...HOME_PRODUCT_CATEGORIES]
+  [
+    ...LEGACY_CONSTRUCTION_PRODUCT_CATEGORIES,
+    ...LEGACY_HOME_PRODUCT_CATEGORIES,
+    ...SUPPLIER_PRODUCT_CATEGORIES,
+  ]
     .map((category) => [category.value, category.label])
 );
 
 const constructionCategoryValues = new Set(
-  SUPPLIER_PRODUCT_CATEGORIES.map((category) => category.value)
+  [...SUPPLIER_PRODUCT_CATEGORIES, ...LEGACY_CONSTRUCTION_PRODUCT_CATEGORIES]
+    .map((category) => category.value)
 );
 
 const homeCategoryValues = new Set(
-  HOME_PRODUCT_CATEGORIES.map((category) => category.value)
+  LEGACY_HOME_PRODUCT_CATEGORIES.map((category) => category.value)
 );
 
 export function getMarketplaceSectionForCategory(categoryCode) {
@@ -77,14 +134,55 @@ export function getMarketplaceSectionForCategory(categoryCode) {
 }
 
 const unitLabels = Object.fromEntries(
-  SUPPLIER_PRODUCT_UNITS.map((unit) => [unit.value, unit.label])
+  [...LEGACY_SUPPLIER_PRODUCT_UNITS, ...SUPPLIER_PRODUCT_UNITS]
+    .map((unit) => [unit.value, unit.label])
 );
+
+const classificationByCategory = Object.fromEntries(
+  SUPPLIER_PRODUCT_CATEGORIES.map((category) => [category.value, {
+    marketplaceSection: "construction",
+    constructionPhase: "structure",
+    structuralType: category.listingType,
+    categoryCode: category.value,
+  }])
+);
+
+export function getSupplierClassificationForCategory(categoryCode) {
+  if (classificationByCategory[categoryCode]) {
+    return { ...classificationByCategory[categoryCode] };
+  }
+  if (homeCategoryValues.has(categoryCode)) {
+    return {
+      marketplaceSection: "home",
+      constructionPhase: "",
+      structuralType: "",
+      categoryCode,
+    };
+  }
+  if (constructionCategoryValues.has(categoryCode)) {
+    return {
+      marketplaceSection: "construction",
+      constructionPhase: "",
+      structuralType: "",
+      categoryCode,
+    };
+  }
+  return null;
+}
 
 export function getSupplierCategoryLabel(value) {
   return categoryLabels[value] || "قسم آخر";
 }
 
-export function getSupplierUnitLabel(value) {
+export function getSupplierCategoryPathLabel(value) {
+  const classification = classificationByCategory[value];
+  if (!classification) return getSupplierCategoryLabel(value);
+  const listingTypeLabel = classification.structuralType === "contractors" ? "مقاول" : "مواد";
+  return `مواد بناء ← عظم ← ${listingTypeLabel} ← ${getSupplierCategoryLabel(value)}`;
+}
+
+export function getSupplierUnitLabel(value, customLabel = "") {
+  if (value === "other") return String(customLabel || "").trim() || "وحدة أخرى";
   return unitLabels[value] || value || "وحدة";
 }
 
@@ -135,6 +233,7 @@ export function getMarketplaceErrorMessage(error, fallback = "تعذر إكما�
     INVALID_PRODUCT_NAME: "اكتب اسم المنتج.",
     INVALID_PRODUCT_PRICE: "أدخل سعرًا صحيحًا أكبر من صفر وبحد أقصى منزلتين عشريتين.",
     INVALID_PRODUCT_UNIT: "اختر وحدة بيع صحيحة.",
+    INVALID_CUSTOM_UNIT_LABEL: "اكتب اسم الوحدة الأخرى بشكل صحيح.",
     INVALID_PRODUCT_CATEGORY: "اختر قسم المنتج.",
     INVALID_MARKETPLACE_SECTION: "اختر السوق الذي سيظهر فيه المنتج.",
     INVALID_PRODUCT_IMAGE_PATH: "ارفع صورة صحيحة للمنتج.",

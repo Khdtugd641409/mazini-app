@@ -319,7 +319,7 @@ export default function SupplierMarketplacePage() {
                     <div className="marketplace-product-body">
                       <small>{product.supplierName}</small>
                       <h2>{product.productName}</h2>
-                      <div className="marketplace-product-price"><strong>{formatMarketplaceMoney(product.price)}</strong><span>/ {getSupplierUnitLabel(product.unitCode)}</span></div>
+                      <div className="marketplace-product-price"><strong>{formatMarketplaceMoney(product.price)}</strong><span>/ {getSupplierUnitLabel(product.unitCode, product.customUnitLabel)}</span></div>
                       <button type="button" onClick={() => addToCart(product)}>{inCart ? <><Plus size={17} /> إضافة أخرى ({formatMarketplaceQuantity(inCart.quantity)})</> : <><ShoppingCart size={17} /> أضف للسلة</>}</button>
                     </div>
                   </article>
@@ -339,7 +339,7 @@ export default function SupplierMarketplacePage() {
               <div className="marketplace-order-supplier"><strong>{order.supplierName}</strong><a href={`tel:${order.supplierMobile}`}>{order.supplierMobile}</a></div>
               <div className="marketplace-order-items">
                 {(order.items || []).map((item) => (
-                  <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>
+                  <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode, item.customUnitLabel)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>
                 ))}
               </div>
               <footer><span>الإجمالي</span><strong>{formatMarketplaceMoney(order.subtotal)}</strong></footer>
@@ -361,7 +361,7 @@ export default function SupplierMarketplacePage() {
               {cartLines.map((line) => (
                 <article key={line.product.id}>
                   <img src={getSupplierProductImageUrl(line.product.imagePath)} alt={line.product.productName} />
-                  <div><strong>{line.product.productName}</strong><small>{line.product.supplierName}</small><span>{formatMarketplaceMoney(line.product.price)} / {getSupplierUnitLabel(line.product.unitCode)}</span>
+                  <div><strong>{line.product.productName}</strong><small>{line.product.supplierName}</small><span>{formatMarketplaceMoney(line.product.price)} / {getSupplierUnitLabel(line.product.unitCode, line.product.customUnitLabel)}</span>
                     <div className="marketplace-quantity"><button type="button" onClick={() => changeQuantity(line.product, -1)}><Minus size={15} /></button><input type="number" min={isDiscreteSupplierUnit(line.product.unitCode) ? "1" : "0.001"} step={isDiscreteSupplierUnit(line.product.unitCode) ? "1" : "0.001"} value={line.quantity} onChange={(event) => updateQuantity(line.product, event.target.value)} /><button type="button" onClick={() => changeQuantity(line.product, 1)}><Plus size={15} /></button></div>
                   </div>
                   <button className="marketplace-remove-line" type="button" onClick={() => removeFromCart(line.product.id)} aria-label={`حذف ${line.product.productName}`}><X size={18} /></button>

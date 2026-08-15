@@ -6,16 +6,19 @@ import {
   updateSupplierMarketplaceOrderStatus,
 } from "../services/supplierMarketplaceService.js";
 import {
+  CONSTRUCTION_PHASE_CATEGORIES,
   MARKETPLACE_ORDER_NEXT_ACTIONS,
   MARKETPLACE_ORDER_STATUSES,
-  HOME_PRODUCT_CATEGORIES,
-  SUPPLIER_PRODUCT_CATEGORIES,
+  STRUCTURAL_CONTRACTOR_CATEGORIES,
+  STRUCTURAL_LISTING_TYPES,
+  STRUCTURAL_MATERIAL_CATEGORIES,
+  SUPPLIER_MARKETPLACE_ROOT_CATEGORIES,
   SUPPLIER_PRODUCT_UNITS,
   formatMarketplaceMoney,
   formatMarketplaceQuantity,
   getMarketplaceErrorMessage,
-  getMarketplaceSectionForCategory,
-  getSupplierCategoryLabel,
+  getSupplierCategoryPathLabel,
+  getSupplierClassificationForCategory,
   getSupplierProductImageUrl,
   getSupplierUnitLabel,
 } from "../utils/supplierMarketplace.js";
@@ -31,10 +34,24 @@ const EMPTY_PRODUCT = {
   productName: "",
   description: "",
   price: "",
-  unitCode: "piece",
+  marketplaceSection: "",
+  constructionPhase: "",
+  structuralType: "",
+  unitCode: "",
+  customUnitLabel: "",
   categoryCode: "",
   imagePath: "",
 };
+
+function isCompleteSupplierProduct(product) {
+  return Boolean(
+    product?.price > 0
+    && product?.unitCode
+    && product?.categoryCode
+    && product?.imagePath
+    && (product.unitCode !== "other" || String(product.customUnitLabel || "").trim())
+  );
+}
 
 function normalizeOtp(value) {
   return String(value || "").replace(/[^\d٠-٩۰-۹]/g, "").slice(0, 8);
@@ -178,12 +195,17 @@ export default function SupplierPortalPage() {
 
   function editProduct(product) {
     resetProductForm();
+    const classification = getSupplierClassificationForCategory(product.categoryCode) || {};
     setProductForm({
       id: product.id,
       productName: product.productName || "",
       description: product.description || "",
       price: product.price ?? "",
-      unitCode: product.unitCode || "piece",
+      marketplaceSection: classification.marketplaceSection || product.marketplaceSection || "",
+      constructionPhase: classification.constructionPhase || "",
+      structuralType: classification.structuralType || "",
+      unitCode: product.unitCode || "",
+      customUnitLabel: product.customUnitLabel || "",
       categoryCode: product.categoryCode || "",
       imagePath: product.imagePath || "",
     });
@@ -201,6 +223,23 @@ export default function SupplierPortalPage() {
   async function submitProduct(event) {
     event.preventDefault();
     if (productSaving) return;
+    if (
+      productForm.marketplaceSection !== "construction"
+      || productForm.constructionPhase !== "structure"
+      || !productForm.structuralType
+      || !productForm.categoryCode
+    ) {
+      setErrorMessage("أكمل مسار تصنيف المنتج قبل الحفظ.");
+      return;
+    }
+    if (!productForm.unitCode) {
+      setErrorMessage("اختر وحدة بيع المنتج.");
+      return;
+    }
+    if (productForm.unitCode === "other" && !productForm.customUnitLabel.trim()) {
+      setErrorMessage("اكتب اسم الوحدة الأخرى.");
+      return;
+    }
     if (!productImageFile && !productForm.imagePath) {
       setErrorMessage("اختر صورة واضحة للمنتج.");
       return;
@@ -302,6 +341,13 @@ export default function SupplierPortalPage() {
   const marketplaceOrders = Array.isArray(dashboard?.marketplaceOrders) ? dashboard.marketplaceOrders : [];
   const projects = Array.isArray(dashboard?.projects) ? dashboard.projects : [];
   const products = Array.isArray(dashboard?.products) ? dashboard.products : [];
+  const leafCategories = productForm.structuralType === "contractors"
+    ? STRUCTURAL_CONTRACTOR_CATEGORIES
+    : STRUCTURAL_MATERIAL_CATEGORIES;
+  const classificationReady = productForm.marketplaceSection === "construction"
+    && productForm.constructionPhase === "structure"
+    && Boolean(productForm.structuralType)
+    && Boolean(productForm.categoryCode);
   return (
     <main style={shell} className="supplier-portal">
       <div style={{ maxWidth: 1120, margin: "0 auto", display: "grid", gap: 18 }}>
@@ -328,7 +374,7 @@ export default function SupplierPortalPage() {
                     <div className="supplier-order-market-label">{order.marketplaceSection === "home" ? "متجر المنزل" : "مواد البناء"}</div>
                     <div className="supplier-buyer-details"><div><small>المشتري</small><strong>{order.buyerName}</strong><a dir="ltr" href={`tel:${order.buyerMobile}`}>{order.buyerMobile}</a>{order.buyerEmail && <a dir="ltr" href={`mailto:${order.buyerEmail}`}>{order.buyerEmail}</a>}</div><div><small>عنوان التسليم</small><strong>{order.deliveryAddress}</strong>{order.deliveryMapsUrl && <a href={order.deliveryMapsUrl} target="_blank" rel="noreferrer">فتح الموقع على الخريطة</a>}</div></div>
                     {order.buyerNote && <p className="supplier-buyer-note"><strong>ملاحظة المشتري:</strong> {order.buyerNote}</p>}
-                    <div className="supplier-order-lines">{(order.items || []).map((item) => <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>)}</div>
+                    <div className="supplier-order-lines">{(order.items || []).map((item) => <div key={item.id}><img src={getSupplierProductImageUrl(item.imagePath)} alt="" /><span><strong>{item.productName}</strong><small>{formatMarketplaceQuantity(item.quantity)} {getSupplierUnitLabel(item.unitCode, item.customUnitLabel)} × {formatMarketplaceMoney(item.unitPrice)}</small></span><b>{formatMarketplaceMoney(item.lineTotal)}</b></div>)}</div>
                     <footer><div><span>إجمالي الطلب</span><strong>{formatMarketplaceMoney(order.subtotal)}</strong></div><div>{nextAction && <button type="button" disabled={orderUpdatingId === order.id} onClick={() => updateOrderStatus(order.id, nextAction.status)}>{nextAction.label}</button>}{canCancel && <button className="danger" type="button" disabled={orderUpdatingId === order.id} onClick={() => updateOrderStatus(order.id, "cancelled")}>إلغاء الطلب</button>}</div></footer>
                   </article>
                 );
@@ -338,27 +384,33 @@ export default function SupplierPortalPage() {
         </section>
 
         <section id="supplier-products" style={card}>
-          <div className="supplier-section-heading"><div><small>تظهر المنتجات المكتملة فقط للمتسوقين</small><h2>منتجاتي في السوق</h2></div><strong>{products.filter((product) => product.isActive && product.price > 0 && product.unitCode && product.categoryCode && product.imagePath).length}</strong></div>
+          <div className="supplier-section-heading"><div><small>تظهر المنتجات المكتملة فقط للمتسوقين</small><h2>منتجاتي في السوق</h2></div><strong>{products.filter((product) => product.isActive && isCompleteSupplierProduct(product)).length}</strong></div>
           <form id="supplier-product-form" className="supplier-product-form" onSubmit={submitProduct}>
             <div className="supplier-product-image-field"><label htmlFor="supplier-product-image">{productImagePreview ? <img src={productImagePreview} alt="معاينة المنتج" /> : <span>📷<strong>إضافة صورة مربعة</strong><small>JPG أو PNG أو WebP — حتى 5 MB</small></span>}</label><input key={fileInputKey} id="supplier-product-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} disabled={productSaving} /></div>
             <div className="supplier-product-fields">
               <label><span>اسم المنتج</span><input value={productForm.productName} onChange={(event) => setProductForm({ ...productForm, productName: event.target.value })} required minLength={2} disabled={productSaving} /></label>
-              <label><span>تصنيف المنتج</span><select value={productForm.categoryCode} onChange={(event) => setProductForm({ ...productForm, categoryCode: event.target.value })} required disabled={productSaving}><option value="" disabled>اختر تصنيف المنتج</option><optgroup label="سوق مواد البناء">{SUPPLIER_PRODUCT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</optgroup><optgroup label="متجر المنزل — العدد والأدوات">{HOME_PRODUCT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</optgroup></select><small className="supplier-product-destination">{productForm.categoryCode ? <>سيظهر تلقائيًا في {getMarketplaceSectionForCategory(productForm.categoryCode) === "home" ? "متجر المنزل" : "سوق مواد البناء"}.</> : "اختر التصنيف ليحدد النظام متجر العرض تلقائيًا."}</small></label>
+              <label><span>التصنيف الرئيسي</span><select value={productForm.marketplaceSection} onChange={(event) => setProductForm({ ...productForm, marketplaceSection: event.target.value, constructionPhase: "", structuralType: "", categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر التصنيف الرئيسي</option>{SUPPLIER_MARKETPLACE_ROOT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
+              {productForm.marketplaceSection === "construction" && <label><span>مرحلة مواد البناء</span><select value={productForm.constructionPhase} onChange={(event) => setProductForm({ ...productForm, constructionPhase: event.target.value, structuralType: "", categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر المرحلة</option>{CONSTRUCTION_PHASE_CATEGORIES.map((category) => <option key={category.value} value={category.value} disabled={!category.enabled}>{category.label}{!category.enabled ? " — قريبًا" : ""}</option>)}</select></label>}
+              {productForm.marketplaceSection === "home" && <div className="supplier-classification-pending"><strong>الأدوات المنزلية</strong><span>سيُفتح النشر بعد تحديد تصنيفات هذا القسم.</span></div>}
+              {productForm.constructionPhase === "structure" && <label><span>نوع العرض</span><select value={productForm.structuralType} onChange={(event) => setProductForm({ ...productForm, structuralType: event.target.value, categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر مواد أو مقاول</option>{STRUCTURAL_LISTING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>}
+              {productForm.constructionPhase === "structure" && productForm.structuralType && <label><span>{productForm.structuralType === "contractors" ? "نوع المقاول" : "نوع المادة"}</span><select value={productForm.categoryCode} onChange={(event) => setProductForm({ ...productForm, categoryCode: event.target.value })} required disabled={productSaving}><option value="" disabled>اختر التصنيف</option>{leafCategories.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</select></label>}
+              {classificationReady && <div className="supplier-product-destination wide"><strong>مسار العرض:</strong> {getSupplierCategoryPathLabel(productForm.categoryCode)}</div>}
               <label><span>السعر بالوحدة (ريال)</span><input type="number" min="0.01" max="9999999999.99" step="0.01" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} required disabled={productSaving} /></label>
-              <label><span>وحدة البيع</span><select value={productForm.unitCode} onChange={(event) => setProductForm({ ...productForm, unitCode: event.target.value })} disabled={productSaving}>{SUPPLIER_PRODUCT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
+              <label><span>وحدة البيع</span><select value={productForm.unitCode} onChange={(event) => setProductForm({ ...productForm, unitCode: event.target.value, customUnitLabel: event.target.value === "other" ? productForm.customUnitLabel : "" })} required disabled={productSaving}><option value="" disabled>اختر وحدة البيع</option>{SUPPLIER_PRODUCT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
+              {productForm.unitCode === "other" && <label><span>اكتب الوحدة الأخرى</span><input value={productForm.customUnitLabel} onChange={(event) => setProductForm({ ...productForm, customUnitLabel: event.target.value })} required minLength={1} maxLength={40} placeholder="مثال: كرتون، كيس، زيارة" disabled={productSaving} /></label>}
               <label className="wide"><span>وصف مختصر <small>اختياري</small></span><textarea rows="3" maxLength={3000} value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} disabled={productSaving} /></label>
-              <div className="supplier-product-form-actions wide"><button type="submit" disabled={productSaving}>{productSaving ? "جاري الحفظ..." : productForm.id ? "حفظ ونشر التعديل" : "إضافة المنتج للسوق"}</button>{productForm.id && <button className="secondary" type="button" onClick={resetProductForm} disabled={productSaving}>إلغاء التعديل</button>}</div>
+              <div className="supplier-product-form-actions wide"><button type="submit" disabled={productSaving || !classificationReady}>{productSaving ? "جاري الحفظ..." : productForm.id ? "حفظ ونشر التعديل" : "إضافة المنتج للسوق"}</button>{productForm.id && <button className="secondary" type="button" onClick={resetProductForm} disabled={productSaving}>إلغاء التعديل</button>}</div>
             </div>
           </form>
 
           {products.length === 0 ? <p>لا توجد منتجات مسجلة.</p> : (
             <div className="supplier-product-grid">
               {products.map((product) => {
-                const complete = product.price > 0 && product.unitCode && product.categoryCode && product.imagePath;
+                const complete = isCompleteSupplierProduct(product);
                 return (
                   <article key={product.id} className={!product.isActive || !complete ? "muted" : ""}>
                     <div className="supplier-product-card-image">{product.imagePath ? <img src={getSupplierProductImageUrl(product.imagePath)} alt={product.productName} /> : <span>لا توجد صورة</span>}</div>
-                    <div><small>{product.marketplaceSection === "home" ? "متجر المنزل" : "مواد البناء"} · {complete ? getSupplierCategoryLabel(product.categoryCode) : "منتج يحتاج استكمال"}</small><h3>{product.productName}</h3>{product.price > 0 && <p><strong>{formatMarketplaceMoney(product.price)}</strong> / {getSupplierUnitLabel(product.unitCode)}</p>}<span className="supplier-product-state">{product.isActive && complete ? "ظاهر في السوق" : product.isActive ? "غير ظاهر حتى استكماله" : "متوقف"}</span><div className="supplier-product-actions"><button type="button" onClick={() => editProduct(product)}>تعديل{!product.isActive ? " وإعادة نشر" : ""}</button>{product.isActive && complete && <button className="danger" type="button" onClick={() => archiveProduct(product)}>إيقاف الظهور</button>}</div></div>
+                    <div><small>{product.marketplaceSection === "home" ? "متجر المنزل" : complete ? getSupplierCategoryPathLabel(product.categoryCode) : "منتج يحتاج استكمال"}</small><h3>{product.productName}</h3>{product.price > 0 && <p><strong>{formatMarketplaceMoney(product.price)}</strong> / {getSupplierUnitLabel(product.unitCode, product.customUnitLabel)}</p>}<span className="supplier-product-state">{product.isActive && complete ? "ظاهر في السوق" : product.isActive ? "غير ظاهر حتى استكماله" : "متوقف"}</span><div className="supplier-product-actions"><button type="button" onClick={() => editProduct(product)}>تعديل{!product.isActive ? " وإعادة نشر" : ""}</button>{product.isActive && complete && <button className="danger" type="button" onClick={() => archiveProduct(product)}>إيقاف الظهور</button>}</div></div>
                   </article>
                 );
               })}
