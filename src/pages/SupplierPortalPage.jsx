@@ -6,6 +6,9 @@ import {
   updateSupplierMarketplaceOrderStatus,
 } from "../services/supplierMarketplaceService.js";
 import {
+  CONCRETE_GRADE_OPTIONS,
+  CONCRETE_RESISTANCE_OPTIONS,
+  CONCRETE_UNIT_CODE,
   CONSTRUCTION_PHASE_CATEGORIES,
   MARKETPLACE_ORDER_NEXT_ACTIONS,
   MARKETPLACE_ORDER_STATUSES,
@@ -16,6 +19,7 @@ import {
   SUPPLIER_PRODUCT_UNITS,
   formatMarketplaceMoney,
   formatMarketplaceQuantity,
+  getConcreteProductName,
   getMarketplaceErrorMessage,
   getSupplierCategoryPathLabel,
   getSupplierClassificationForCategory,
@@ -40,15 +44,23 @@ const EMPTY_PRODUCT = {
   unitCode: "",
   customUnitLabel: "",
   categoryCode: "",
+  concreteGradeCode: "",
+  concreteResistanceCode: "",
   imagePath: "",
 };
 
 function isCompleteSupplierProduct(product) {
+  const hasCompleteConcreteClassification = product?.categoryCode !== "concrete" || Boolean(
+    product?.concreteGradeCode
+    && product?.concreteResistanceCode
+    && product?.unitCode === CONCRETE_UNIT_CODE
+  );
   return Boolean(
     product?.price > 0
     && product?.unitCode
     && product?.categoryCode
     && product?.imagePath
+    && hasCompleteConcreteClassification
     && (product.unitCode !== "other" || String(product.customUnitLabel || "").trim())
   );
 }
@@ -196,17 +208,24 @@ export default function SupplierPortalPage() {
   function editProduct(product) {
     resetProductForm();
     const classification = getSupplierClassificationForCategory(product.categoryCode) || {};
+    const isConcrete = product.categoryCode === "concrete";
+    const concreteProductName = getConcreteProductName(
+      product.concreteGradeCode,
+      product.concreteResistanceCode
+    );
     setProductForm({
       id: product.id,
-      productName: product.productName || "",
+      productName: isConcrete ? concreteProductName : (product.productName || ""),
       description: product.description || "",
       price: product.price ?? "",
       marketplaceSection: classification.marketplaceSection || product.marketplaceSection || "",
       constructionPhase: classification.constructionPhase || "",
       structuralType: classification.structuralType || "",
-      unitCode: product.unitCode || "",
-      customUnitLabel: product.customUnitLabel || "",
+      unitCode: isConcrete ? CONCRETE_UNIT_CODE : (product.unitCode || ""),
+      customUnitLabel: isConcrete ? "" : (product.customUnitLabel || ""),
       categoryCode: product.categoryCode || "",
+      concreteGradeCode: product.concreteGradeCode || "",
+      concreteResistanceCode: product.concreteResistanceCode || "",
       imagePath: product.imagePath || "",
     });
     setProductImagePreview(getSupplierProductImageUrl(product.imagePath));
@@ -218,6 +237,43 @@ export default function SupplierPortalPage() {
     if (productImagePreview.startsWith("blob:")) URL.revokeObjectURL(productImagePreview);
     setProductImageFile(file);
     setProductImagePreview(file ? URL.createObjectURL(file) : getSupplierProductImageUrl(productForm.imagePath));
+  }
+
+  function selectProductCategory(categoryCode) {
+    setProductForm((current) => {
+      const isConcrete = categoryCode === "concrete";
+      const wasConcrete = current.categoryCode === "concrete";
+      return {
+        ...current,
+        productName: isConcrete || wasConcrete ? "" : current.productName,
+        categoryCode,
+        concreteGradeCode: "",
+        concreteResistanceCode: "",
+        unitCode: isConcrete ? CONCRETE_UNIT_CODE : (wasConcrete ? "" : current.unitCode),
+        customUnitLabel: isConcrete || wasConcrete ? "" : current.customUnitLabel,
+      };
+    });
+  }
+
+  function selectConcreteGrade(concreteGradeCode) {
+    setProductForm((current) => ({
+      ...current,
+      productName: "",
+      concreteGradeCode,
+      concreteResistanceCode: "",
+      unitCode: CONCRETE_UNIT_CODE,
+      customUnitLabel: "",
+    }));
+  }
+
+  function selectConcreteResistance(concreteResistanceCode) {
+    setProductForm((current) => ({
+      ...current,
+      productName: getConcreteProductName(current.concreteGradeCode, concreteResistanceCode),
+      concreteResistanceCode,
+      unitCode: CONCRETE_UNIT_CODE,
+      customUnitLabel: "",
+    }));
   }
 
   async function submitProduct(event) {
@@ -232,11 +288,20 @@ export default function SupplierPortalPage() {
       setErrorMessage("أكمل مسار تصنيف المنتج قبل الحفظ.");
       return;
     }
-    if (!productForm.unitCode) {
+    const isConcrete = productForm.categoryCode === "concrete";
+    if (isConcrete && !productForm.concreteGradeCode) {
+      setErrorMessage("اختر نوع الخرسانة.");
+      return;
+    }
+    if (isConcrete && !productForm.concreteResistanceCode) {
+      setErrorMessage("اختر عادي أو مقاوم.");
+      return;
+    }
+    if (!isConcrete && !productForm.unitCode) {
       setErrorMessage("اختر وحدة بيع المنتج.");
       return;
     }
-    if (productForm.unitCode === "other" && !productForm.customUnitLabel.trim()) {
+    if (!isConcrete && productForm.unitCode === "other" && !productForm.customUnitLabel.trim()) {
       setErrorMessage("اكتب اسم الوحدة الأخرى.");
       return;
     }
@@ -249,7 +314,16 @@ export default function SupplierPortalPage() {
       setProductSaving(true);
       setErrorMessage("");
       setSuccessMessage("");
-      await saveSupplierMarketplaceProduct(productForm, productImageFile);
+      const productToSave = isConcrete ? {
+        ...productForm,
+        productName: getConcreteProductName(
+          productForm.concreteGradeCode,
+          productForm.concreteResistanceCode
+        ),
+        unitCode: CONCRETE_UNIT_CODE,
+        customUnitLabel: "",
+      } : productForm;
+      await saveSupplierMarketplaceProduct(productToSave, productImageFile);
       const wasEditing = Boolean(productForm.id);
       resetProductForm();
       await loadPortal();
@@ -344,10 +418,16 @@ export default function SupplierPortalPage() {
   const leafCategories = productForm.structuralType === "contractors"
     ? STRUCTURAL_CONTRACTOR_CATEGORIES
     : STRUCTURAL_MATERIAL_CATEGORIES;
-  const classificationReady = productForm.marketplaceSection === "construction"
+  const categoryPathReady = productForm.marketplaceSection === "construction"
     && productForm.constructionPhase === "structure"
     && Boolean(productForm.structuralType)
     && Boolean(productForm.categoryCode);
+  const isConcreteProduct = productForm.categoryCode === "concrete";
+  const concreteDetailsReady = Boolean(
+    productForm.concreteGradeCode && productForm.concreteResistanceCode
+  );
+  const classificationReady = categoryPathReady
+    && (!isConcreteProduct || concreteDetailsReady);
   return (
     <main style={shell} className="supplier-portal">
       <div style={{ maxWidth: 1120, margin: "0 auto", display: "grid", gap: 18 }}>
@@ -388,16 +468,19 @@ export default function SupplierPortalPage() {
           <form id="supplier-product-form" className="supplier-product-form" onSubmit={submitProduct}>
             <div className="supplier-product-image-field"><label htmlFor="supplier-product-image">{productImagePreview ? <img src={productImagePreview} alt="معاينة المنتج" /> : <span>📷<strong>إضافة صورة مربعة</strong><small>JPG أو PNG أو WebP — حتى 5 MB</small></span>}</label><input key={fileInputKey} id="supplier-product-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={selectProductImage} disabled={productSaving} /></div>
             <div className="supplier-product-fields">
-              <label><span>اسم المنتج</span><input value={productForm.productName} onChange={(event) => setProductForm({ ...productForm, productName: event.target.value })} required minLength={2} disabled={productSaving} /></label>
-              <label><span>التصنيف الرئيسي</span><select value={productForm.marketplaceSection} onChange={(event) => setProductForm({ ...productForm, marketplaceSection: event.target.value, constructionPhase: "", structuralType: "", categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر التصنيف الرئيسي</option>{SUPPLIER_MARKETPLACE_ROOT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
-              {productForm.marketplaceSection === "construction" && <label><span>مرحلة مواد البناء</span><select value={productForm.constructionPhase} onChange={(event) => setProductForm({ ...productForm, constructionPhase: event.target.value, structuralType: "", categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر المرحلة</option>{CONSTRUCTION_PHASE_CATEGORIES.map((category) => <option key={category.value} value={category.value} disabled={!category.enabled}>{category.label}{!category.enabled ? " — قريبًا" : ""}</option>)}</select></label>}
+              {!isConcreteProduct && <label><span>اسم المنتج</span><input value={productForm.productName} onChange={(event) => setProductForm({ ...productForm, productName: event.target.value })} required minLength={2} disabled={productSaving} /></label>}
+              <label><span>التصنيف الرئيسي</span><select value={productForm.marketplaceSection} onChange={(event) => setProductForm({ ...productForm, marketplaceSection: event.target.value, constructionPhase: "", structuralType: "", categoryCode: "", concreteGradeCode: "", concreteResistanceCode: "", unitCode: "", customUnitLabel: "", productName: productForm.categoryCode === "concrete" ? "" : productForm.productName })} required disabled={productSaving}><option value="" disabled>اختر التصنيف الرئيسي</option>{SUPPLIER_MARKETPLACE_ROOT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select></label>
+              {productForm.marketplaceSection === "construction" && <label><span>مرحلة مواد البناء</span><select value={productForm.constructionPhase} onChange={(event) => setProductForm({ ...productForm, constructionPhase: event.target.value, structuralType: "", categoryCode: "", concreteGradeCode: "", concreteResistanceCode: "", unitCode: "", customUnitLabel: "", productName: productForm.categoryCode === "concrete" ? "" : productForm.productName })} required disabled={productSaving}><option value="" disabled>اختر المرحلة</option>{CONSTRUCTION_PHASE_CATEGORIES.map((category) => <option key={category.value} value={category.value} disabled={!category.enabled}>{category.label}{!category.enabled ? " — قريبًا" : ""}</option>)}</select></label>}
               {productForm.marketplaceSection === "home" && <div className="supplier-classification-pending"><strong>الأدوات المنزلية</strong><span>سيُفتح النشر بعد تحديد تصنيفات هذا القسم.</span></div>}
-              {productForm.constructionPhase === "structure" && <label><span>نوع العرض</span><select value={productForm.structuralType} onChange={(event) => setProductForm({ ...productForm, structuralType: event.target.value, categoryCode: "" })} required disabled={productSaving}><option value="" disabled>اختر مواد أو مقاول</option>{STRUCTURAL_LISTING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>}
-              {productForm.constructionPhase === "structure" && productForm.structuralType && <label><span>{productForm.structuralType === "contractors" ? "نوع المقاول" : "نوع المادة"}</span><select value={productForm.categoryCode} onChange={(event) => setProductForm({ ...productForm, categoryCode: event.target.value })} required disabled={productSaving}><option value="" disabled>اختر التصنيف</option>{leafCategories.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</select></label>}
-              {classificationReady && <div className="supplier-product-destination wide"><strong>مسار العرض:</strong> {getSupplierCategoryPathLabel(productForm.categoryCode)}</div>}
-              <label><span>السعر بالوحدة (ريال)</span><input type="number" min="0.01" max="9999999999.99" step="0.01" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} required disabled={productSaving} /></label>
-              <label><span>وحدة البيع</span><select value={productForm.unitCode} onChange={(event) => setProductForm({ ...productForm, unitCode: event.target.value, customUnitLabel: event.target.value === "other" ? productForm.customUnitLabel : "" })} required disabled={productSaving}><option value="" disabled>اختر وحدة البيع</option>{SUPPLIER_PRODUCT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>
-              {productForm.unitCode === "other" && <label><span>اكتب الوحدة الأخرى</span><input value={productForm.customUnitLabel} onChange={(event) => setProductForm({ ...productForm, customUnitLabel: event.target.value })} required minLength={1} maxLength={40} placeholder="مثال: كرتون، كيس، زيارة" disabled={productSaving} /></label>}
+              {productForm.constructionPhase === "structure" && <label><span>نوع العرض</span><select value={productForm.structuralType} onChange={(event) => setProductForm({ ...productForm, structuralType: event.target.value, categoryCode: "", concreteGradeCode: "", concreteResistanceCode: "", unitCode: "", customUnitLabel: "", productName: productForm.categoryCode === "concrete" ? "" : productForm.productName })} required disabled={productSaving}><option value="" disabled>اختر مواد أو مقاول</option>{STRUCTURAL_LISTING_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>}
+              {productForm.constructionPhase === "structure" && productForm.structuralType && <label><span>{productForm.structuralType === "contractors" ? "نوع المقاول" : "نوع المادة"}</span><select value={productForm.categoryCode} onChange={(event) => selectProductCategory(event.target.value)} required disabled={productSaving}><option value="" disabled>اختر التصنيف</option>{leafCategories.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</select></label>}
+              {isConcreteProduct && <label><span>نوع الخرسانة</span><select value={productForm.concreteGradeCode} onChange={(event) => selectConcreteGrade(event.target.value)} required disabled={productSaving}><option value="" disabled>اختر نوع الخرسانة</option>{CONCRETE_GRADE_OPTIONS.map((grade) => <option key={grade.value} value={grade.value}>{grade.label}</option>)}</select></label>}
+              {isConcreteProduct && productForm.concreteGradeCode && <label><span>تصنيف الخرسانة</span><select value={productForm.concreteResistanceCode} onChange={(event) => selectConcreteResistance(event.target.value)} required disabled={productSaving}><option value="" disabled>اختر عادي أو مقاوم</option>{CONCRETE_RESISTANCE_OPTIONS.map((resistance) => <option key={resistance.value} value={resistance.value}>{resistance.label}</option>)}</select></label>}
+              {categoryPathReady && <div className="supplier-product-destination wide"><strong>مسار العرض:</strong> {getSupplierCategoryPathLabel(productForm.categoryCode)}</div>}
+              {isConcreteProduct && <div className="supplier-locked-field"><span>اسم المنتج</span><strong>{productForm.productName || "يُنشأ تلقائيًا بعد اختيار عادي أو مقاوم"}</strong></div>}
+              {(!isConcreteProduct || concreteDetailsReady) && <label><span>السعر بالوحدة (ريال)</span><input type="number" min="0.01" max="9999999999.99" step="0.01" value={productForm.price} onChange={(event) => setProductForm({ ...productForm, price: event.target.value })} required disabled={productSaving} /></label>}
+              {isConcreteProduct ? <div className="supplier-locked-field"><span>وحدة البيع</span><strong>{getSupplierUnitLabel(CONCRETE_UNIT_CODE)}</strong><small>تُحدد تلقائيًا لمنتجات الخرسانة</small></div> : <label><span>وحدة البيع</span><select value={productForm.unitCode} onChange={(event) => setProductForm({ ...productForm, unitCode: event.target.value, customUnitLabel: event.target.value === "other" ? productForm.customUnitLabel : "" })} required disabled={productSaving}><option value="" disabled>اختر وحدة البيع</option>{SUPPLIER_PRODUCT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label>}
+              {!isConcreteProduct && productForm.unitCode === "other" && <label><span>اكتب الوحدة الأخرى</span><input value={productForm.customUnitLabel} onChange={(event) => setProductForm({ ...productForm, customUnitLabel: event.target.value })} required minLength={1} maxLength={40} placeholder="مثال: كرتون، كيس، زيارة" disabled={productSaving} /></label>}
               <label className="wide"><span>وصف مختصر <small>اختياري</small></span><textarea rows="3" maxLength={3000} value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} disabled={productSaving} /></label>
               <div className="supplier-product-form-actions wide"><button type="submit" disabled={productSaving || !classificationReady}>{productSaving ? "جاري الحفظ..." : productForm.id ? "حفظ ونشر التعديل" : "إضافة المنتج للسوق"}</button>{productForm.id && <button className="secondary" type="button" onClick={resetProductForm} disabled={productSaving}>إلغاء التعديل</button>}</div>
             </div>

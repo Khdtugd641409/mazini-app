@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   History,
+  MapPin,
+  MessageCircle,
   Minus,
   PackageCheck,
+  Phone,
   Plus,
   Search,
   ShoppingCart,
@@ -81,6 +84,12 @@ function normalizeComparisonText(value) {
     .toLocaleLowerCase("ar");
 }
 
+function getSupplierWhatsAppUrl(mobileNumber) {
+  const normalizedMobile = String(mobileNumber || "").replace(/\D/g, "");
+  if (!/^05\d{8}$/.test(normalizedMobile)) return "";
+  return `https://wa.me/966${normalizedMobile.slice(1)}`;
+}
+
 function buildProductComparison(productOffers) {
   const columnsByKey = new Map();
   const suppliersByKey = new Map();
@@ -100,7 +109,16 @@ function buildProductComparison(productOffers) {
       columnsByKey.set(columnKey, { key: columnKey, productName, unitLabel });
     }
     if (!suppliersByKey.has(supplierKey)) {
-      suppliersByKey.set(supplierKey, { key: supplierKey, supplierName, offers: new Map() });
+      suppliersByKey.set(supplierKey, {
+        key: supplierKey,
+        supplierName,
+        supplierMobile: String(product.supplierMobile || "").trim(),
+        supplierMapsUrl: String(product.supplierMapsUrl || "").trim(),
+        supplierCommercialRegistrationNumber: String(
+          product.supplierCommercialRegistrationNumber || ""
+        ).trim(),
+        offers: new Map(),
+      });
     }
 
     const supplier = suppliersByKey.get(supplierKey);
@@ -133,6 +151,7 @@ export default function SupplierMarketplacePage() {
   const [view, setView] = useState("catalog");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [checkoutForm, setCheckoutForm] = useState(EMPTY_CHECKOUT);
   const [checkoutResult, setCheckoutResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -373,7 +392,7 @@ export default function SupplierMarketplacePage() {
             <section className="marketplace-comparison" aria-label={`مقارنة عروض ${getSupplierCategoryLabel(activeCategory)}`}>
               <header>
                 <div><span>مقارنة الموردين</span><h2>{getSupplierCategoryLabel(activeCategory)}</h2></div>
-                <small>مرّر الجدول أفقيًا لرؤية بقية المنتجات؛ يبقى عمود المؤسسة ثابتًا.</small>
+                <small>اضغط على اسم المؤسسة لعرض بيانات التواصل، ومرّر الجدول أفقيًا لرؤية بقية المنتجات.</small>
               </header>
               <div className="marketplace-comparison-scroll">
                 <table>
@@ -386,7 +405,17 @@ export default function SupplierMarketplacePage() {
                   <tbody>
                     {productComparison.suppliers.map((supplier) => (
                       <tr key={supplier.key}>
-                        <th className="marketplace-supplier-column" scope="row">{supplier.supplierName}</th>
+                        <th className="marketplace-supplier-column" scope="row">
+                          <button
+                            className="marketplace-supplier-button"
+                            type="button"
+                            aria-haspopup="dialog"
+                            onClick={() => setSelectedSupplier(supplier)}
+                          >
+                            <strong>{supplier.supplierName}</strong>
+                            <small>عرض بيانات التواصل</small>
+                          </button>
+                        </th>
                         {productComparison.columns.map((column) => {
                           const product = supplier.offers.get(column.key);
                           if (!product) return <td key={column.key}><span className="marketplace-offer-unavailable">غير متوفر</span></td>;
@@ -469,6 +498,57 @@ export default function SupplierMarketplacePage() {
           </>
         )}
       </aside>
+
+      {selectedSupplier && (
+        <div className="marketplace-supplier-modal" role="dialog" aria-modal="true" aria-labelledby="supplier-contact-title">
+          <button
+            className="marketplace-drawer-backdrop"
+            type="button"
+            aria-label="إغلاق بيانات المؤسسة"
+            onClick={() => setSelectedSupplier(null)}
+          />
+          <section className="marketplace-supplier-contact-card">
+            <header>
+              <div>
+                <small>بيانات المؤسسة</small>
+                <h2 id="supplier-contact-title">{selectedSupplier.supplierName}</h2>
+              </div>
+              <button type="button" onClick={() => setSelectedSupplier(null)} aria-label="إغلاق">
+                <X size={21} />
+              </button>
+            </header>
+
+            <dl>
+              <div>
+                <dt>رقم الجوال</dt>
+                <dd dir="ltr">{selectedSupplier.supplierMobile || "غير متوفر"}</dd>
+              </div>
+              <div>
+                <dt>رقم السجل التجاري</dt>
+                <dd dir="ltr">{selectedSupplier.supplierCommercialRegistrationNumber || "غير متوفر"}</dd>
+              </div>
+            </dl>
+
+            <div className="marketplace-supplier-contact-actions">
+              {selectedSupplier.supplierMobile && (
+                <a href={`tel:${selectedSupplier.supplierMobile}`}>
+                  <Phone size={19} /> اتصال
+                </a>
+              )}
+              {getSupplierWhatsAppUrl(selectedSupplier.supplierMobile) && (
+                <a href={getSupplierWhatsAppUrl(selectedSupplier.supplierMobile)} target="_blank" rel="noreferrer">
+                  <MessageCircle size={19} /> واتساب
+                </a>
+              )}
+              {selectedSupplier.supplierMapsUrl && (
+                <a href={selectedSupplier.supplierMapsUrl} target="_blank" rel="noreferrer">
+                  <MapPin size={19} /> موقع المؤسسة
+                </a>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {checkoutOpen && (
         <div className="marketplace-checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
