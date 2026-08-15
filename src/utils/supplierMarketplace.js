@@ -26,6 +26,25 @@ export const STRUCTURAL_MATERIAL_CATEGORIES = [
   { value: "sand", label: "رمل", icon: "🏜️", listingType: "materials" },
 ];
 
+export const CONCRETE_GRADE_OPTIONS = [
+  { value: "c15_250", label: "C15 - 250" },
+  { value: "c20_300", label: "C20 - 300" },
+  { value: "c25_350", label: "C25 - 350" },
+  { value: "c28_400", label: "C28 - 400" },
+  { value: "c30_400", label: "C30 - 400" },
+  { value: "c32_400", label: "C32 - 400" },
+  { value: "c35_425", label: "C35 - 425" },
+  { value: "c40_450", label: "C40 - 450" },
+  { value: "c45_465", label: "C45 - 465" },
+];
+
+export const CONCRETE_RESISTANCE_OPTIONS = [
+  { value: "normal", label: "عادي" },
+  { value: "resistant", label: "مقاوم" },
+];
+
+export const CONCRETE_UNIT_CODE = "cubic_meter";
+
 export const STRUCTURAL_CONTRACTOR_CATEGORIES = [
   { value: "engineering_office", label: "مكتب هندسي", icon: "📐", listingType: "contractors" },
   { value: "excavation", label: "حفر", icon: "🚜", listingType: "contractors" },
@@ -138,6 +157,14 @@ const unitLabels = Object.fromEntries(
     .map((unit) => [unit.value, unit.label])
 );
 
+const concreteGradeLabels = Object.fromEntries(
+  CONCRETE_GRADE_OPTIONS.map((grade) => [grade.value, grade.label])
+);
+
+const concreteResistanceLabels = Object.fromEntries(
+  CONCRETE_RESISTANCE_OPTIONS.map((resistance) => [resistance.value, resistance.label])
+);
+
 const classificationByCategory = Object.fromEntries(
   SUPPLIER_PRODUCT_CATEGORIES.map((category) => [category.value, {
     marketplaceSection: "construction",
@@ -184,6 +211,21 @@ export function getSupplierCategoryPathLabel(value) {
 export function getSupplierUnitLabel(value, customLabel = "") {
   if (value === "other") return String(customLabel || "").trim() || "وحدة أخرى";
   return unitLabels[value] || value || "وحدة";
+}
+
+export function getConcreteGradeLabel(value) {
+  return concreteGradeLabels[value] || "";
+}
+
+export function getConcreteResistanceLabel(value) {
+  return concreteResistanceLabels[value] || "";
+}
+
+export function getConcreteProductName(gradeCode, resistanceCode) {
+  const gradeLabel = getConcreteGradeLabel(gradeCode);
+  const resistanceLabel = getConcreteResistanceLabel(resistanceCode);
+  if (!gradeLabel || !resistanceLabel) return "";
+  return `خرسانة ${gradeLabel} — ${resistanceLabel}`;
 }
 
 export function isDiscreteSupplierUnit(value) {
@@ -234,6 +276,8 @@ export function getMarketplaceErrorMessage(error, fallback = "تعذر إكما�
     INVALID_PRODUCT_PRICE: "أدخل سعرًا صحيحًا أكبر من صفر وبحد أقصى منزلتين عشريتين.",
     INVALID_PRODUCT_UNIT: "اختر وحدة بيع صحيحة.",
     INVALID_CUSTOM_UNIT_LABEL: "اكتب اسم الوحدة الأخرى بشكل صحيح.",
+    INVALID_CONCRETE_GRADE: "اختر نوع الخرسانة.",
+    INVALID_CONCRETE_RESISTANCE: "اختر عادي أو مقاوم.",
     INVALID_PRODUCT_CATEGORY: "اختر قسم المنتج.",
     INVALID_MARKETPLACE_SECTION: "اختر السوق الذي سيظهر فيه المنتج.",
     INVALID_PRODUCT_IMAGE_PATH: "ارفع صورة صحيحة للمنتج.",

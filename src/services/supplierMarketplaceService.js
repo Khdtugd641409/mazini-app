@@ -97,7 +97,7 @@ export async function saveSupplierMarketplaceProduct(product, imageFile) {
       ? (uploadedImagePath = await uploadProductImage(imageFile))
       : product.imagePath;
 
-    const { data, error } = await supabase.rpc("supplier_save_marketplace_product_v2", {
+    const { data, error } = await supabase.rpc("supplier_save_marketplace_product_v3", {
       p_product_id: product.id || null,
       p_product_name: product.productName,
       p_description: product.description || null,
@@ -105,6 +105,8 @@ export async function saveSupplierMarketplaceProduct(product, imageFile) {
       p_unit_code: product.unitCode,
       p_custom_unit_label: product.unitCode === "other" ? product.customUnitLabel : null,
       p_category_code: product.categoryCode,
+      p_concrete_grade_code: product.categoryCode === "concrete" ? product.concreteGradeCode : null,
+      p_concrete_resistance_code: product.categoryCode === "concrete" ? product.concreteResistanceCode : null,
       p_image_path: imagePath,
       p_marketplace_section: marketplaceSection,
     });

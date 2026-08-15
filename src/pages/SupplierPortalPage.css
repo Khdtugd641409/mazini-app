@@ -47,6 +47,10 @@
 .supplier-product-destination.wide { padding: 10px 12px; border: 1px solid #ead9ae; border-radius: 10px; background: #fff9e9; }
 .supplier-classification-pending { display: grid; align-content: center; gap: 4px; min-height: 68px; padding: 10px 12px; border: 1px solid #ead9ae; border-radius: 10px; color: #75581f; background: #fff9e9; }
 .supplier-classification-pending span { font-size: 13px; line-height: 1.55; }
+.supplier-locked-field { min-height: 68px; display: grid; align-content: center; gap: 4px; padding: 10px 12px; border: 1px solid #cfe0da; border-radius: 10px; color: #173f36; background: #f1f8f5; }
+.supplier-locked-field > span { color: #60716b; font-size: 13px; font-weight: 800; }
+.supplier-locked-field > strong { line-height: 1.5; }
+.supplier-locked-field > small { color: #6e7e78; line-height: 1.45; }
 .supplier-product-fields input,
 .supplier-product-fields select,
 .supplier-product-fields textarea { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #d7d2c6; border-radius: 10px; font: inherit; resize: vertical; }
