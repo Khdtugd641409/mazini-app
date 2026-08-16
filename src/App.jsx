@@ -14,6 +14,7 @@ import AdminLoginPage from "./pages/admin/AdminLoginPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminCustomerFilesPage from "./pages/admin/AdminCustomerFilesPage.jsx";
 import AdminCustomerWorkspace from "./pages/admin/AdminCustomerWorkspace.jsx";
+import AdminProjectFollowUpRequestsPage from "./pages/admin/AdminProjectFollowUpRequestsPage.jsx";
 
 import { supabase } from "./lib/supabase.js";
 import ConstructionStageRequests from "./components/ConstructionStageRequests.jsx";
@@ -478,6 +479,19 @@ function SupervisorPortal({ onBackHome }) {
 
       await loadSupervisorDashboard();
 
+      if (data?.projectCompleted) {
+        setStageWorkspace(null);
+        setSelectedStageId("");
+        setSuccessMessage(
+          data?.feeBecameDue
+            ? `اكتملت جميع مراحل المشروع. أصبحت مديونية المنصة ${Number(
+                data.feeAmount || 0
+              ).toLocaleString("ar-SA")} ريال مستحقة، ولن يظهر حسابك في الترشيحات الجديدة حتى تأكيد سدادها.`
+            : "اكتملت جميع مراحل المشروع."
+        );
+        return;
+      }
+
       const nextStageId = data?.nextStageId || null;
       await loadStageWorkspace(nextStageId || selectedStageId);
 
@@ -526,12 +540,17 @@ function SupervisorPortal({ onBackHome }) {
         p_offer_note: String(offerNotes[key] || "").trim() || null,
       });
       if (error) throw error;
-      setSuccessMessage("تم إرسال العرض إلى العميل.");
+      setSuccessMessage("تم إرسال السعر إلى العميل.");
       setOfferPrices((current) => ({ ...current, [key]: "" }));
       setOfferNotes((current) => ({ ...current, [key]: "" }));
       await loadSupervisorDashboard();
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر إرسال العرض.");
+      const message = String(error?.message || "");
+      setErrorMessage(
+        message.includes("SUPERVISOR_HAS_OUTSTANDING_PLATFORM_DEBT")
+          ? "لا يمكنك إرسال عرض جديد قبل تأكيد سداد مديونية المنصة المستحقة."
+          : error?.message || "تعذر إرسال العرض."
+      );
     } finally {
       setLoading(false);
     }
@@ -550,6 +569,13 @@ function SupervisorPortal({ onBackHome }) {
   ].filter((item) => Boolean(item.required) && !Boolean(item.checked)).length;
   const canCompleteSelectedStage = ["planned", "in_progress"].includes(
     selectedStageStatus
+  );
+  const pendingPlatformDebts = myOffers.filter(
+    (offer) => offer.feeStatus === "pending"
+  );
+  const pendingPlatformDebtTotal = pendingPlatformDebts.reduce(
+    (total, offer) => total + Number(offer.feeAmount || 0),
+    0
   );
 
   const shellStyle = {
@@ -642,12 +668,20 @@ function SupervisorPortal({ onBackHome }) {
 
         {errorMessage && <div style={{ ...cardStyle, color: "#991b1b" }}>{errorMessage}</div>}
         {successMessage && <div style={cardStyle}>{successMessage}</div>}
+        {pendingPlatformDebts.length > 0 && (
+          <div style={{ ...cardStyle, color: "#991b1b", background: "#fff1f2", borderColor: "#fecdd3" }}>
+            <strong>مديونية مستحقة للمنصة: {pendingPlatformDebtTotal.toLocaleString("ar-SA")} ريال</strong>
+            <p style={{ marginBottom: 0 }}>
+              لا يظهر حسابك ضمن ترشيحات المشرفين الجديدة حتى تأكيد السداد. المشاريع السابقة وسجلاتها لا تُحذف.
+            </p>
+          </div>
+        )}
 
         <section style={cardStyle}>
-          <h2 style={{ marginTop: 0 }}>مشاريع متاحة في منطقتك</h2>
-          <p>تظهر هنا المشاريع التي تقع في مدينتك أو ضمن مناطق خدمتك ولم يُفعّل لها مشرف بعد.</p>
+          <h2 style={{ marginTop: 0 }}>طلبات إشراف من العملاء</h2>
+          <p>لا يظهر المشروع هنا إلا بعد أن يختارك العميل ويرسل لك طلب تسعير الإشراف.</p>
           {availableProjects.length === 0 ? (
-            <p>لا توجد مشاريع متاحة حاليًا في منطقتك.</p>
+            <p>لا توجد طلبات إشراف جديدة حاليًا.</p>
           ) : (
             <div style={{ display: "grid", gap: 12 }}>
               {availableProjects.map((project) => {
@@ -656,18 +690,18 @@ function SupervisorPortal({ onBackHome }) {
                   <article key={key} style={{ padding: 14, border: "1px solid #e5e7eb", borderRadius: 12 }}>
                     <strong style={{ display: "block" }}>{project.projectNumber || "مشروع"}</strong>
                     <div>{project.city || ""}{project.district ? ` — ${project.district}` : ""}</div>
-                    <div>{project.projectTitle || ""} — {project.landArea || "-"} م² — {project.floors || "-"} دور</div>
+                    <div>{project.projectTitle || ""} — مساحة الأرض {project.landArea || "-"} م² — المسطح المبني {project.builtUpArea || "-"} م² — {project.floors || "-"} دور</div>
                     <small>المرحلة: {project.currentStage || "غير محددة"}</small>
                     {project.locationUrl && <p><a href={project.locationUrl} target="_blank" rel="noreferrer">فتح موقع المشروع</a></p>}
-                    {project.myOfferStatus ? (
-                      <p><strong>تم إرسال عرضك:</strong> {Number(project.myOfferPrice || 0).toLocaleString("ar-SA")} ريال</p>
-                    ) : (
-                      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                        <input type="number" min="1" step="0.01" placeholder="سعر الإشراف بالريال" value={offerPrices[key] || ""} onChange={(e) => setOfferPrices((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
-                        <textarea rows="2" placeholder="ملاحظة العرض (اختياري)" value={offerNotes[key] || ""} onChange={(e) => setOfferNotes((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
-                        <button type="button" onClick={() => submitProjectOffer(project)} disabled={loading || !offerPrices[key]}>إرسال عرض</button>
-                      </div>
+                    <p><strong>وقت الطلب:</strong> {formatSupervisorDate(project.requestedAt)}</p>
+                    {project.customerRequestNote && (
+                      <p><strong>ملاحظة العميل:</strong> {project.customerRequestNote}</p>
                     )}
+                    <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                      <input type="number" min="1" step="0.01" placeholder="سعر الإشراف بالريال" value={offerPrices[key] || ""} onChange={(e) => setOfferPrices((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                      <textarea rows="2" placeholder="ملاحظة العرض (اختياري)" value={offerNotes[key] || ""} onChange={(e) => setOfferNotes((current) => ({ ...current, [key]: e.target.value }))} disabled={loading} />
+                      <button type="button" onClick={() => submitProjectOffer(project)} disabled={loading || !offerPrices[key]}>إرسال السعر إلى العميل</button>
+                    </div>
                   </article>
                 );
               })}
@@ -682,9 +716,19 @@ function SupervisorPortal({ onBackHome }) {
               {myOffers.map((offer) => (
                 <article key={offer.id} style={{ padding: 12, border: "1px solid #e5e7eb", borderRadius: 12 }}>
                   <strong>{offer.projectNumber || "مشروع"}</strong>
-                  <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
-                  <div>الحالة: {offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "customer_selected" ? "اختارك العميل — بانتظار اعتماد الإدارة" : offer.status === "fee_pending" ? "معتمد — بانتظار سداد رسوم المنصة" : offer.status === "active" ? "تم التفعيل" : offer.status === "admin_rejected" ? "لم تعتمد الإدارة العرض" : offer.status}</div>
-                  {offer.status === "fee_pending" && <p><strong>رسوم المنصة 2٪: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />بعد السداد وتأكيد الإدارة تُفتح أدوات الإشراف على المشروع.</p>}
+                  {offer.status === "requested" ? (
+                    <div>السعر: لم يُرسل بعد</div>
+                  ) : (
+                    <div>قيمة العرض: {Number(offer.offerPrice || 0).toLocaleString("ar-SA")} ريال</div>
+                  )}
+                  <div>الحالة: {offer.status === "requested" ? "طلب جديد من العميل — بانتظار تسعيرك" : offer.status === "submitted" ? "بانتظار اختيار العميل" : offer.status === "active" ? "تم الإسناد وفتح خدمات المتابعة" : offer.status === "completed" && offer.feeStatus === "pending" ? "اكتملت المراحل — المديونية مستحقة" : offer.status === "completed" && offer.feeStatus === "paid" ? "اكتملت المراحل — تم سداد المديونية" : offer.status}</div>
+                  {offer.feeAmount != null && offer.status === "active" && (
+                    <p>
+                      رسوم المنصة المحتسبة: <strong>{Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong>
+                      {" "}({Number(offer.feeBasisArea || 0).toLocaleString("ar-SA")} م² × {Number(offer.feeUnitRate || 0).toLocaleString("ar-SA")} ريال). تستحق عند اكتمال جميع المراحل.
+                    </p>
+                  )}
+                  {offer.feeStatus === "pending" && <p><strong>مديونية المنصة: {Number(offer.feeAmount || 0).toLocaleString("ar-SA")} ريال</strong><br />يُعاد ظهور حسابك في الترشيحات الجديدة بعد تأكيد السداد.</p>}
                 </article>
               ))}
             </div>
@@ -856,6 +900,7 @@ function getInitialPageFromPath() {
     "/admin/login": "admin-login",
     "/admin/dashboard": "admin-dashboard",
     "/admin/customers": "admin-customer-files",
+    "/admin/project-follow-up-requests": "admin-project-follow-up-requests",
   };
 
   return routes[path] || "home";
@@ -1227,6 +1272,25 @@ function App() {
         onNextPage={handleCustomerNextPage}
         onOpenCustomerFile={handleOpenCustomerFile}
         onBackToHome={openAdminDashboard}
+      />
+    );
+  }
+
+  if (currentPage === "admin-project-follow-up-requests") {
+    if (!currentAdmin) {
+      return (
+        <AdminLoginPage
+          onSubmit={handleAdminSignIn}
+          isSubmitting={isAdminSigningIn}
+          errorMessage={adminLoginError}
+          onBackToHome={openHomePage}
+        />
+      );
+    }
+
+    return (
+      <AdminProjectFollowUpRequestsPage
+        onBack={openAdminDashboard}
       />
     );
   }

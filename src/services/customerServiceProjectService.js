@@ -106,6 +106,27 @@ function validateLandArea(value) {
   return landArea;
 }
 
+function validateBuiltUpArea(value) {
+  const builtUpArea = Number(value);
+
+  if (
+    !Number.isFinite(builtUpArea) ||
+    builtUpArea <= 0
+  ) {
+    throw new Error(
+      "أدخل إجمالي مسطح البناء بصورة صحيحة."
+    );
+  }
+
+  if (builtUpArea > 1000000) {
+    throw new Error(
+      "إجمالي مسطح البناء أكبر من الحد المسموح."
+    );
+  }
+
+  return builtUpArea;
+}
+
 function validateProjectTitle(value) {
   const projectTitle =
     normalizeText(value);
@@ -286,6 +307,14 @@ function getArabicServiceProjectError(
 
   if (
     message.includes(
+      "INVALID_BUILT_UP_AREA"
+    )
+  ) {
+    return "إجمالي مسطح البناء غير صحيح.";
+  }
+
+  if (
+    message.includes(
       "INVALID_PROJECT_TITLE"
     )
   ) {
@@ -393,6 +422,7 @@ export async function createCustomerServiceProject({
   propertyLocationUrl,
   city,
   landArea,
+  builtUpArea,
   projectTitle,
   floors,
   stageId = null,
@@ -415,6 +445,9 @@ export async function createCustomerServiceProject({
 
   const validatedLandArea =
     validateLandArea(landArea);
+
+  const validatedBuiltUpArea =
+    validateBuiltUpArea(builtUpArea);
 
   const validatedProjectTitle =
     validateProjectTitle(projectTitle);
@@ -447,6 +480,9 @@ export async function createCustomerServiceProject({
 
         p_land_area:
           validatedLandArea,
+
+        p_built_up_area:
+          validatedBuiltUpArea,
 
         p_project_title:
           validatedProjectTitle,
@@ -586,6 +622,11 @@ export async function getMyCustomerServiceProjects() {
 
     landArea:
       Number(project.land_area),
+
+    builtUpArea:
+      project.built_up_area == null
+        ? null
+        : Number(project.built_up_area),
 
     floors:
       Number(project.floors),

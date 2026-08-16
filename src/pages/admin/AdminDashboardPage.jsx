@@ -8,6 +8,7 @@ const ACTION_TYPE_LABELS = {
   land_review: "أراضٍ بانتظار المراجعة",
   land_transfer: "طلبات إفراغ تحتاج اعتماد",
   supervisor_report: "تقارير مشرفين تحتاج مراجعة",
+  project_follow_up_request: "مديونيات متابعة المشاريع",
   investor_application: "طلبات مستثمرين",
 };
 
@@ -17,6 +18,7 @@ const ACTION_TYPE_ICONS = {
   land_review: "📍",
   land_transfer: "🏠",
   supervisor_report: "🏗️",
+  project_follow_up_request: "🧭",
   investor_application: "📈",
 };
 
@@ -145,7 +147,27 @@ function AdminDashboardPage({
   const [adminStageWorkspace, setAdminStageWorkspace] = useState(null);
   const [adminStageLoading, setAdminStageLoading] = useState(false);
 
-  const totalPendingActions = pendingActions.reduce(
+  const pendingFollowUpRequests = supervisorOfferReviews.filter((offer) =>
+    offer.feeStatus === "pending"
+  ).length;
+
+  const visiblePendingActions = useMemo(() => {
+    const withoutFollowUp = pendingActions.filter(
+      (action) => action.type !== "project_follow_up_request"
+    );
+
+    if (pendingFollowUpRequests <= 0) return withoutFollowUp;
+
+    return [
+      ...withoutFollowUp,
+      {
+        type: "project_follow_up_request",
+        count: pendingFollowUpRequests,
+      },
+    ];
+  }, [pendingActions, pendingFollowUpRequests]);
+
+  const totalPendingActions = visiblePendingActions.reduce(
     (total, action) => total + Number(action.count || 0),
     0
   );
@@ -422,37 +444,6 @@ function AdminDashboardPage({
     }
   }
 
-  async function handleDecideSupervisorOffer(offerId, approve) {
-    if (!offerId || supervisorsSaving) return;
-    const note = approve ? "" : (window.prompt("سبب عدم الاعتماد (اختياري):") || "");
-    try {
-      setSupervisorsSaving(true);
-      setSupervisorsError("");
-      const { error } = await supabase.rpc("admin_decide_supervisor_offer", {
-        p_offer_id: offerId, p_approve: Boolean(approve), p_note: note || null,
-      });
-      if (error) throw error;
-      setSupervisorsMessage(approve ? "تم اعتماد اختيار العميل، وأصبحت رسوم 2٪ مستحقة على المشرف." : "تم رفض اختيار المشرف ويمكن للعميل اختيار عرض آخر.");
-      await reloadSupervisors();
-    } catch (error) {
-      setSupervisorsError(error?.message || "تعذر تنفيذ قرار العرض.");
-    } finally { setSupervisorsSaving(false); }
-  }
-
-  async function handleConfirmSupervisorFee(offerId) {
-    if (!offerId || supervisorsSaving) return;
-    try {
-      setSupervisorsSaving(true);
-      setSupervisorsError("");
-      const { error } = await supabase.rpc("admin_confirm_supervisor_offer_fee_paid", { p_offer_id: offerId });
-      if (error) throw error;
-      setSupervisorsMessage("تم تأكيد سداد الرسوم وتفعيل المشرف على المشروع.");
-      await reloadSupervisors();
-    } catch (error) {
-      setSupervisorsError(error?.message || "تعذر تأكيد السداد.");
-    } finally { setSupervisorsSaving(false); }
-  }
-
   async function handleViewProjectStage(projectId) {
     if (!projectId || adminStageLoading) return;
     try {
@@ -496,6 +487,11 @@ function AdminDashboardPage({
   }
 
   function handleOpenAction(actionType) {
+    if (actionType === "project_follow_up_request") {
+      window.location.href = "/admin/project-follow-up-requests";
+      return;
+    }
+
     if (actionType === "land_review") {
       window.location.href = "/admin/customers?status=land_under_review";
       return;
@@ -549,14 +545,14 @@ function AdminDashboardPage({
                 <span className="admin-dashboard-total-pending">{totalPendingActions}</span>
               </header>
 
-              {pendingActions.length === 0 ? (
+              {visiblePendingActions.length === 0 ? (
                 <div className="admin-dashboard-empty">
                   <h3>لا توجد إجراءات معلقة</h3>
                   <p>جميع الأعمال الحالية تمت مراجعتها.</p>
                 </div>
               ) : (
                 <div className="admin-action-grid">
-                  {pendingActions.map((action) => (
+                  {visiblePendingActions.map((action) => (
                     <button
                       key={action.type}
                       type="button"
@@ -683,6 +679,15 @@ function AdminDashboardPage({
               </header>
 
               <div className="admin-partner-directory-grid">
+                <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/project-follow-up-requests"; }}>
+                  <span className="admin-partner-directory-icon">🧭</span>
+                  <span className="admin-partner-directory-title">طلبات متابعة مشاريع</span>
+                  <span className="admin-partner-directory-note">متابعة المشاريع المسندة وتأكيد المديونيات بعد اكتمال المراحل</span>
+                  <strong className="admin-partner-directory-count" aria-label={`${pendingFollowUpRequests} مديونيات تحتاج تأكيدًا`}>
+                    {pendingFollowUpRequests}
+                  </strong>
+                </button>
+
                 <button type="button" className="admin-partner-directory-card" onClick={() => { window.location.href = "/admin/supervisor-applications?view=applicants"; }}>
                   <span className="admin-partner-directory-icon">📝</span>
                   <span className="admin-partner-directory-title">المشرفون المتقدمون</span>

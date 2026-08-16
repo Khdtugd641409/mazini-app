@@ -556,18 +556,73 @@ function StandardList({
 
 function SupervisorOffersCard({ projectId }) {
   const [offers, setOffers] = useState([]);
+  const [availableSupervisors, setAvailableSupervisors] = useState([]);
+  const [requestNotes, setRequestNotes] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [availabilityMessage, setAvailabilityMessage] = useState("");
+  const [requiresBuiltUpArea, setRequiresBuiltUpArea] = useState(false);
+  const [builtUpArea, setBuiltUpArea] = useState("");
 
   async function loadOffers() {
     if (!projectId) return;
     try {
       setLoading(true);
       setErrorMessage("");
-      const { data, error } = await supabase.rpc("customer_get_supervisor_offers", { p_project_id: projectId });
-      if (error) throw error;
-      setOffers(Array.isArray(data) ? data : []);
+      setAvailabilityMessage("");
+      setRequiresBuiltUpArea(false);
+      setAvailableSupervisors([]);
+
+      const [offersResult, supervisorsResult] = await Promise.all([
+        supabase.rpc("customer_get_supervisor_offers", {
+          p_project_id: projectId,
+        }),
+        supabase.rpc("customer_list_available_supervisors_for_project", {
+          p_project_id: projectId,
+        }),
+      ]);
+
+      if (offersResult.error) throw offersResult.error;
+
+      setOffers(Array.isArray(offersResult.data) ? offersResult.data : []);
+
+      if (supervisorsResult.error) {
+        const message = String(supervisorsResult.error.message || "");
+
+        if (message.includes("PROJECT_ALREADY_HAS_SUPERVISOR")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage("تم إسناد مشرف لهذا المشروع بالفعل.");
+        } else if (message.includes("PROJECT_BUILT_UP_AREA_REQUIRED")) {
+          setAvailableSupervisors([]);
+          setRequiresBuiltUpArea(true);
+          setAvailabilityMessage(
+            "أدخل إجمالي مسطح البناء قبل طلب الإشراف؛ لا تُحسب العمولة من مساحة الأرض."
+          );
+        } else if (message.includes("UNSUPPORTED_FLOOR_COUNT_FOR_PLATFORM_FEE")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage(
+            "تسعير عمولة الإشراف محدد حاليًا للمباني من دور إلى ثلاثة أدوار فقط."
+          );
+        } else if (message.includes("PROJECT_SUPERVISION_COMPLETED")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage("اكتملت متابعة هذا المشروع.");
+        } else if (message.includes("PROJECT_NOT_AVAILABLE_FOR_SUPERVISION")) {
+          setAvailableSupervisors([]);
+          setAvailabilityMessage(
+            "تتاح طلبات الإشراف بعد وصول المشروع إلى مرحلة جاهزة للمتابعة وتحديد مدينته."
+          );
+        } else {
+          throw supervisorsResult.error;
+        }
+      } else {
+        setAvailableSupervisors(
+          Array.isArray(supervisorsResult.data) ? supervisorsResult.data : []
+        );
+      }
     } catch (error) {
+      setOffers([]);
+      setAvailableSupervisors([]);
       setErrorMessage(error?.message || "تعذر تحميل عروض المشرفين.");
     } finally {
       setLoading(false);
@@ -581,34 +636,247 @@ function SupervisorOffersCard({ projectId }) {
     try {
       setLoading(true);
       setErrorMessage("");
+      setSuccessMessage("");
       const { error } = await supabase.rpc("customer_select_supervisor_offer", { p_offer_id: offerId });
       if (error) throw error;
+      setSuccessMessage("تم إسناد المشرف وفتح خدمات متابعة المشروع فورًا.");
       await loadOffers();
     } catch (error) {
-      setErrorMessage(error?.message || "تعذر اختيار العرض.");
+      const message = String(error?.message || "");
+
+      if (message.includes("SUPERVISOR_HAS_OUTSTANDING_PLATFORM_DEBT")) {
+        setErrorMessage(
+          "لا يمكن إسناد هذا المشرف حاليًا لوجود مديونية مستحقة عليه. اختر مشرفًا آخر."
+        );
+      } else {
+        setErrorMessage(error?.message || "تعذر اختيار العرض.");
+      }
       setLoading(false);
     }
   }
 
-  const selectedOffer = offers.find((offer) => ["customer_selected","fee_pending","active"].includes(offer.status));
+  async function saveBuiltUpArea() {
+    const area = Number(builtUpArea);
+
+    if (!Number.isFinite(area) || area <= 0 || loading) {
+      setErrorMessage("أدخل إجمالي مسطح البناء بصورة صحيحة.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const { error } = await supabase.rpc(
+        "customer_set_service_project_built_up_area",
+        {
+          p_project_id: projectId,
+          p_built_up_area: area,
+        }
+      );
+
+      if (error) throw error;
+
+      setBuiltUpArea("");
+      setSuccessMessage("تم حفظ إجمالي مسطح البناء.");
+      await loadOffers();
+    } catch (error) {
+      setErrorMessage(error?.message || "تعذر حفظ إجمالي مسطح البناء.");
+      setLoading(false);
+    }
+  }
+
+  async function requestSupervisorOffer(supervisorId) {
+    if (!supervisorId || loading) return;
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const { error } = await supabase.rpc(
+        "customer_request_supervisor_offer",
+        {
+          p_project_id: projectId,
+          p_supervisor_user_id: supervisorId,
+          p_note: String(requestNotes[supervisorId] || "").trim() || null,
+        }
+      );
+
+      if (error) throw error;
+
+      setRequestNotes((current) => ({ ...current, [supervisorId]: "" }));
+      setSuccessMessage("تم إرسال طلب الإشراف إلى المشرف، وبانتظار أن يضع سعره.");
+      await loadOffers();
+    } catch (error) {
+      const message = String(error?.message || "");
+
+      if (message.includes("LIVE_REQUEST_OR_OFFER_ALREADY_EXISTS")) {
+        setErrorMessage("يوجد طلب أو عرض قائم مع هذا المشرف بالفعل.");
+      } else {
+        setErrorMessage(error?.message || "تعذر إرسال طلب الإشراف.");
+      }
+      setLoading(false);
+    }
+  }
+
+  const selectedOffer = offers.find((offer) =>
+    ["customer_selected", "fee_pending", "active", "completed"].includes(
+      offer.status
+    )
+  );
+  const visibleOffers = offers.filter(
+    (offer) => !["expired", "cancelled", "withdrawn"].includes(offer.status)
+  );
+
+  const supervisorRequestLabels = {
+    requested: "تم إرسال الطلب — بانتظار السعر",
+    submitted: "وصل عرض المشرف",
+    customer_selected: "تم اختيار العرض",
+    fee_pending: "مديونية المنصة مستحقة",
+    active: "تم تفعيل المتابعة",
+    completed: "اكتملت متابعة المشروع",
+  };
 
   return (
     <section className="customer-file-card">
-      <h2>عروض المشرفين</h2>
+      <h2>طلب إشراف وعروض المشرفين</h2>
       {errorMessage && <p className="customer-file-notice" style={{ color: "#991b1b" }}>{errorMessage}</p>}
-      {selectedOffer?.status === "customer_selected" && <p className="customer-file-notice"><strong>تم اختيار المشرف. في انتظار قبول إدارة المنصة.</strong></p>}
-      {selectedOffer?.status === "fee_pending" && <p className="customer-file-notice"><strong>اعتمدت الإدارة اختيارك. بانتظار سداد المشرف رسوم المنصة لتفعيل الإشراف.</strong></p>}
+      {successMessage && <p className="customer-file-notice"><strong>{successMessage}</strong></p>}
       {selectedOffer?.status === "active" && <p className="customer-file-notice"><strong>تم تفعيل المشرف على المشروع.</strong></p>}
-      {loading ? <p>جاري تحميل العروض...</p> : offers.filter((offer) => offer.status !== "expired").length === 0 ? <p>لم تصل عروض من المشرفين حتى الآن.</p> : (
+      {selectedOffer?.status === "completed" && <p className="customer-file-notice"><strong>اكتملت خدمات متابعة هذا المشروع.</strong></p>}
+
+      {!selectedOffer && (
+        <div style={{ margin: "18px 0", display: "grid", gap: 12 }}>
+          <div>
+            <h3 style={{ marginBottom: 6 }}>المشرفون المتاحون للمشروع</h3>
+            <p className="customer-file-notice" style={{ margin: 0 }}>
+              اختر المشرف وأرسل له طلبًا؛ لا يستطيع وضع السعر قبل استلام طلبك.
+            </p>
+          </div>
+
+          {loading ? (
+            <p>جاري تحميل المشرفين...</p>
+          ) : availabilityMessage ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <p>{availabilityMessage}</p>
+              {requiresBuiltUpArea && (
+                <div style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={builtUpArea}
+                    onChange={(event) => setBuiltUpArea(event.target.value)}
+                    placeholder="إجمالي مسطح البناء بالمتر المربع"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="customer-land-entry-button"
+                    onClick={saveBuiltUpArea}
+                    disabled={loading || !builtUpArea}
+                  >
+                    حفظ المسطح وفتح قائمة المشرفين
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : availableSupervisors.length === 0 ? (
+            <p>لا يوجد مشرف نشط يغطي مدينة المشروع حاليًا.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {availableSupervisors.map((supervisor) => {
+                const requestIsLive = [
+                  "requested",
+                  "submitted",
+                  "customer_selected",
+                  "fee_pending",
+                  "active",
+                  "completed",
+                ].includes(supervisor.requestStatus);
+
+                return (
+                  <article
+                    key={supervisor.id}
+                    style={{
+                      padding: 14,
+                      border: "1px solid #e1e5e1",
+                      borderRadius: 14,
+                    }}
+                  >
+                    <strong style={{ display: "block", fontSize: 18 }}>
+                      {supervisor.name || "مشرف"}
+                    </strong>
+                    {supervisor.organizationName && <span>{supervisor.organizationName}</span>}
+                    <div>{supervisor.professionalTitle || ""}</div>
+                    <div>
+                      الخبرة: {Number(supervisor.experienceYears || 0)} سنة — المشاريع السابقة: {Number(supervisor.completedProjectsCount || 0)}
+                    </div>
+                    {supervisor.summary && <p>{supervisor.summary}</p>}
+
+                    {requestIsLive ? (
+                      <p className="customer-file-notice" style={{ marginBottom: 0 }}>
+                        <strong>
+                          {supervisorRequestLabels[supervisor.requestStatus] || supervisor.requestStatus}
+                        </strong>
+                      </p>
+                    ) : (
+                      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                        <textarea
+                          rows="2"
+                          value={requestNotes[supervisor.id] || ""}
+                          onChange={(event) =>
+                            setRequestNotes((current) => ({
+                              ...current,
+                              [supervisor.id]: event.target.value,
+                            }))
+                          }
+                          maxLength={1000}
+                          disabled={loading}
+                          placeholder="ملاحظة للمشرف عن طلب الإشراف (اختياري)"
+                        />
+                        <button
+                          type="button"
+                          className="customer-land-entry-button"
+                          onClick={() => requestSupervisorOffer(supervisor.id)}
+                          disabled={loading}
+                        >
+                          إرسال طلب إشراف
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <h3>العروض والطلبات المرسلة</h3>
+      {loading ? <p>جاري تحميل العروض...</p> : visibleOffers.length === 0 ? <p>لم تُرسل طلبات ولم تصل عروض حتى الآن.</p> : (
         <div style={{ display: "grid", gap: 10 }}>
-          {offers.filter((offer) => offer.status !== "expired").map((offer) => (
+          {visibleOffers.map((offer) => (
             <article key={offer.id} style={{ padding: 14, border: offer.id === selectedOffer?.id ? "2px solid #0b3b32" : "1px solid #e1e5e1", borderRadius: 14 }}>
               <strong style={{ display: "block", fontSize: 18 }}>{offer.supervisor?.name || "مشرف"}</strong>
               {offer.supervisor?.organizationName && <span>{offer.supervisor.organizationName}</span>}
               <div>{offer.supervisor?.professionalTitle || ""}</div>
               <div>الخبرة: {Number(offer.supervisor?.experienceYears || 0)} سنة — المشاريع السابقة: {Number(offer.supervisor?.completedProjectsCount || 0)}</div>
-              <p><strong>{Number(offer.price || 0).toLocaleString("ar-SA")} ريال</strong></p>
+              {offer.status === "requested" ? (
+                <p><strong>بانتظار أن يضع المشرف السعر.</strong></p>
+              ) : (
+                <p><strong>{Number(offer.price || 0).toLocaleString("ar-SA")} ريال</strong></p>
+              )}
               {offer.note && <p>{offer.note}</p>}
+              {offer.status === "admin_rejected" && (
+                <p className="customer-file-notice" style={{ color: "#991b1b" }}>
+                  <strong>لم تعتمد الإدارة هذا الاختيار.</strong>
+                  {offer.adminNote ? ` ${offer.adminNote}` : " يمكنك اختيار عرض آخر."}
+                </p>
+              )}
               {offer.status === "submitted" && !selectedOffer && (
                 <button type="button" className="customer-land-entry-button" onClick={() => selectOffer(offer.id)} disabled={loading}>اختيار العرض</button>
               )}
