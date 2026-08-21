@@ -127,13 +127,11 @@ export default function SupplierApplicationPage() {
       const { data, error } = await supabase.auth.verifyOtp({ email: form.email, token: normalizeOtp(otp), type: "email" });
       if (error) throw error;
       if (!data?.session) throw new Error("لم يتم إنشاء جلسة دخول صالحة.");
-      const categoryPath = getCategoryPath(form);
       const { error: submitError } = await supabase.rpc("supplier_submit_application", {
         p_organization_name: form.organizationName.trim(),
         p_commercial_registration_number: form.commercialRegistrationNumber.trim(),
         p_mobile_number: form.mobileNumber.trim(),
         p_maps_url: form.mapsUrl.trim(),
-        p_product_name: categoryPath,
         p_product_category: form.productCategory,
         p_accept_platform_fee_terms: form.acceptPlatformFeeTerms,
         p_platform_fee_terms_version: SUPPLIER_PLATFORM_FEE_TERMS_VERSION,
