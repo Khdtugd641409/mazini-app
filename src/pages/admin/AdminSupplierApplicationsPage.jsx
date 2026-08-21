@@ -48,20 +48,12 @@ export default function AdminSupplierApplicationsPage() {
   const [notes, setNotes] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
 
-  const applicants = useMemo(
-    () => items.filter((item) => item.status !== "approved"),
-    [items]
-  );
-  const approved = useMemo(
-    () => items.filter((item) => item.status === "approved"),
-    [items]
-  );
+  const applicants = useMemo(() => items.filter((item) => item.status !== "approved"), [items]);
+  const approved = useMemo(() => items.filter((item) => item.status === "approved"), [items]);
   const visibleItems = view === "approved" ? approved : applicants;
   const selected = items.find((item) => item.id === selectedId) || null;
   const selectedHasPlatformFeeAcceptance = Boolean(
-    selected?.platformFeeAcceptedAt &&
-    Number(selected?.platformFeeRate) === 0.01 &&
-    selected?.platformFeeIban
+    selected?.platformFeeAcceptedAt && Number(selected?.platformFeeRate) === 0.01 && selected?.platformFeeIban
   );
 
   async function reload() {
@@ -177,7 +169,7 @@ export default function AdminSupplierApplicationsPage() {
                 <div style={softCardStyle}><strong>السجل التجاري</strong><p>{selected.commercialRegistrationNumber}</p></div>
                 <div style={softCardStyle}><strong>البريد</strong><p>{selected.email}</p></div>
                 <div style={softCardStyle}><strong>الجوال</strong><p>{selected.mobileNumber}</p></div>
-                <div style={softCardStyle}><strong>المنتج</strong><p>{selected.initialProductName}</p></div>
+                <div style={softCardStyle}><strong>التصنيف الذي قدمه المورد</strong><p>{selected.initialProductName}</p>{selected.initialProductCategory && <small style={{ color: "#687872" }}>رمز التصنيف: {selected.initialProductCategory}</small>}</div>
                 <div style={softCardStyle}><strong>تعهد عمولة المنصة</strong><p style={{ color: selectedHasPlatformFeeAcceptance ? "#176b43" : "#991b1b" }}>{selectedHasPlatformFeeAcceptance ? "مقبول بنسبة 1٪" : "غير مسجل — لا يمكن اعتماد المورد"}</p><small>وقت القبول: {formatDate(selected.platformFeeAcceptedAt)}</small><div style={{ marginTop: 7 }}><code dir="ltr">{selected.platformFeeIban || SUPPLIER_PLATFORM_FEE_IBAN_DISPLAY}</code></div></div>
               </div>
               <a href={selected.mapsUrl} target="_blank" rel="noreferrer">فتح الموقع على الخرائط</a>
